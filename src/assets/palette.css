@@ -1,0 +1,13 @@
+/* assets/palette.css */
+/* all the possible colors of the user interface */
+:root {
+    --color-1:   #691AED;
+    --color-2: #ED1AE3;
+    --color-3:  #AE1AED;
+    --color-4:      #241AED;
+    --color-5:     #ED1A64;
+    --color-6:   #753ebe;
+    --color-7:    #e74c3c;
+    --color-8:      #8e44ad;
+  }
+  
