@@ -1,0 +1,71 @@
+/* assets/navbar.css */
+
+/* 1. Barra con gradiente, sombra y esquinas redondeadas */
+.navbar-custom {
+    background: linear-gradient(135deg, #1f1f1f 0%, #111 100%);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    padding: 0.75rem 2rem;
+    margin: 1rem;               /* deja un poco de espacio alrededor */
+    font-family: system-ui, sans-serif;
+}
+
+/* 2. Marca (logo/texto a la izquierda) */
+.navbar-custom .navbar-brand {
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: #fff;
+    letter-spacing: 1px;
+}
+
+/* 3. Centrado de los enlaces dentro del container */
+.navbar-custom .navbar-nav {
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* 4. Estilo base de cada enlace */
+.navbar-custom .nav-link {
+    position: relative;
+    margin: 0 0.75rem;
+    padding: 0.5rem 0;
+    color: rgba(255, 255, 255, 0.8);
+    font-weight: 500;
+    transition: color 0.3s;
+}
+
+/* 5. “Underline” animado desde el centro */
+.navbar-custom .nav-link::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background-color: var(--bs-primary);
+    transform: scaleX(0);
+    transform-origin: center;
+    transition: transform 0.3s ease;
+}
+
+.navbar-custom .nav-link:hover::after,
+.navbar-custom .nav-link.active::after {
+    transform: scaleX(1);
+}
+
+/* 6. Efecto hover y estado activo de color */
+.navbar-custom .nav-link:hover {
+    color: #fff;
+}
+
+.navbar-custom .nav-link.active {
+    color: var(--bs-primary);
+}
+
+/* 7. Ajustes responsivos (opcional) */
+@media (max-width: 992px) {
+    .navbar-custom {
+        border-radius: 0;  /* ocupa todo el ancho en móvil */
+        margin: 0;
+    }
+}
