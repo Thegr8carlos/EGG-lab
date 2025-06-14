@@ -2,8 +2,8 @@
 
 .page-container {
     min-height: 100vh;       /* ocupa toda la altura del viewport */
-    background-color: #000;  /* fondo negro */
-    color: #FFF;             /* texto blanco */
+    background-color: var(--color-1);  /* fondo negro */
+    color: var(--color-2);             /* texto blanco */
     padding: 2rem;           /* espacio interior */
     box-sizing: border-box;  /* padding no expande ancho */
   }

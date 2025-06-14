@@ -26,6 +26,14 @@ def get_navBar(page_registry):
         ),
         dbc.NavItem(
             dbc.NavLink(
+                "Dataset",
+                href="/dataset",
+                active="exact",
+                className="nav-link"
+            )
+        ),
+        dbc.NavItem(
+            dbc.NavLink(
                 "Filtros",
                 href="/filtros",
                 active="exact",

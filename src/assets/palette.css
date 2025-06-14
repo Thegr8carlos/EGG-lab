@@ -1,13 +1,12 @@
 /* assets/palette.css */
 /* all the possible colors of the user interface */
 :root {
-    --color-1:   #691AED;
-    --color-2: #ED1AE3;
-    --color-3:  #AE1AED;
-    --color-4:      #241AED;
-    --color-5:     #ED1A64;
-    --color-6:   #753ebe;
-    --color-7:    #e74c3c;
-    --color-8:      #8e44ad;
-  }
-  
+  --color-1: #1E1E2F;   /* Fondo principal oscuro profesional */
+  --color-2: #2C3E50;   /* Fondo secundario / navbar */
+  --color-3: #ECF0F1;   /* Texto claro / base */
+  --color-4: #3498DB;   /* Azul médico (selecciones, botones) */
+  --color-5: #9B59B6;   /* Morado ciencia (acento) */
+  --color-6: #16A085;   /* Verde clínico (confirmaciones) */
+  --color-7: #E74C3C;   /* Rojo alerta */
+  --color-8: #F39C12;   /* Amarillo advertencia / enfoque */
+}

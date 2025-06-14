@@ -2,11 +2,11 @@
 
 /* 1. Barra con gradiente, sombra y esquinas redondeadas */
 .navbar-custom {
-    background: linear-gradient(135deg, #1f1f1f 0%, #111 100%);
+    background: linear-gradient(135deg, var(--color-1) 0%, var(--color-4) 100%);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
     border-radius: 8px;
     padding: 0.75rem 2rem;
-    margin: 1rem;               /* deja un poco de espacio alrededor */
+    margin: 1rem;
     font-family: system-ui, sans-serif;
 }
 
@@ -14,7 +14,7 @@
 .navbar-custom .navbar-brand {
     font-size: 1.75rem;
     font-weight: 600;
-    color: #fff;
+    color: var(--color-5);
     letter-spacing: 1px;
 }
 
@@ -29,7 +29,7 @@
     position: relative;
     margin: 0 0.75rem;
     padding: 0.5rem 0;
-    color: rgba(255, 255, 255, 0.8);
+    color: rgba(255, 255, 255, 0.8); /* puedes cambiar a var(--color-X) si prefieres tono específico */
     font-weight: 500;
     transition: color 0.3s;
 }
@@ -42,7 +42,7 @@
     left: 0;
     width: 100%;
     height: 2px;
-    background-color: var(--bs-primary);
+    background-color: var(--color-2);
     transform: scaleX(0);
     transform-origin: center;
     transition: transform 0.3s ease;
@@ -55,17 +55,20 @@
 
 /* 6. Efecto hover y estado activo de color */
 .navbar-custom .nav-link:hover {
-    color: #fff;
+    color: white;
 }
 
 .navbar-custom .nav-link.active {
-    color: var(--bs-primary);
+    color: var(--color-2);
 }
 
-/* 7. Ajustes responsivos (opcional) */
+/* 7. Ajustes responsivos */
 @media (max-width: 992px) {
     .navbar-custom {
-        border-radius: 0;  /* ocupa todo el ancho en móvil */
+        border-radius: 0;
         margin: 0;
     }
 }
+
+
+
