@@ -2,7 +2,11 @@
 from dash import Dash, dcc, html, page_container, page_registry
 import dash_bootstrap_components as dbc 
 # internal dependencies
-from components.NavBar import get_navBar
+
+
+# importing all componets from the lab 
+from app.components.NavBar import get_navBar
+from app.components.Header import get_header
 
 
 # using this if in the future more config is needed
@@ -23,9 +27,12 @@ app.title = config["name_app"]
 
 
 navBar = get_navBar(page_registry)
+header = get_header(page_registry)
+
 
 app.layout = html.Div([
-    html.H1(config["title_app"], style={'textAlign': 'center'}),
+    #html.H1(config["title_app"], style={'textAlign': 'center'}),
+    header,
     navBar, # inserts the nav bar in the main container 
     dcc.Location(id="url"),
     page_container, # container that storages pages

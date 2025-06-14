@@ -2,7 +2,7 @@ import plotly.express as px
 from dash import html, dcc, register_page
 
 # internal dependencies
-from components.PageContainer import get_page_container
+from app.components.PageContainer import get_page_container
 
 
 # registry of the the page 
@@ -33,7 +33,7 @@ upload_button = html.Div(
 
 # 3) Componemos todo con nuestro wrapper
 layout = get_page_container(
-    "Cargando datos",
+    "Cargando datos hehe",
     "porfavor sube datos de tipo .egg, dbf, etc",
     upload_button
 )
