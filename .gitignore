@@ -167,5 +167,8 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 
+
+
+dataset/
 notes.txt
 thingsToDo.txt

@@ -50,5 +50,7 @@ app.layout = html.Div([
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
     
+    #app.run(debug=True) # comment this line if u want to test backend functionality 
+
+    print("🧐🔎🛠️💻  Backend Debug") # entry point to backend debug 
