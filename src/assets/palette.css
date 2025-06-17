@@ -1,12 +1,10 @@
-/* assets/palette.css */
-/* all the possible colors of the user interface */
 :root {
-  --color-1: #1E1E2F;   /* Fondo principal oscuro profesional */
-  --color-2: #2C3E50;   /* Fondo secundario / navbar */
-  --color-3: #ECF0F1;   /* Texto claro / base */
-  --color-4: #3498DB;   /* Azul médico (selecciones, botones) */
-  --color-5: #9B59B6;   /* Morado ciencia (acento) */
-  --color-6: #16A085;   /* Verde clínico (confirmaciones) */
-  --color-7: #E74C3C;   /* Rojo alerta */
-  --color-8: #F39C12;   /* Amarillo advertencia / enfoque */
+  --color-1: #0D0D1A;   /* Fondo principal: negro profundo con matiz azul oscuro */
+  --color-2: #111927;   /* Fondo secundario / navbar: gris carbón azulado */
+  --color-3: #EAF9FF;   /* Texto claro: blanco azulado suave */
+  --color-4: #00FFF7;   /* Cian neón (botones activos, selecciones) */
+  --color-5: #5C5CFF;   /* Azul violeta (acentos secundarios) */
+  --color-6: #00C8A0;   /* Verde azulado para confirmaciones (armoniza con el cian) */
+  --color-7: #FF4C4C;   /* Rojo alerta: fuerte pero no chillón */
+  --color-8: #FFC107;   /* Amarillo neón para advertencias o highlights */
 }
