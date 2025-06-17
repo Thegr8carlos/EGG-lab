@@ -1,12 +1,16 @@
-# external dependencies
+# ui dependencys 
 from dash import Dash, dcc, html, page_container, page_registry
-import dash_bootstrap_components as dbc 
+import dash_bootstrap_components as dbc  
+
 # internal dependencies
 
-
-# importing all componets from the lab 
+# ui components  
 from app.components.NavBar import get_navBar
 from app.components.Header import get_header
+
+
+# backend dependencies 
+from backend.classes.dataset import Dataset
 
 
 # using this if in the future more config is needed
@@ -52,5 +56,8 @@ app.layout = html.Div([
 if __name__ == "__main__":
     
     #app.run(debug=True) # comment this line if u want to test backend functionality 
-
     print("🧐🔎🛠️💻  Backend Debug") # entry point to backend debug 
+    data = Dataset("path", "name")
+    response = data.upload_dataset("dataset/inner_speech")
+    print(response)
+    
