@@ -1,12 +1,16 @@
 /* assets/PageContainer.css */
 
 .page-container {
-    min-height: 100vh;       /* ocupa toda la altura del viewport */
-    background-color: var(--color-1);  /* fondo negro */
-    color: var(--color-2);             /* texto blanco */
-    padding: 2rem;           /* espacio interior */
-    box-sizing: border-box;  /* padding no expande ancho */
-  }
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 1rem;
+  box-sizing: border-box;
+  background-color: var(--color-1);
+  color: var(--color-3);
+}
+
   
   .page-title {
     text-align: center;

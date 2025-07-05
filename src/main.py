@@ -34,23 +34,16 @@ navBar = get_navBar(page_registry)
 header = get_header(page_registry)
 
 
-app.layout = html.Div([
-    #html.H1(config["title_app"], style={'textAlign': 'center'}),
-    header,
-    navBar, # inserts the nav bar in the main container 
-    dcc.Location(id="url"),
-    page_container, # container that storages pages
-    #  html.Footer(               # <-- footer fixed
-    #     html.Div([
-    #         html.P("© 2025 BCI lab. Todos los derechos reservados.")
-    #     ], style={'textAlign': 'center', 'padding': '1rem'}),
-    #     style={
-    #         'backgroundColor': '#111',
-    #         'color': 'rgba(255,255,255,0.7)',
-    #         'marginTop': '2rem'
-    #     }
-    # )
-])
+app.layout = html.Div(
+    id="app-container",  # 👈 le damos un id para estilizar
+    children=[
+        header,
+        navBar,
+        dcc.Location(id="url"),
+        page_container
+    ]
+)
+
 
 
 if __name__ == "__main__":
