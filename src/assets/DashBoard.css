@@ -1,0 +1,10 @@
+.dashboard-scroll-wrapper {
+  height: calc(100vh - 160px); /* ajusta según altura del header/nav */
+  overflow-y: auto;
+  padding: 1rem;
+  box-sizing: border-box;
+}
+
+.dashboard-container {
+  padding-bottom: 2rem;
+}
