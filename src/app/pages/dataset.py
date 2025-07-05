@@ -27,10 +27,20 @@ def render_dataset_page(pathname):
         y=[1, 2, 3, 2, 3, 4, 1, 2, 3, 4],
         title="Heatmap de Densidad"
     )
+    fig4 = px.density_heatmap(
+        x=[1, 2, 2, 3, 3, 3, 4, 4, 4, 4],
+        y=[13, 2, 13, 452, 53, 4, 1, 2, 3, 4],
+        title="Heatmap de Densidad"
+    )
+    fig5 = px.density_heatmap(
+        x=[1, 2, 2, 3, 3, 3, 44, 4, 4, 4],
+        y=[15232, 242, 5433, 3122, 133, 2344, 421, 672, 3, 4],
+        title="Heatmap de Densidad"
+    )
 
-    dashboard = get_dashboard_container([fig1, fig2, fig3], columns_per_row=2)
+    dashboard = get_dashboard_container([fig1, fig2, fig3, fig4, fig5], columns_per_row=3)
 
-    return get_page_container("Prueba de dataset", "Verificación de tipos de gráficos", dashboard)
+    return get_page_container("Visualizacion de datos", "", dashboard)
     # if pathname != "/dataset":
     #     raise PreventUpdate
 
