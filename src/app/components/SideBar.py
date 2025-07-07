@@ -25,23 +25,25 @@ def parse_local_folder(path):
 
 def build_file_tree(folder_structure):
     if not folder_structure:
-        return html.Div("No folder loaded.", className="file-item")
+        return html.Div("Empty folder.", className="file-item")
 
     tree = []
     for name, content in folder_structure.items():
         if isinstance(content, dict):
+            subtree = build_file_tree(content)
+            # Ensure subtree is a list
+            if not isinstance(subtree, list):
+                subtree = [subtree]
             tree.append(
                 html.Details(
-                [html.Summary(name)] + build_file_tree(content)
+                    [html.Summary(name)] + subtree
                 )
             )
         else:
             tree.append(html.Div(name, className="file-item"))
-    
-    print(tree)
-    
-    
+
     return tree
+
 
 
 def get_sideBar(folder_path = "data/"):
