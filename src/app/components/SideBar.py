@@ -52,5 +52,6 @@ def get_sideBar(folder_path = "data/"):
     
     
     return html.Div(
-            html.Div(build_file_tree(folder_structure), className='file-tree')
+            
+            html.Div(build_file_tree(folder_structure),id= "sideBar-div", className='file-tree')
     )
