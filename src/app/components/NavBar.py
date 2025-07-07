@@ -70,8 +70,7 @@ def get_navBar(page_registry):
         dbc.Container([
             # 1) left menu nav brand w
             dbc.NavbarBrand(
-                html.Img(src="/assets/media/egg-gif.gif", height="40px"),
-                href="/"
+                html.Img(id="gif-btn",src="/assets/media/egg-gif.gif", height="40px"),
             ),
             # 2) nav link with all the pages
             dbc.Nav(nav_links, navbar=True, fill=True, justified="center", className="mx-auto"),

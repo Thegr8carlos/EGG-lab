@@ -40,7 +40,7 @@ app.layout = html.Div(
     children=[
         header,
         navBar,
-        html.Button("Show sidebar", id= "toggle-sidebar-btn",n_clicks =0 ),
+        # html.Button("Show sidebar", id= "toggle-sidebar-btn",n_clicks =0 ),
         html.Div(
             id = "sidebar-wrapper", 
             children = get_sideBar("Data"), 
@@ -56,7 +56,7 @@ app.layout = html.Div(
 
 @app.callback(
     Output("sidebar-wrapper", "style"),
-    Input("toggle-sidebar-btn", "n_clicks"),
+    Input("gif-btn", "n_clicks"),
     State("sidebar-wrapper", "style")
 )
 def toggle_sidebar(n_clicks, current_style):
