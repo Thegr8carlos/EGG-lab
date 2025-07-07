@@ -42,12 +42,27 @@ app.layout = html.Div(
         navBar,
         # html.Button("Show sidebar", id= "toggle-sidebar-btn",n_clicks =0 ),
         html.Div(
-            id = "sidebar-wrapper", 
-            children = get_sideBar("Data"), 
-            style = {"display" : "none"}
+            id= "main-content-wrapper",
+            style= {"display": "flex", "flexDirection":"row"},
+            children= [
+                html.Div(
+                    id = "sidebar-wrapper", 
+                    children = get_sideBar("Data"), 
+                    style = {"display" : "none"},
+                    className = "sideBar-container"
+                ),
+                html.Div(
+                    id="page-content",
+                    children=page_container,
+                    style={"flex": 1, "padding": "20px"}
+                )
+            ]
         ),
-        dcc.Location(id="url"),
-        page_container
+        
+        
+       
+        dcc.Location(id="url")
+        
     ]
 )
 
