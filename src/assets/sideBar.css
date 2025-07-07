@@ -1,0 +1,45 @@
+.sideBar-container {
+  background-color: var(--color-1);
+  padding: 1rem;
+  border-radius: 8px;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.sideBar-header {
+  margin-bottom: 1rem;
+}
+
+.header-title {
+  text-align: center;
+  color: white;
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.file-tree {
+  color: white;
+  font-family: Arial, sans-serif;
+  font-size: 1rem;
+}
+
+.file-tree details summary {
+  cursor: pointer;
+  padding: 0.25rem 0;
+  font-weight: bold;
+}
+
+.file-tree details {
+  margin-left: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.file-item {
+  margin-left: 2rem;
+  padding: 0.1rem 0;
+  cursor: pointer;
+}
+
+.file-item:hover {
+  color: #ffd700;
+}
