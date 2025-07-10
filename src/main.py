@@ -37,7 +37,6 @@ app.title = config["name_app"]
 
 navBar = get_navBar(page_registry)
 header = get_header(page_registry)
-print(get_sideBar("Data"))
 app.layout = html.Div(
     id="app-container",  # 👈 le damos un id para estilizar
     children=[
@@ -78,7 +77,6 @@ app.layout = html.Div(
     State("sidebar-wrapper", "className")
 )
 def toggle_sidebar(n_clicks, current_class):
-    print("toggled sidebar")
     
     if "hidden" in current_class: 
         
