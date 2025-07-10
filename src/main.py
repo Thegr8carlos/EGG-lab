@@ -1,7 +1,10 @@
 # ui dependencys 
-from dash import Dash, dcc, html, page_container, page_registry,Input, Output, State
-
+from dash import Dash, dcc, html, page_container, page_registry,Input, Output, State, ALL
+from dash import dcc, html, callback
+from dash.exceptions import PreventUpdate
+import dash
 import dash_bootstrap_components as dbc  
+import json
 
 # internal dependencies
 
@@ -21,7 +24,7 @@ config = {
     "title_app": "BCI lab - Demo"
 }
 
-
+    
 
 app = Dash(__name__,
     use_pages=True,
@@ -83,10 +86,38 @@ def toggle_sidebar(n_clicks, current_class):
     else: 
         return current_class.replace("shown","") + " hidden"
     
+
+#Listener for list elements     
+@app.callback(
+    Output('sideBar-div', 'children', allow_duplicate=True),  # or another output like a file preview area
+    Input({'type': 'file-item', 'path': ALL}, 'n_clicks'),
+    prevent_initial_call=True
+)
+def on_file_click(n_clicks_list):
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        raise dash.exceptions.PreventUpdate
+    # Find which file was clicked
+    # triggered_id = ctx.triggered[0]['prop_id'].split('.')[0]
+    triggered_id = ctx.triggered[0]['prop_id'].split(".n_clicks")[0]
+    triggered_id = json.loads(triggered_id)  # {'type': 'file-item', 'path': 'some/file.txt'}
     
     
+    file_path = triggered_id['path']
+    print(file_path)
+    # Do something with the file_path
 
 
+    """
+    
+    COLOCAR AQUI FUNCION QUE HACE ALGO CON EL PATH DE LOS ARCHIVOS PARA VISUALIZAR LAS SIGNALS Y ESO
+    
+    """
+
+
+
+
+    raise PreventUpdate
 
 
 if __name__ == "__main__":

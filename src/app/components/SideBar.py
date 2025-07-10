@@ -1,7 +1,6 @@
 import dash_bootstrap_components as dbc
 from dash import html
 import os
-
 def parse_local_folder(path):
     """
     Recursively walks through a folder and builds a nested dict.
@@ -23,12 +22,13 @@ def parse_local_folder(path):
 
 
 
-def build_file_tree(folder_structure):
+def build_file_tree(folder_structure,base_path=""):
     if not folder_structure:
         return html.Div("Empty folder.", className="file-item")
 
     tree = []
     for name, content in folder_structure.items():
+        full_path = os.path.join(base_path,name)
         if isinstance(content, dict):
             subtree = build_file_tree(content)
             # Ensure subtree is a list
@@ -40,7 +40,14 @@ def build_file_tree(folder_structure):
                 )
             )
         else:
-            tree.append(html.Div(name, className="file-item"))
+            tree.append(
+                html.Div(
+                    name,
+                    id = {'type': 'file-item', 'path': full_path.replace("\\", "/")},
+                    className="file-item",
+                    n_clicks=0
+                    ),
+                )
 
     return tree
 
