@@ -30,7 +30,7 @@ def build_file_tree(folder_structure,base_path=""):
     for name, content in folder_structure.items():
         full_path = os.path.join(base_path,name)
         if isinstance(content, dict):
-            subtree = build_file_tree(content)
+            subtree = build_file_tree(content,base_path=full_path)
             # Ensure subtree is a list
             if not isinstance(subtree, list):
                 subtree = [subtree]
