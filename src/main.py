@@ -48,8 +48,8 @@ app.layout = html.Div(
                 html.Div(
                     id = "sidebar-wrapper", 
                     children = get_sideBar("Data"), 
-                    style = {"display" : "none"},
-                    className = "sideBar-container"
+                    # style = {"transition" : "transform 0.3s ease-in-out"},
+                    className = "sideBar-container",
                 ),
                 html.Div(
                     id="page-content",
@@ -70,20 +70,21 @@ app.layout = html.Div(
 
 
 @app.callback(
-    Output("sidebar-wrapper", "style"),
+    Output("sidebar-wrapper", "className"),
     Input("gif-btn", "n_clicks"),
-    State("sidebar-wrapper", "style")
+    State("sidebar-wrapper", "className")
 )
-def toggle_sidebar(n_clicks, current_style):
+def toggle_sidebar(n_clicks, current_class):
     print("toggled sidebar")
     
-    
-    
-    
-    if n_clicks and current_style.get("display") == "none":
+    if "hidden" in current_class: 
         
-        return {"display": "block"}
-    return {"display": "none"}
+        return current_class.replace("hidden","").strip() + " shown"
+    else: 
+        return current_class.replace("shown","") + " hidden"
+    
+    
+    
 
 
 
