@@ -1,14 +1,31 @@
 .sideBar-container {
-  background-color: var(--color-1);
-  height: 100%;
-  overflow-y: auto;
-  border-color: var(--color-2);
-  border-style:solid;
-  padding: 1rem;
-  border-radius: 3px;
-  margin: 1rem;
+    background-color: var(--color-9);
+    width: 250px;
+    max-width: 100%;
+    height: 100vh;
+    overflow-y: auto;
+    border: solid 1px var(--color-2);
+    border-radius: 3px;
+    margin: 0;
+    padding: 1rem;
+    opacity: 0;
+  }
+
+
+.sideBar-container.shown {
+    opacity: 1;
+    transition: transform 0.3s ease-in-out;
+    transform: translateX(0); /* shown by default */
+    z-index: 10; 
+    
+}
+
+
   
-  
+/* Hide sidebar by sliding it left */
+.sideBar-container.hidden {
+    transform: translateX(-110%);
+    opacity: 1;
 }
 
 .sideBar-header {
@@ -34,6 +51,10 @@
   font-weight: bold;
 }
 
+.file-tree details summary:hover{
+    background-color: var(--color-1);
+}
+
 .file-tree details {
   margin-left: 1rem;
   margin-bottom: 0.5rem;
@@ -47,4 +68,6 @@
 
 .file-item:hover {
   color: #ffd700;
+  background-color: var(--color-1);
 }
+
