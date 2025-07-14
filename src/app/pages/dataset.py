@@ -1,10 +1,14 @@
 import plotly.express as px
 from dash import html, dcc, register_page, callback, Output, Input
 import plotly.express as px
-
+import numpy as np
 
 from app.components.PageContainer import get_page_container
 from app.components.DashBoard import get_dashboard_container
+
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+
 
 #from shared.file_reader import is_data_loaded
 
@@ -20,27 +24,38 @@ layout = html.Div(id="dataset-view")
     Input("url", "pathname")
 )
 def render_dataset_page(pathname):
-    fig1 = px.line(x=[1, 2, 3, 4], y=[4, 1, 3, 2], title="Gráfico de Línea")
-    fig2 = px.scatter(x=[1, 2, 3, 4], y=[2, 4, 3, 1], title="Gráfico de Dispersión")
-    fig3 = px.density_heatmap(
-        x=[1, 2, 2, 3, 3, 3, 4, 4, 4, 4],
-        y=[1, 2, 3, 2, 3, 4, 1, 2, 3, 4],
-        title="Heatmap de Densidad"
-    )
-    fig4 = px.density_heatmap(
-        x=[1, 2, 2, 3, 3, 3, 4, 4, 4, 4],
-        y=[13, 2, 13, 452, 53, 4, 1, 2, 3, 4],
-        title="Heatmap de Densidad"
-    )
-    fig5 = px.density_heatmap(
-        x=[1, 2, 2, 3, 3, 3, 44, 4, 4, 4],
-        y=[15232, 242, 5433, 3122, 133, 2344, 421, 672, 3, 4],
-        title="Heatmap de Densidad"
-    )
+    
+    print(pathname)
+    
+    
+    #Simulating the signal for now will actually read it in from the proper file later on 
+    
+    signal = np.random.randn(1000,8)
+    
+    channel_figures = create_channel_plots(signal)
+    
+    # Put them into your dashboard container
+    # dashboard = get_dashboard_container(channel_figures, columns_per_row=3)
 
-    dashboard = get_dashboard_container([fig1, fig2, fig3, fig4, fig5], columns_per_row=3)
+    scrollable_graph = html.Div(
+        dcc.Graph(figure=channel_figures, config={"displayModeBar": True}),
+        style={
+            "height": "80vh",
+            "overflowY": "scroll",
+            "border": "1px solid #ccc",
+            "padding": "10px",
+            "backgroundColor": "#fafafa"
+        }
+    )
+     
 
-    return get_page_container("Visualizacion de datos", "", dashboard)
+
+
+    return get_page_container(
+        "Señales Multicanal",
+        "Gráfico desplazable con canales apilados.",
+        scrollable_graph
+    )
     # if pathname != "/dataset":
     #     raise PreventUpdate
 
@@ -54,3 +69,41 @@ def render_dataset_page(pathname):
     #         "Sin dataset",
     #         "Por favor, sube un archivo en la sección de Cargar Datos."
     #     )
+
+
+
+def create_channel_plots(signal_ndarray):
+    num_channels = signal_ndarray.shape[1]
+    time = np.arange(signal_ndarray.shape[0])
+
+    # Create subplots: 1 column, N rows, shared X-axis
+    fig = make_subplots(
+        rows=num_channels,
+        cols=1,
+        shared_xaxes=True,
+        vertical_spacing=0.02,  # tighter spacing
+        subplot_titles=[f"Channel {i+1}" for i in range(num_channels)]
+    )
+
+    for i in range(num_channels):
+        fig.add_trace(
+            go.Scatter(
+                x=time,
+                y=signal_ndarray[:, i],
+                mode="lines",
+                name=f"Channel {i+1}"
+            ),
+            row=i+1,
+            col=1
+        )
+        # Optional: hide Y axis ticks if needed
+        fig.update_yaxes(title_text=f"Ch {i+1}", row=i+1, col=1)
+
+    fig.update_layout(
+        height=250 * num_channels,  # adjust for scrollable height
+        showlegend=False,
+        title="Señales Multicanal (Apiladas)",
+        margin=dict(t=40, b=40)
+    )
+    
+    return fig
