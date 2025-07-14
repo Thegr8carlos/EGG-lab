@@ -62,7 +62,7 @@ app.layout = html.Div(
         ),
         
         
-       
+            
         dcc.Location(id="url")
         
     ]
