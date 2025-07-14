@@ -34,10 +34,16 @@ app = Dash(__name__,
 app.title = config["name_app"]
 
 
+#Adding a dcc.Store for a client side memory store 
+dcc.Store(id='selected-file-path', storage_type='local')  # or 'local' if you want it to persist longer
+
+
+
 
 navBar = get_navBar(page_registry)
 header = get_header(page_registry)
 app.layout = html.Div(
+
     id="app-container",  # 👈 le damos un id para estilizar
     children=[
         header,
@@ -63,7 +69,9 @@ app.layout = html.Div(
         
         
             
-        dcc.Location(id="url")
+        dcc.Location(id="url"),
+        dcc.Store(id="selected-file-path"),
+
         
     ]
 )
@@ -86,8 +94,14 @@ def toggle_sidebar(n_clicks, current_class):
     
 
 #Listener for list elements     
+# @app.callback(
+#     Output('sideBar-div', 'children', allow_duplicate=True),  # or another output like a file preview area
+#     Input({'type': 'file-item', 'path': ALL}, 'n_clicks'),
+#     prevent_initial_call=True
+# )
 @app.callback(
-    Output('sideBar-div', 'children', allow_duplicate=True),  # or another output like a file preview area
+    Output('selected-file-path','data'),  # or another output like a file preview area
+    Output('url','pathname'),
     Input({'type': 'file-item', 'path': ALL}, 'n_clicks'),
     prevent_initial_call=True
 )
@@ -103,19 +117,8 @@ def on_file_click(n_clicks_list):
     
     file_path = triggered_id['path']
     print(file_path)
-    # Do something with the file_path
-
-
-    """
     
-    COLOCAR AQUI FUNCION QUE HACE ALGO CON EL PATH DE LOS ARCHIVOS PARA VISUALIZAR LAS SIGNALS Y ESO
-    
-    """
-
-
-
-
-    raise PreventUpdate
+    return file_path, "/dataset"
 
 
 if __name__ == "__main__":

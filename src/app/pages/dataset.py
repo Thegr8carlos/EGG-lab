@@ -21,16 +21,28 @@ layout = html.Div(id="dataset-view")
 # callback que se dispara al entrar a la ruta /dataset
 @callback(
     Output("dataset-view", "children"),
-    Input("url", "pathname")
+    Input("url", "pathname"),
+    Input("selected-file-path", "data")
 )
-def render_dataset_page(pathname):
+def render_dataset_page(pathname, selected_file_path):
     
-    print(pathname)
+    print(f"Path is: {pathname}")
+    print(f"selected path is: {selected_file_path}")
     
+    if selected_file_path is None: 
+        print("No file selected, cannot plot\n")
+        return
+    
+    # We check that the path is a .npy 
+    if selected_file_path[-4:] != ".npy":
+        print("Invalid file, cannot plot")
+        return
     
     #Simulating the signal for now will actually read it in from the proper file later on 
+    signal = np.load(f"Data/{selected_file_path}")
     
-    signal = np.random.randn(1000,8)
+    if signal.shape[0] < signal.shape[1]: 
+        signal = signal.T
     
     channel_figures = create_channel_plots(signal)
     
@@ -39,6 +51,7 @@ def render_dataset_page(pathname):
 
     scrollable_graph = html.Div(
         dcc.Graph(figure=channel_figures, config={"displayModeBar": True}),
+        # dcc.Interval(id="signal-update-interval", interval = 200, n_intervals = 0)
         style={
             "height": "80vh",
             "overflowY": "scroll",
@@ -73,8 +86,14 @@ def render_dataset_page(pathname):
 
 
 def create_channel_plots(signal_ndarray):
+    
+    
     num_channels = signal_ndarray.shape[1]
     time = np.arange(signal_ndarray.shape[0])
+    
+    print(num_channels)
+    print(time)
+    
 
     # Create subplots: 1 column, N rows, shared X-axis
     fig = make_subplots(
