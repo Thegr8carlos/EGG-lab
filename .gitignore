@@ -168,7 +168,8 @@ cython_debug/
 .pypirc
 
 
-
+src/Data/_aux
+src/Data/inner_speech
 dataset/
 notes.txt
 thingsToDo.txt

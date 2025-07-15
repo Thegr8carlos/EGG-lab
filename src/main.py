@@ -124,7 +124,7 @@ if __name__ == "__main__":
     
     app.run(debug=True) # comment this line if u want to test backend functionality 
     #print("🧐🔎🛠️💻  Backend Debug") # entry point to backend debug 
-    #data = Dataset("path", "name")
-    #response = data.upload_dataset("dataset/inner_speech")
+    #data = Dataset("Data/inner_speech", "nieto_dataset")
+    #response = data.upload_dataset("Data/inner_speech")
     #print(response)
     
