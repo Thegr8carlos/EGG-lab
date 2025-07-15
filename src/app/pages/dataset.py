@@ -1,5 +1,5 @@
 import plotly.express as px
-from dash import html, dcc, register_page, callback, Output, Input
+from dash import html, dcc, register_page, callback, Output, Input, no_update, State
 import plotly.express as px
 import numpy as np
 
@@ -9,6 +9,8 @@ from app.components.DashBoard import get_dashboard_container
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
+import dash
+
 
 #from shared.file_reader import is_data_loaded
 
@@ -16,91 +18,91 @@ from plotly.subplots import make_subplots
 register_page(__name__, path="/dataset", name="Dataset")
 
 # layout con contenedor dinámico
-layout = html.Div(id="dataset-view")
+layout = html.Div(
+    children=[
+        dcc.Store(id='full-signal-data'),
+        html.Div(
+            children=dcc.Graph(id='signal-graph'),
+            style={
+                "height": "80vh",  # or "600px", adjust as needed
+                "overflowY": "scroll",
+                "border": "1px solid #ccc",
+                "padding": "10px",
+                "backgroundColor": "#fafafa"
+            }
+        ),
+        dcc.Interval(
+            id='interval-component',
+            interval=1000,
+            n_intervals=0,
+            disabled=True
+        )
+    ],
+    id="dataset-view"
+)
 
-# callback que se dispara al entrar a la ruta /dataset
+
 @callback(
-    Output("dataset-view", "children"),
-    Input("url", "pathname"),
+    Output("full-signal-data", "data"),
+    Output("interval-component", "disabled"),
     Input("selected-file-path", "data")
 )
-def render_dataset_page(pathname, selected_file_path):
+def load_signal_data(selected_file_path):
+    print("Entering callback")
+    print(selected_file_path)
+    if not selected_file_path or not selected_file_path.endswith(".npy"):
+        print("Invalid or missing file.")
+        return no_update, True  # Keep interval disabled
     
-    print(f"Path is: {pathname}")
-    print(f"selected path is: {selected_file_path}")
-    
-    if selected_file_path is None: 
-        print("No file selected, cannot plot\n")
-        return
-    
-    # We check that the path is a .npy 
-    if selected_file_path[-4:] != ".npy":
-        print("Invalid file, cannot plot")
-        return
-    
-    #Simulating the signal for now will actually read it in from the proper file later on 
+    # Load the signal
     signal = np.load(f"Data/{selected_file_path}")
-    
+
     if signal.shape[0] < signal.shape[1]: 
         signal = signal.T
-    
-    channel_figures = create_channel_plots(signal)
-    
-    # Put them into your dashboard container
-    # dashboard = get_dashboard_container(channel_figures, columns_per_row=3)
 
-    scrollable_graph = html.Div(
-        dcc.Graph(figure=channel_figures, config={"displayModeBar": True}),
-        # dcc.Interval(id="signal-update-interval", interval = 200, n_intervals = 0)
-        style={
-            "height": "80vh",
-            "overflowY": "scroll",
-            "border": "1px solid #ccc",
-            "padding": "10px",
-            "backgroundColor": "#fafafa"
-        }
-    )
-     
+    # Serialize the signal (convert to list to make it JSON serializable)
+    signal_dict = {
+        "data": signal.tolist(),
+        "num_channels": signal.shape[1],
+        "num_timepoints": signal.shape[0]
+    }
+
+    return signal_dict, False  # Enable interval
 
 
 
-    return get_page_container(
-        "Señales Multicanal",
-        "Gráfico desplazable con canales apilados.",
-        scrollable_graph
-    )
-    # if pathname != "/dataset":
-    #     raise PreventUpdate
-
-    # if is_data_loaded():
-    #     return get_page_container(
-    #         "Dataset cargado",
-    #         "Aquí irá la vista de los datos cargados."
-    #     )
-    # else:
-    #     return get_page_container(
-    #         "Sin dataset",
-    #         "Por favor, sube un archivo en la sección de Cargar Datos."
-    #     )
-
-
-
-def create_channel_plots(signal_ndarray):
+@callback(
+    Output("signal-graph", "figure"),
+    Input("interval-component", "n_intervals"),
+    State("full-signal-data", "data")
+)
+def update_signal_graph(n_intervals, signal_data):
     
     
-    num_channels = signal_ndarray.shape[1]
-    time = np.arange(signal_ndarray.shape[0])
+    STEP = 10 
+    WINDOW = 1000
     
-    print(num_channels)
-    print(time)
-    
+    if not signal_data:
+        raise dash.exceptions.PreventUpdate
 
-    # Create subplots: 1 column, N rows, shared X-axis
+    signal = np.array(signal_data["data"])
+    num_channels = signal.shape[1]
+    num_timepoints = signal.shape[0]
+
+    start = n_intervals * STEP
+    end = start + WINDOW
+
+    if end > num_timepoints:
+        start = 0
+        end = WINDOW
+
+    time = np.arange(start, end)
+
     fig = make_subplots(
         rows=num_channels,
         cols=1,
         shared_xaxes=True,
-        vertical_spacing=0.02,  # tighter spacing
+        vertical_spacing=0.02,
         subplot_titles=[f"Channel {i+1}" for i in range(num_channels)]
     )
 
@@ -108,21 +110,23 @@ def create_channel_plots(signal_ndarray):
         fig.add_trace(
             go.Scatter(
                 x=time,
-                y=signal_ndarray[:, i],
+                y=signal[start:end, i],
                 mode="lines",
                 name=f"Channel {i+1}"
             ),
             row=i+1,
             col=1
         )
-        # Optional: hide Y axis ticks if needed
-        fig.update_yaxes(title_text=f"Ch {i+1}", row=i+1, col=1)
+        fig.update_yaxes(title_text= f"Ch {i+1}", row=i+1,col=1)    
+    
+   
 
     fig.update_layout(
-        height=250 * num_channels,  # adjust for scrollable height
+        height=250 * num_channels,
         showlegend=False,
-        title="Señales Multicanal (Apiladas)",
-        margin=dict(t=40, b=40)
+        title="Señales Multicanal (Desplazamiento Automático)",
+        margin=dict(t=40, b=40),
+        # xaxis=dict(range=[start, end])
     )
-    
+
     return fig

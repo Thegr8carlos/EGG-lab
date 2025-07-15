@@ -39,7 +39,6 @@ dcc.Store(id='selected-file-path', storage_type='local')  # or 'local' if you wa
 
 
 
-
 navBar = get_navBar(page_registry)
 header = get_header(page_registry)
 app.layout = html.Div(
