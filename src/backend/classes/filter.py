@@ -1,5 +1,7 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, model_validator, ValidationError
 from typing import Optional, Tuple, Literal, Union, List, Dict, Any
+from dash import callback, Input, Output, State, no_update
+
 
 
 # ---------------------------- MODELOS ----------------------------
@@ -12,34 +14,100 @@ class Filter(BaseModel):
     sp: float
 
 
-class ICA(Filter):
-    numeroComponentes: Optional[int] = None
-    method: Literal['fastica', 'picard', 'infomax'] = 'fastica'
-    random_state: Optional[int] = None
-    max_iter: Optional[int] = 200
 
+# --------------------- ICA ---------------------
+
+class ICA(Filter):
+    numeroComponentes: Optional[int] = Field(
+        None,
+        ge=1,
+        description="Número de componentes independientes (opcional)"
+    )
+    method: Literal['fastica', 'picard', 'infomax'] = Field(
+        'fastica',
+        description="Método ICA: fastica, picard o infomax"
+    )
+    random_state: Optional[int] = Field(
+        None,
+        description="Semilla aleatoria para reproducibilidad"
+    )
+    max_iter: Optional[int] = Field(
+        200,
+        ge=1,
+        le=10000,
+        description="Número máximo de iteraciones"
+    )
+
+# --------------------- Wavelets ---------------------
 
 class WaveletsBase(Filter):
-    wavelet: str
-    level: Optional[int] = None
-    mode: Optional[str] = 'symmetric'
-    threshold: Optional[float] = None
+    wavelet: str = Field(
+        ...,
+        description="Nombre de la wavelet a usar (por ejemplo: db4, coif5, etc.)"
+    )
+    level: Optional[int] = Field(
+        None,
+        ge=1,
+        le=10,
+        description="Nivel de descomposición (opcional)"
+    )
+    mode: Optional[str] = Field(
+        'symmetric',
+        description="Modo de extensión de bordes: symmetric, periodic, etc."
+    )
+    threshold: Optional[float] = Field(
+        None,
+        ge=0.0,
+        description="Valor de umbral para denoising (si aplica)"
+    )
 
+# --------------------- Bandpass ---------------------
 
 class Bandpass(Filter):
-    filter_type: Literal['lowpass', 'highpass', 'bandpass'] = 'bandpass'
-    freq: Union[float, Tuple[float, float]]
-    method: Literal['fir', 'iir'] = 'fir'
-    order: Optional[int] = None
-    phase: Literal['zero', 'minimum'] = 'zero'
-    fir_window: Optional[str] = 'hamming'
+    filter_type: Literal['lowpass', 'highpass', 'bandpass'] = Field(
+        'bandpass',
+        description="Tipo de filtro: lowpass, highpass o bandpass"
+    )
+    freq: Union[float, Tuple[float, float]] = Field(
+        ...,
+        description="Frecuencia de corte: una sola (float) o un par (low, high)"
+    )
+    method: Literal['fir', 'iir'] = Field(
+        'fir',
+        description="Método de diseño del filtro"
+    )
+    order: Optional[int] = Field(
+        None,
+        ge=1,
+        le=1000,
+        description="Orden del filtro (opcional, depende del método)"
+    )
+    phase: Literal['zero', 'minimum'] = Field(
+        'zero',
+        description="Tipo de fase para el filtro FIR"
+    )
+    fir_window: Optional[str] = Field(
+        'hamming',
+        description="Ventana para diseño FIR: hamming, hann, blackman, etc."
+    )
 
 
 class Notch(Filter):
-    freqs: Union[float, List[float]]
-    quality: Optional[float] = 30.0
-    method: Literal['fir', 'iir'] = 'fir'
-
+    freqs: Union[float, List[float]] = Field(
+        ...,
+        description="Frecuencia o lista de frecuencias a atenuar"
+    )
+    quality: Optional[float] = Field(
+        30.0,
+        ge=1.0,
+        le=100.0,
+        description="Factor de calidad del filtro (Q). A mayor valor, mayor selectividad"
+    )
+    method: Literal['fir', 'iir'] = Field(
+        'fir',
+        description="Método para aplicar el filtro notch"
+    )
+    
 
 # ---------------------------- FACTORY ----------------------------
 
@@ -47,13 +115,13 @@ class FilterSchemaFactory:
     """
     Genera esquemas simplificados para filtros y sus hijos.
     """
+    
     available_filters = {
-        'ica': ICA,
-        'wavelets': WaveletsBase,
-        'bandpass': Bandpass,
-        'notch': Notch
+        'ICA': ICA,
+        'WaveletsBase': WaveletsBase,
+        'Bandpass': Bandpass,
+        'Notch': Notch
     }
-
     @classmethod
     def get_base_schema(cls) -> Dict[str, Any]:
         return Filter.model_json_schema()
@@ -67,6 +135,128 @@ class FilterSchemaFactory:
             schemas[key] = schema
         return schemas
 
+
+
+
+
+
+
+
+
+
+
+
+
+#---------------------------------------------Call backs-----------------------------------
+
+
+"ejemplo de call bach"
+
+#Para hacer los callbacks de cada uno de los componentes generados dinamicamente, usamos la misma función para generar 
+# el esquema json, con la cual: Obtenedremos los id y los campos especificos. Luego, también se generan dinamicamente
+# los states del callback, los cuales son guardados en un diciconario y valiadados por las clas. 
+# 
+
+
+
+
+def generar_mapa_validacion_inputs(all_schemas: dict) -> list[dict]:
+    
+    resultado = []
+    print(all_schemas)
+
+    for tipo_filtro, schema in all_schemas.items():
+        propiedades = schema.get("properties", {})
+        input_map = {}
+
+        for nombre_campo, info in propiedades.items():
+            # This matches exactly the ID used in build_configuration_ui
+            input_id = f"{tipo_filtro}-{nombre_campo}"
+
+            # Determine type
+            tipo = info.get("type")
+            any_of = info.get("anyOf")
+            enum = info.get("enum")
+
+            if any_of:
+                # Prefer non-null type from anyOf
+                tipos = [a.get("type") for a in any_of if a.get("type") and a["type"] != "null"]
+                if tipos:
+                    tipo = tipos[0]
+
+            # Map evaluation function
+            if enum:
+                evaluacion = f"validar_enum({enum})"
+            elif tipo == "number":
+                evaluacion = "validar_float(valor)"
+            elif tipo == "integer":
+                evaluacion = "validar_int(valor)"
+            elif tipo == "array":
+                evaluacion = "validar_array_de_numeros(valor)"
+            elif tipo == "string":
+                evaluacion = "validar_str(valor)"
+            else:
+                evaluacion = "valor  # sin validación definida"
+
+            input_map[input_id] = evaluacion
+
+        # Ensure the button ID matches the one in build_configuration_ui
+        resultado.append({
+            f"btn-aplicar-{tipo_filtro}": input_map
+        })
+    print(resultado)
+
+    return resultado
+
+def registrar_callback(boton_id: str, inputs_map: dict):
+
+    available_filters = {
+        'ICA': ICA,
+        'WaveletsBase': WaveletsBase,
+        'Bandpass': Bandpass,
+        'Notch': Notch
+    }
+    input_ids = list(inputs_map.keys())
+
+    @callback(
+        Output(boton_id, "children"),
+        Input(boton_id, "n_clicks"),
+        [State(input_id, "value") for input_id in input_ids]
+    )
+    def manejar_formulario(n_clicks, *values, input_ids=input_ids, validadores=inputs_map):
+        if not n_clicks:
+            return no_update
+
+        filtro_nombre = boton_id.replace("btn-aplicar-", "")
+        clase_validadora = available_filters.get(filtro_nombre)
+
+        datos = {}
+        for input_id, value in zip(input_ids, values):
+            _, field = input_id.split("-", 1)
+            datos[field] = value
+
+        try:
+            instancia_valida = clase_validadora(**datos) ##             Aqui se instancia la clase para validar de manera automatica.
+            print(f"✅ Datos válidos para {filtro_nombre}: {instancia_valida}")
+            """
+            -------------------------------------------------------------------------------------------------------------
+            Aqui se puede definir Cómo queremos maneajr los experimentos. 
+            
+            Yo propongo que generemos un auxiliar json llamado Experimeento o algo así
+            y para no meternos en problemas de qué y cómo guardar las coasas
+            mejor que se mantengan estatica.
+            Ya solo haría falta hacer una clase de experimento y su mandero. Esto es basicamente un CRUD
+            -------------------------------------------------------------------------------------------------------------
+            """
+            return no_update
+        except ValidationError as e:
+            print(f"❌ Errores en {filtro_nombre}: {e}")
+            errores = e.errors()
+            msg = "\n".join(f"{err['loc'][0]}: {err['msg']}" for err in errores)
+            return no_update
+for grupo in generar_mapa_validacion_inputs(FilterSchemaFactory.get_all_filter_schemas()):
+    for boton_id, inputs_map in grupo.items():
+        registrar_callback(boton_id, inputs_map)
 
 # ---------------------------- USO ----------------------------
 

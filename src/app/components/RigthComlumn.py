@@ -65,7 +65,7 @@ def build_configuration_ui(schema: dict):
             input_component = html.Div([
                 dbc.Label(nombre_mostrado, html_for=field_name, style={"minWidth": "140px", "color": "white"}),
                 dcc.Dropdown(
-                    id=f"{schema['type']}-{field_name}",
+                    id=f"{tipo}-{field_name}",
                     options=[{"label": str(val), "value": val} for val in field_info["enum"]],
                     placeholder=f"Selecciona valor",
                     style={"flex": "1", "color": "black"}
@@ -75,20 +75,33 @@ def build_configuration_ui(schema: dict):
         # --- Si es combinación de tipos (anyOf), tratamos de deducir ---
         elif "anyOf" in field_info:
             posibles_tipos = {x.get("type") for x in field_info["anyOf"] if "type" in x}
-            if "number" in posibles_tipos or "integer" in posibles_tipos:
-                tipo_input = "number"
-            else:
-                tipo_input = "text"
+            
+            tipo_input = "text"
+            atributos_input = {}
+
+            # Detectar si es número
+            for tipo_Field in field_info["anyOf"]:
+                if tipo_Field.get("type") in ["number", "integer"]:
+                    tipo_input = "number"
+                    if "minimum" in tipo_Field:
+                        atributos_input["min"] = tipo_Field["minimum"]
+                    if "maximum" in tipo_Field:
+                        atributos_input["max"] = tipo_Field["maximum"]
+                    if "default" in field_info:
+                        atributos_input["value"] = field_info["default"]
+                    break  # solo tomamos el primero válido
 
             input_component = html.Div([
                 dbc.Label(nombre_mostrado, html_for=field_name, style={"minWidth": "140px", "color": "white"}),
                 dbc.Input(
                     type=tipo_input,
-                    id=f"{schema['type']}-{field_name}",
+                    id=f"{tipo}-{field_name}",
                     placeholder=f"Ingresa {nombre_mostrado}",
-                    style={"flex": "1"}
+                    style={"flex": "1"},
+                    **atributos_input
                 )
             ], className="input-field-group")
+
 
         # --- Si es tipo array (de número por ejemplo) ---
         elif field_info.get("type") == "array":
@@ -96,7 +109,7 @@ def build_configuration_ui(schema: dict):
                 dbc.Label(nombre_mostrado, html_for=field_name, style={"minWidth": "140px", "color": "white"}),
                 dbc.Input(
                     type="text",  # se podría transformar a varios inputs si lo deseas
-                    id=f"{schema['type']}-{field_name}",
+                    id=f"{tipo}-{field_name}",
                     placeholder=f"Ingresa lista separada por comas",
                     style={"flex": "1"}
                 )
@@ -114,7 +127,7 @@ def build_configuration_ui(schema: dict):
                 dbc.Label(nombre_mostrado, html_for=field_name, style={"minWidth": "140px", "color": "white"}),
                 dbc.Input(
                     type=tipo_dash,
-                    id=f"{schema['type']}-{field_name}",
+                    id=f"{tipo}-{field_name}",
                     placeholder=f"Ingresa {nombre_mostrado}",
                     style={"flex": "1"}
                 )
@@ -124,11 +137,11 @@ def build_configuration_ui(schema: dict):
 
     # Botón de aplicar
     components.append(
-        dbc.Button("Aplicar", color="primary", id=f"btn-aplicar-{schema['type']}", className="mt-2")
+        dbc.Button("Aplicar", color="primary", id=f"btn-aplicar-{tipo}", className="mt-2")
     )
 
     return dbc.Card([
-        dbc.CardHeader(tipo.upper(), className="right-panel-card-header"),
+        dbc.CardHeader(str(tipo).upper(), className="right-panel-card-header"),
         dbc.CardBody(components)
     ], className="mb-3 right-panel-card")
 
