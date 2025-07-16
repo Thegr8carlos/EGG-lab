@@ -167,7 +167,8 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 
-
+src/Data/_aux
+src/Data/inner_speech
 
 dataset/
 notes.txt
