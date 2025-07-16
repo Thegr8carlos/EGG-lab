@@ -1,10 +1,10 @@
 import plotly.express as px
-from dash import html, dcc, register_page, callback, Output, Input, no_update, State
+from dash import html, dcc, register_page, callback, Output, Input, no_update, State, MATCH
 import plotly.express as px
 import numpy as np
 
 from app.components.PageContainer import get_page_container
-from app.components.DashBoard import get_dashboard_container
+from app.components.DashBoard import get_dashboard_container, get_dashboard_container_dynamic
 
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
@@ -21,16 +21,8 @@ register_page(__name__, path="/dataset", name="Dataset")
 layout = html.Div(
     children=[
         dcc.Store(id='full-signal-data'),
-        html.Div(
-            children=dcc.Graph(id='signal-graph'),
-            style={
-                "height": "80vh",  # or "600px", adjust as needed
-                "overflowY": "scroll",
-                "border": "1px solid #ccc",
-                "padding": "10px",
-                "backgroundColor": "#fafafa"
-            }
-        ),
+        get_dashboard_container_dynamic(graph_id = "signal-graph"),
+        
         dcc.Interval(
             id='interval-component',
             interval=1000,
@@ -42,13 +34,17 @@ layout = html.Div(
 )
 
 
+
+
+
+
+
 @callback(
     Output("full-signal-data", "data"),
     Output("interval-component", "disabled"),
     Input("selected-file-path", "data")
 )
 def load_signal_data(selected_file_path):
-    print("Entering callback")
     print(selected_file_path)
     if not selected_file_path or not selected_file_path.endswith(".npy"):
         print("Invalid or missing file.")
@@ -74,7 +70,8 @@ def load_signal_data(selected_file_path):
 @callback(
     Output("signal-graph", "figure"),
     Input("interval-component", "n_intervals"),
-    State("full-signal-data", "data")
+    State("full-signal-data", "data"), 
+    prevent_initial_call = True
 )
 def update_signal_graph(n_intervals, signal_data):
     
@@ -129,4 +126,5 @@ def update_signal_graph(n_intervals, signal_data):
         # xaxis=dict(range=[start, end])
     )
 
+    
     return fig
