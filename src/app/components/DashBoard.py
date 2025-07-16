@@ -23,3 +23,26 @@ def get_dashboard_container(figures: List[go.Figure], columns_per_row: int = 2):
             )
         ]
     )
+
+
+
+def get_dashboard_container_dynamic(graph_id = "signal-graph"): 
+    
+     return html.Div(
+        className="dashboard-scroll-wrapper",
+        children=[
+            dbc.Container(
+                fluid=True,
+                className="dashboard-container",
+                children=[
+                    dbc.Row([
+                        dbc.Col(
+                            dcc.Graph(id=graph_id, figure=None),
+                            width=12
+                        )
+                    ], className="mb-4")
+                ]
+            )
+        ]
+    )
+    
