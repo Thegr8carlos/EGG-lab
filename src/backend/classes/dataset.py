@@ -81,3 +81,10 @@ class Dataset:
                 "mensaje": f"Error al procesar archivo '{path}': {str(e)}",
                 "archivos_guardados": []
             }
+
+
+"""
+Cambiar page de cargar datos para que se pueda subir un directorio y no un archivo.
+Conectar la page con la clase dataset 
+Que se cree la carpeta _aux
+"""

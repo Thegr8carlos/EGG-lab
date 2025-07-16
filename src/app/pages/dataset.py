@@ -24,9 +24,9 @@ layout = html.Div(id="dataset-view")
 )
 def render_dataset_page(pathname, selected_file_path):
     if selected_file_path != None:
-        print(f"📂 Archivo seleccionado: {selected_file_path.split(":")[0]}")
+        print(f'📂 Archivo seleccionado: {selected_file_path.split(":")[0]}')
         dataset = Dataset("Data/inner_speech", "nieto_dataset")
-        data = dataset.read_npy(f"{selected_file_path.split(":")[0]}")
+        data = dataset.read_npy(f'{selected_file_path.split(":")[0]}')
         print(data.shape)
 
         figures = []
