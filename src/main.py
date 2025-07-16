@@ -12,6 +12,9 @@ import json
 from app.components.NavBar import get_navBar
 from app.components.Header import get_header
 
+from app.components.RigthComlumn import get_rightColumn
+
+
 
 # backend dependencies 
 from backend.classes.dataset import Dataset
@@ -42,12 +45,14 @@ dcc.Store(id='selected-file-path', storage_type='local')  # or 'local' if you wa
 
 navBar = get_navBar(page_registry)
 header = get_header(page_registry)
+
 app.layout = html.Div(
 
     id="app-container",  # 👈 le damos un id para estilizar
     children=[
         header,
         navBar,
+        
         # html.Button("Show sidebar", id= "toggle-sidebar-btn",n_clicks =0 ),
         html.Div(
             id= "main-content-wrapper",
@@ -63,9 +68,15 @@ app.layout = html.Div(
                     id="page-content",
                     children=page_container,
                     style={"flex": 1, "padding": "20px"}
-                )
+                ),
+                
+
+                    
+                
             ]
         ),
+        
+    
         
         
             
@@ -116,7 +127,7 @@ def on_file_click(n_clicks_list):
     
     
     file_path = triggered_id['path']
-    print(file_path)
+    print("asdfaswdfasd"+file_path)
     
     return file_path, "/dataset"
 
