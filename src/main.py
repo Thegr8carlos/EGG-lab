@@ -133,9 +133,10 @@ def on_file_click(n_clicks_list):
 
 if __name__ == "__main__":
     
+    
     app.run(debug=True) # comment this line if u want to test backend functionality 
-    #print("🧐🔎🛠️💻  Backend Debug") # entry point to backend debug 
-    #data = Dataset("path", "name")
-    #response = data.upload_dataset("dataset/inner_speech")
-    #print(response)
+    # print("🧐🔎🛠️💻  Backend Debug") # entry point to backend debug 
+    # data = Dataset("Data/innerSpeech", "nieto_dataset")
+    # response = data.upload_dataset("Data/innerSpeech")
+    # print(response)
     
