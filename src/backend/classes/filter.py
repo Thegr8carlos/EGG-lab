@@ -188,7 +188,7 @@ def registrar_callback(boton_id: str, inputs_map: dict):
 
         try:
             instancia_valida = clase_validadora(**datos) ##             Aqui se instancia la clase para validar de manera automatica.
-            print(f"✅ Datos válidos para {filtro_nombre}: {instancia_valida}")
+            print(f"✅ Datos válidos para {filtro_nombre}: {instancia_valida}")     
             """
             -------------------------------------------------------------------------------------------------------------
             Aqui se puede definir Cómo queremos maneajr los experimentos. 
@@ -205,6 +205,7 @@ def registrar_callback(boton_id: str, inputs_map: dict):
             errores = e.errors()
             msg = "\n".join(f"{err['loc'][0]}: {err['msg']}" for err in errores)
             return no_update
+
 for grupo in generar_mapa_validacion_inputs(FilterSchemaFactory.get_all_filter_schemas()):
     for boton_id, inputs_map in grupo.items():
         registrar_callback(boton_id, inputs_map)
