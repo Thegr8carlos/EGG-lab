@@ -1,19 +1,34 @@
-import plotly.express as px
-from dash import html, dcc, register_page
-
-# internal dependencies
+from dash import html, dcc, register_page, callback, Input, Output, ALL, ctx
+from dash.exceptions import PreventUpdate
 from app.components.PageContainer import get_page_container
+from shared.fileUtils import get_data_folders
 
-
-# registry of the the page 
 register_page(__name__, path="/cargardatos", name="Cargar Datos")
 
+BUTTON_STYLE = {
+    "display": "inline-block",
+    "padding": "0.5rem 1rem",
+    "margin": "0.5rem",
+    "backgroundColor": "#00C8A0",
+    "color": "white",
+    "textDecoration": "none",
+    "border": "none",
+    "borderRadius": "8px",
+    "cursor": "pointer",
+    "fontWeight": "bold",
+    "boxShadow": "0 4px 6px rgba(0, 0, 0, 0.2)"
+}
 
-upload_button = html.Div(
-    dcc.Upload(
-        # El child de Upload será nuestro botón
-        children=html.Button(
-            "Seleccionar archivo",
+layout = get_page_container(
+    "Cargando datos hehe",
+    "Presiona el botón para mostrar las opciones",
+    html.Div([
+        dcc.Location(id="redirector", refresh=True),
+
+        html.Button(
+            "Cargar dataset",
+            id="cargar-btn",
+            n_clicks=0,
             style={
                 'padding': '0.5rem 1rem',
                 'backgroundColor': '#007bff',
@@ -23,17 +38,45 @@ upload_button = html.Div(
                 'cursor': 'pointer'
             }
         ),
-        multiple=False,
-        # Aseguramos que el Upload no amplíe el botón por defecto
-        style={'display': 'inline-block'}
-    ),
-    # Y lo alineamos a la izquierda de su contenedor padre
-    style={'textAlign': 'center'}
+
+        html.Div(id="lista-opciones", style={"marginTop": "1rem", "textAlign": "center"})
+    ], style={'textAlign': 'center'})
 )
 
-# 3) Componemos todo con nuestro wrapper
-layout = get_page_container(
-    "Cargando datos hehe",
-    "porfavor sube datos de tipo .egg, dbf, etc",
-    upload_button
+
+@callback(
+    Output("lista-opciones", "children"),
+    Input("cargar-btn", "n_clicks")
 )
+def mostrar_opciones(n):
+    if n == 0:
+        return ""
+    datasets = get_data_folders()
+    return html.Div([
+        html.Button(
+            nombre,
+            id={"type": "dataset-btn", "index": nombre},
+            n_clicks=0,
+            style=BUTTON_STYLE
+        )
+        for nombre in datasets
+    ], style={"display": "flex", "justifyContent": "center", "flexWrap": "wrap"})
+
+
+@callback(
+    Output("redirector", "pathname"),
+    Input({"type": "dataset-btn", "index": ALL}, "n_clicks"),
+    prevent_initial_call=True
+)
+def redirigir_dataset(n_clicks_list):
+    # Evita disparos falsos cuando la lista se crea (todos n_clicks == 0)
+    if not any(n_clicks_list):
+        raise PreventUpdate
+
+    # ctx.triggered_id es el dict del botón presionado
+    triggered = ctx.triggered_id
+    nombre = triggered.get("index")
+    print(f"👉 Dataset seleccionado: {nombre}")
+
+    # redirige con query param para la página /dataset
+    return f"/dataset"
