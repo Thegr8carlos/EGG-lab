@@ -170,6 +170,7 @@ cython_debug/
 src/Data/_aux
 src/Data/inner_speech
 src/Data/innerSpeech
+src/Data/inner_speech.zip
 
 dataset/
 notes.txt
