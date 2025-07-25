@@ -31,6 +31,9 @@ class Dataset:
         else:
             return {"status": 400, "message": "Se ha seleccionado una carpeta Vacia "}
 
+    def find_datasets():
+        print("finding datasets")
+
     def get_info(self):
         return f"Info about the dataset hehe "
 
