@@ -1,0 +1,6 @@
+html, body, #app-container {
+  height: 100vh;
+  margin: 0;
+  overflow: hidden; /* 👈 esto evita que toda la página haga scroll */
+  background-color: var(--color-1);
+}

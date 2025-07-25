@@ -1,0 +1,11 @@
+.header-container {
+  background-color: var(--color-1);
+  padding: 1rem;
+  border-radius: 8px;
+}
+
+.header-title {
+  text-align: center;
+  color: white;
+  font-size: 2.5rem;
+}

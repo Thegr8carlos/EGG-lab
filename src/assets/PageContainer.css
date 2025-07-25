@@ -1,0 +1,23 @@
+/* assets/PageContainer.css */
+
+.page-container {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 1rem;
+  box-sizing: border-box;
+  background-color: var(--color-1);
+  color: var(--color-3);
+}
+
+  
+  .page-title {
+    text-align: center;
+    margin-top: 0;
+  }
+  
+  .page-description {
+    text-align: center;
+  }
+  
