@@ -1,3 +1,4 @@
+annotated-types==0.7.0
 blinker==1.9.0
 certifi==2025.4.26
 charset-normalizer==3.4.1
@@ -28,6 +29,8 @@ pillow==11.2.1
 platformdirs==4.3.8
 plotly==6.0.1
 pooch==1.8.2
+pydantic==2.11.7
+pydantic_core==2.33.2
 pyparsing==3.2.3
 python-dateutil==2.9.0.post0
 pytz==2025.2
@@ -37,6 +40,7 @@ scipy==1.15.3
 setuptools==80.1.0
 six==1.17.0
 tqdm==4.67.1
+typing-inspection==0.4.1
 typing_extensions==4.13.2
 tzdata==2025.2
 urllib3==2.4.0
