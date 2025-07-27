@@ -171,7 +171,7 @@ src/Data/_aux
 src/Data/inner_speech
 src/Data/innerSpeech
 src/Data/inner_speech.zip
-
+src/Data/*
 dataset/
 notes.txt
 thingsToDo.txt
