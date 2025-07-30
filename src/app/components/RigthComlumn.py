@@ -1,8 +1,8 @@
 import dash_bootstrap_components as dbc 
 from dash import html, dcc
-from backend.classes.filter import FilterSchemaFactory
-from backend.classes.featureExtracture import TransformSchemaFactory
-from backend.classes.clsificationModels import ClassifierSchemaFactory
+from backend.classes.Filter.FilterSchemaFactory import FilterSchemaFactory
+from backend.classes.FeatureExtracture.TransformSchemaFactory import TransformSchemaFactory
+from backend.classes.ClasificationModel.ClassifierSchemaFactory import ClassifierSchemaFactory
 NOMBRE_CAMPOS_ES = {
     # Común
     "sp": "Frecuencia de Muestreo",
