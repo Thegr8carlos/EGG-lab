@@ -11,7 +11,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 import dash
-
+from sklearn.preprocessing import LabelEncoder
 
 #from shared.file_reader import is_data_loaded
 
@@ -125,6 +125,20 @@ def load_signal_data(selected_file_path):
     print(f"signal shape: {signal.shape}")  
     print(f"labels shape: {labels.shape}")  
 
+    
+    # We encode the vector 
+    
+    encoder = LabelEncoder() 
+    labels = encoder.fit_transform(labels.ravel())
+    
+    
+    
+    print(f"One hot encoded labels shape: {labels.shape}")
+    
+    
+    
+    
+        
     # Serialize the signal (convert to list to make it JSON serializable)
     signal_dict = {
         "data": signal.tolist(),
@@ -139,10 +153,37 @@ def load_signal_data(selected_file_path):
 
 clientside_callback(
     """
+    
+    
+    
     function(n_intervals, signal_data) {
         if (!signal_data || !signal_data.data || !signal_data.labels) {
             return window.dash_clientside.no_update;
         }
+        
+        
+        window.labelColorMap = window.labelColorMap || {};
+        window.colorIndex = window.colorIndex = window.colorIndex || 0; 
+    
+        function getColorForLabel(label) {
+            if(!(label in window.labelColorMap)) { 
+
+                
+                
+                const hue = (window.colorIndex * 47) % 360;
+                window.labelColorMap[label] = `hsl(${hue}, 70%, 50%)`;
+                window.colorIndex +=1;
+            
+            
+            }
+            
+            return window.labelColorMap[label];
+        }
+        
+    
+        
+        
+        
         const STEP = 10;
         const WINDOW = 1000;
         const signal = signal_data.data;
@@ -166,30 +207,17 @@ clientside_callback(
         const label_window = labels.slice(start,end);
         
         
-        /*
-        const labelColorMap = {
-            "Comment/Down": "red",
-            "Comment/Left": "orange",
-            "Comment/Rest": "purple",
-            "Comment/Right": "blue",
-            "Comment/Select": "green",
-            "Comment/Up": "brown",
-            "Comment/Wait": "pink",
-            "Comment/WarmUp": "teal",
-            "None": "gray"
-        };
         
-        */
+        const uniqueLabels = [...new Set(label_window)];
         
+        const labelColorMap = {};
         
-        const labelColorMap = {
-            "0": "red",
-            "1": "orange",
-            "2": "purple",
-            "3": "blue",
-            "4": "green"
-        };
+        uniqueLabels.forEach((label,index) =>{
+            const hue = (index * 360 / uniqueLabels.length) % 360;
+             labelColorMap[label] = `hsl(${hue}, 70%, 50%)`;
+        });
 
+        
         
         
         //Default to gray if unknown 
@@ -197,7 +225,6 @@ clientside_callback(
     
         
         const subplots = [];
-        for (let ch = 0; ch < num_channels; ch++) {
             let segment_start = 0;
             while (segment_start < time.length) {
                 const current_label = label_window[segment_start];
@@ -211,24 +238,29 @@ clientside_callback(
                 }
 
                 const time_segment = time.slice(segment_start, segment_end);
-                const y_segment = signal_window
-                    .slice(segment_start, segment_end)
-                    .map(row => row[ch]);
+                const signal_segment = signal_window.slice(segment_start, segment_end);
 
-                subplots.push({
-                    x: time_segment,
-                    y: y_segment,
-                    mode: 'lines',
-                    name: `Ch ${ch + 1}`,
-                    line: { color: labelColorMap[current_label] || 'black' },
-                    xaxis: 'x',
-                    yaxis: `y${ch + 1}`,
-                    showlegend: false
-                });
+                const color = getColorForLabel(current_label);
+                
+                
+                for (let ch =0; ch<num_channels; ch++){
+                    const y_segment = signal_segment.map(row=> row[ch]);
+                
+                
+                    subplots.push({
+                        x: time_segment,
+                        y: y_segment,
+                        mode: 'lines',
+                        name: `Ch ${ch + 1}`,
+                        line: { color: color || 'black' },
+                        xaxis: 'x',
+                        yaxis: `y${ch + 1}`,
+                        showlegend: false
+                    });
+                }
 
                 segment_start = segment_end;
             }
-        }
 
 
         const layout = {
