@@ -24,3 +24,9 @@ def get_data_folders():
         if folder.is_dir() and folder.name != "_aux"
     ]
     return folders
+
+
+def get_file_extension(fileName):
+     
+    
+    return Path(fileName).suffix

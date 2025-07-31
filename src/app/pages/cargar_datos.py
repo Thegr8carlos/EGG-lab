@@ -2,6 +2,7 @@ from dash import html, dcc, register_page, callback, Input, Output, ALL, ctx
 from dash.exceptions import PreventUpdate
 from app.components.PageContainer import get_page_container
 from shared.fileUtils import get_data_folders
+from backend.classes.dataset import Dataset
 
 register_page(__name__, path="/cargardatos", name="Cargar Datos")
 
@@ -77,6 +78,11 @@ def redirigir_dataset(n_clicks_list):
     triggered = ctx.triggered_id
     nombre = triggered.get("index")
     print(f"👉 Dataset seleccionado: {nombre}")
+
+
+    dataset = Dataset(f"Data/{nombre}",nombre)
+    
+    dataset.upload_dataset(dataset.path)
 
     # redirige con query param para la página /dataset
     return f"/dataset"
