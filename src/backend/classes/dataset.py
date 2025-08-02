@@ -1,5 +1,5 @@
 from pathlib import Path
-from shared.fileUtils import get_file_extension, is_folder_not_empty, get_files_by_extensions
+from shared.fileUtils import get_file_extension, is_folder_not_empty, get_files_by_extensions, get_Data_filePath, get_Label_filePath
 
 import mne, sys
 import numpy as np 
@@ -25,8 +25,8 @@ class Dataset:
                 return {"status": 400, "message": f"No se han encontrado archivos con extension {self.extensions_enabled}"} 
 
             print("reading the files ")
-            count =0 
-            for file in files :
+            for file in files:
+                
                 
                 if get_file_extension(file) == ".bdf":
                 
@@ -60,17 +60,16 @@ class Dataset:
                     
                     print(f"Run number is: {run_number}")
                     
+                    
+                    
+                    #Temporary code, fix later
                     if run_number is not None:
                         label_file = os.path.join("Data/ciscoEEG/ds005170-1.1.2/textdataset", f"split_data_{run_number}.xlsx")
                         labels_df = pd.read_excel(label_file)
     
-                        print("Printing dataframe")
-                        
-                        print(labels_df)
     
                             
-                        label_list = labels_df.iloc[:, 0].tolist()  # assuming first column has sentences
-
+                        label_list = labels_df.iloc[:, 0].tolist()  
 
 
                         if len(label_list) != len(events):
@@ -109,11 +108,36 @@ class Dataset:
                     for ul, ct in zip(unique_labels, counts):
                         print(f"{ul}: {ct}")
                                         
-                    np.save("Data/test/Labels/siscoTest.npy",label_array[0,:50000])
-                    np.save("Data/test/siscoTest.npy",data[:, :50000])
-                    break
+                                        
+                    
+                    print(f"File name is: {file}")
+                 
+             
+
+
+
+                    auxFilePath = get_Data_filePath(str(file))
+                    
+                    auxLabelPath = get_Label_filePath(str(file))  
+                    
+                    print(f"Aux file is: {auxFilePath}")
+                    print(f"Aux label is: {auxLabelPath}")
+             
+             
+                    #Ensure the path structure for the file exists
+                    
+                    os.makedirs(os.path.dirname(auxFilePath), exist_ok=True)
+                    os.makedirs(os.path.dirname(auxLabelPath), exist_ok=True)
+             
+                    #Now that we've ensured that the path was created we can now write the .npy
                     
                     
+                    np.save(auxFilePath, data)
+                    np.save(auxLabelPath, label_array)
+
+
+                    
+            print("ending")     
                     
                 
             return {"status": 200, "message": f"Se han encontrado {len(files)}  sesiones ", "files" : files}
@@ -145,6 +169,3 @@ class Dataset:
         # raw = mne.io.read_raw_bdf(str(file_path), verbose=True, infer_types=True)
         raw = mne.io.read_raw_edf(str(file_path), verbose = True, infer_types = True, preload= True)
         return raw
-
-
-        
