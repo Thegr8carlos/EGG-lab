@@ -69,7 +69,7 @@ app.layout = html.Div(
         
             
         dcc.Location(id="url"),
-        dcc.Store(id="selected-file-path"),
+        dcc.Store(id="selected-file-path", storage_type = "local"), # Local: Persists across browser tabs/ windows and reloads
 
         
     ]
@@ -93,26 +93,20 @@ def toggle_sidebar(n_clicks, current_class):
     
 
 #Listener for list elements     
-# @app.callback(
-#     Output('sideBar-div', 'children', allow_duplicate=True),  # or another output like a file preview area
-#     Input({'type': 'file-item', 'path': ALL}, 'n_clicks'),
-#     prevent_initial_call=True
-# )
 @app.callback(
-    Output('selected-file-path','data'),  # or another output like a file preview area
+    Output('selected-file-path','data'),  
     Output('url','pathname'),
     Input({'type': 'file-item', 'path': ALL}, 'n_clicks'),
     prevent_initial_call=True
 )
 def on_file_click(n_clicks_list):
+    print("File Clicked")
     ctx = dash.callback_context
     if not ctx.triggered:
         raise dash.exceptions.PreventUpdate
     # Find which file was clicked
-    # triggered_id = ctx.triggered[0]['prop_id'].split('.')[0]
     triggered_id = ctx.triggered[0]['prop_id'].split(".n_clicks")[0]
-    triggered_id = json.loads(triggered_id)  # {'type': 'file-item', 'path': 'some/file.txt'}
-    
+    triggered_id = json.loads(triggered_id)  
     
     file_path = triggered_id['path']
     print(file_path)
