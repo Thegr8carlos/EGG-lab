@@ -1,4 +1,5 @@
 from pathlib import Path
+import os
 
 def get_files_by_extensions(path, extensions):
     root = Path(path)
@@ -30,3 +31,46 @@ def get_file_extension(fileName):
      
     
     return Path(fileName).suffix
+
+
+def get_Data_filePath(file_path: str, extension: str = ".npy" ) -> str:
+    
+    # Replace Data/ with Aux/ for corresponding mapping
+    
+
+    if file_path.startswith("Data/"): 
+        new_file_path = file_path.replace("Data/", "Aux/",1)
+        
+    else:
+        raise ValueError("Input path is wrong not belongining to 'Data/'")
+    
+    
+    newFilePath = os.path.splitext(new_file_path)[0] + extension
+    
+    return newFilePath
+    
+def get_Label_filePath(file_path: str, extension: str = ".npy") -> str:
+    
+    
+    if not file_path.startswith("Data/"):
+        raise ValueError("Input path is wrong not belonging to 'Data/'")
+    
+    #Replace Data/ with Aux/ for correct mapping of the labels
+    
+    
+    base_path = file_path.replace("Data/","Aux/", 1)
+    
+    
+    dir_path, fileName = os.path.split(base_path)
+    
+    #Add labels folder before the filename
+    
+    label_dir = os.path.join(dir_path, 'Labels')
+    
+    #Change the extension accordingly 
+    
+    labelFileName = os.path.splitext(fileName)[0] + extension
+    
+    labelPath = os.path.join(label_dir, labelFileName)
+    
+    return labelPath
