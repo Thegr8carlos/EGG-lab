@@ -1,0 +1,138 @@
+{
+    "id": "3",
+    "transform": [
+        {
+            "type": "FFTTransform",
+            "config": {
+                "sp": 1.0,
+                "window": "hamming",
+                "nfft": 1,
+                "overlap": 0.0
+            }
+        }
+    ],
+    "classifier": [],
+    "filter": [],
+    "evaluation": {}
+}{
+    "id": "3",
+    "transform": [
+        {
+            "type": "FFTTransform",
+            "config": {
+                "sp": 1.0,
+                "window": "hamming",
+                "nfft": 1,
+                "overlap": 0.0
+            }
+        },
+        {
+            "type": "FFTTransform",
+            "config": {
+                "sp": 1.0,
+                "window": "hamming",
+                "nfft": 1,
+                "overlap": 0.0
+            }
+        }
+    ],
+    "classifier": [],
+    "filter": [],
+    "evaluation": {}
+}{
+    "id": "3",
+    "transform": [
+        {
+            "type": "FFTTransform",
+            "config": {
+                "sp": 1.0,
+                "window": "hamming",
+                "nfft": 1,
+                "overlap": 0.0
+            }
+        }
+    ],
+    "classifier": [],
+    "filter": [],
+    "evaluation": {}
+}{
+    "id": "3",
+    "transform": [
+        {
+            "type": "FFTTransform",
+            "config": {
+                "sp": 1.0,
+                "window": "hamming",
+                "nfft": 1,
+                "overlap": 0.0
+            }
+        }
+    ],
+    "classifier": [],
+    "filter": [],
+    "evaluation": {}
+}{
+    "id": "3",
+    "transform": [
+        {
+            "type": "FFTTransform",
+            "config": {
+                "sp": 1.0,
+                "window": "hamming",
+                "nfft": 1,
+                "overlap": 0.0
+            }
+        }
+    ],
+    "classifier": [],
+    "filter": [],
+    "evaluation": {}
+}{
+    "id": "3",
+    "transform": [
+        {
+            "type": "FFTTransform",
+            "config": {
+                "sp": 1.0,
+                "window": "hamming",
+                "nfft": 1,
+                "overlap": 0.0
+            }
+        }
+    ],
+    "classifier": [],
+    "filter": [],
+    "evaluation": {}
+}{
+    "id": "3",
+    "transform": [
+        {
+            "type": "FFTTransform",
+            "config": {
+                "sp": 1.0,
+                "window": "hamming",
+                "nfft": 1,
+                "overlap": 0.0
+            }
+        }
+    ],
+    "classifier": [],
+    "filter": [],
+    "evaluation": {}
+}{
+    "id": "3",
+    "transform": [
+        {
+            "type": "FFTTransform",
+            "config": {
+                "sp": 1.0,
+                "window": "hamming",
+                "nfft": 1,
+                "overlap": 0.0
+            }
+        }
+    ],
+    "classifier": [],
+    "filter": [],
+    "evaluation": {}
+}

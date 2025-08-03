@@ -11,6 +11,7 @@ from backend.classes.ClasificationModel.RandomForest import RandomForest
 from backend.helpers.mapaValidacion import generar_mapa_validacion_inputs
 from dash import callback, Input, Output, State, no_update
 from pydantic import ValidationError
+from backend.classes.Experiment import Experiment
 class ClassifierSchemaFactory:
     """
     Genera esquemas detallados para clasificadores.
@@ -23,9 +24,7 @@ class ClassifierSchemaFactory:
         "RandomForest": RandomForest,
         "CNN": CNN
     }
-    @classmethod
-    def get_base_schema(cls) -> Dict[str, Any]:
-        return Filter.model_json_schema()
+    
 
     @classmethod
     def get_all_classifier_schemas(cls) -> Dict[str, Dict[str, Any]]:
@@ -35,7 +34,7 @@ class ClassifierSchemaFactory:
             schemas[key] = schema
         return schemas
     @classmethod
-    def add_classifier_to_experiment(cls, directory: str, experiment_id: str, classifier_name: str) -> str:
+    def add_classifier_to_experiment(cls, directory: str, experiment_id: str, classifier_name: str, classifier_instance: BaseModel) -> str:
         """
         Carga un experimento JSON existente y añade una instancia por defecto del clasificador solicitado
         al campo 'filter'. Guarda el archivo y retorna una descripción del cambio.
@@ -62,7 +61,7 @@ class ClassifierSchemaFactory:
             experiment_data["classifier"] = []
 
         # Crear instancia del clasificador
-        classifier_instance: BaseModel = classifier_class()
+        
         experiment_data["classifier"].append({
             "type": classifier_name,
             "config": classifier_instance.dict()
@@ -117,7 +116,7 @@ def registrar_callback(boton_id: str, inputs_map: dict):
 
             # Lógica de escritura en JSON de experimento
             experiment_id = "3"  # 🔁 puedes reemplazarlo por un State dinámico
-            directory = "experiments"
+            directory = Experiment.get_experiments_dir()
 
             msg = ClassifierSchemaFactory.add_classifier_to_experiment(
                 directory=directory,

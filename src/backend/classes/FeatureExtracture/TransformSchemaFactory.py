@@ -5,6 +5,7 @@ from pydantic import BaseModel
 from backend.classes.FeatureExtracture.FFDT import FFTTransform
 from backend.classes.FeatureExtracture.HilbertsTransform import DCTTransform
 from backend.classes.FeatureExtracture.WaveletsTransform import WaveletTransform
+from backend.classes.Experiment import Experiment
 from dash import callback, Input, Output, State, no_update
 from pydantic import ValidationError
 from backend.helpers.mapaValidacion import generar_mapa_validacion_inputs
@@ -28,7 +29,7 @@ class TransformSchemaFactory:
         return schemas
 
     @classmethod
-    def add_transform_to_experiment(cls, directory: str, experiment_id: str, transform_name: str) -> str:
+    def add_transform_to_experiment(cls, directory: str, experiment_id: str, transform_name: str, transform_instance: BaseModel) -> str:
         """
         Agrega una instancia por defecto de la transformada al experimento indicado.
         Si el archivo no existe, lo crea automáticamente con estructura mínima.
@@ -37,14 +38,29 @@ class TransformSchemaFactory:
         if transform_class is None:
             raise ValueError(f"Transform '{transform_name}' is not supported.")
 
+        # Crear nombre de archivo y path absoluto
         filename = f"experiment_{experiment_id}.json"
         path = os.path.join(directory, filename)
 
+        # Crear el directorio si no existe
         os.makedirs(directory, exist_ok=True)
 
-        # Si el archivo NO existe, lo creamos con estructura mínima
-        if not os.path.exists(path):
-            print(f"⚠️ Archivo no encontrado. Creando nuevo experimento: {path}")
+        # Cargar o crear experimento
+        if os.path.exists(path):
+            with open(path, "r", encoding="utf-8") as f:
+                try:
+                    data = json.load(f)
+                except json.JSONDecodeError:
+                    print(f"⚠️ El archivo {path} está vacío o corrupto. Se creará desde cero.")
+                    data = {
+                        "id": experiment_id,
+                        "transform": [],
+                        "classifier": [],
+                        "filter": [],
+                        "evaluation": {}
+                    }
+        else:
+            print(f"🆕 Creando nuevo experimento: {path}")
             data = {
                 "id": experiment_id,
                 "transform": [],
@@ -52,34 +68,31 @@ class TransformSchemaFactory:
                 "filter": [],
                 "evaluation": {}
             }
-        else:
-            with open(path, "r", encoding="utf-8") as f:
-                data = json.load(f)
 
-            if "transform" not in data or not isinstance(data["transform"], list):
-                data["transform"] = []
 
-        # Crear instancia y agregarla
-        transform_instance: BaseModel = transform_class()
+        # Asegurar estructura
+        if "transform" not in data or not isinstance(data["transform"], list):
+            data["transform"] = []
+
+        # Crear instancia y agregar
+        
         data["transform"].append({
             "type": transform_name,
             "config": transform_instance.dict()
         })
 
-        with open(path, "w", encoding="utf-8") as f:
+        # Guardar siempre el archivo (ya sea creado o modificado)
+        with open(path, "a+", encoding="utf-8") as f:
             json.dump(data, f, indent=4)
 
-        return f"✅ Added {transform_name} to experiment_{experiment_id}.json"
+        return f"✅ Transform '{transform_name}' added to experiment_{experiment_id}.json"
 
 
 
 
 
-def get_experiments_dir() -> str:
-    base = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../.."))
-    experiments_dir = os.path.join(base, "backend", "Experiments")
-    os.makedirs(experiments_dir, exist_ok=True)
-    return experiments_dir
+
+
 
 
 
@@ -108,6 +121,7 @@ def registrar_callback(boton_id: str, inputs_map: dict):
         for input_id, value in zip(input_ids, values):
             _, field = input_id.split("-", 1)
             datos[field] = value
+        print(datos)
 
         try:
             instancia_valida = transform_class(**datos)
@@ -115,9 +129,12 @@ def registrar_callback(boton_id: str, inputs_map: dict):
 
             # 🧠 Lógica de integración con JSON de experimento
             experiment_id = "3"  # Este valor podría venir de otro State
-            directory = get_experiments_dir()
+            directory = Experiment.get_experiments_dir()
 
-            msg = TransformSchemaFactory.add_transform_to_experiment(directory, experiment_id, transform_name)
+            msg = TransformSchemaFactory.add_transform_to_experiment(
+                directory, experiment_id, transform_name, instancia_valida
+            )
+
             print(msg)
 
             return no_update

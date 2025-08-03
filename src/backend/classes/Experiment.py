@@ -71,3 +71,9 @@ class Experiment(BaseModel):
             json.dump(new_experiment.dict(), f, indent=4)
 
         return experiment_id
+    @staticmethod
+    def get_experiments_dir() -> str:
+        base = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"))
+        experiments_dir = os.path.join(base, "backend", "Experiments")
+        os.makedirs(experiments_dir, exist_ok=True)
+        return experiments_dir

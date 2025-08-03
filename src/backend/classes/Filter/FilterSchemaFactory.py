@@ -7,6 +7,7 @@ from backend.classes.Filter.WaveletsBase import WaveletsBase
 from backend.classes.Filter.Notch import Notch
 from backend.classes.Filter.ICA import ICA
 from backend.classes.Filter.BandPass import BandPass
+from backend.classes.Experiment import Experiment
 import os
 import json
 from pydantic import BaseModel
@@ -35,7 +36,7 @@ class FilterSchemaFactory:
         return schemas
 
     @classmethod
-    def add_filter_to_experiment(cls, directory: str, experiment_id: str, filter_name: str) -> str:
+    def add_filter_to_experiment(cls, directory: str, experiment_id: str, filter_name: str, filter_instance: BaseModel) -> str:
         """
         Añade una instancia por defecto del filtro al archivo de experimento.
         Si el archivo no existe, lo crea con estructura mínima.
@@ -67,13 +68,13 @@ class FilterSchemaFactory:
                 data["filter"] = []
 
         # Crear instancia del filtro y agregarlo
-        filter_instance: BaseModel = filter_class()
+        
         data["filter"].append({
             "type": filter_name,
             "config": filter_instance.dict()
         })
 
-        with open(path, "w", encoding="utf-8") as f:
+        with open(path, "a+", encoding="utf-8") as f:
             json.dump(data, f, indent=4)
 
         return no_update
@@ -125,7 +126,7 @@ def registrar_callback(boton_id: str, inputs_map: dict):
             # 🧪 Guardar en el JSON del experimento
             experiment_id = "3"  # Puedes usar State o sesión si quieres que sea dinámico
             # Corregido
-            directory = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../Experiments"))
+            directory = Experiment.get_experiments_dir()
 
 
 
@@ -133,7 +134,8 @@ def registrar_callback(boton_id: str, inputs_map: dict):
             msg = FilterSchemaFactory.add_filter_to_experiment(
                 directory=directory,
                 experiment_id=experiment_id,
-                filter_name=filtro_nombre
+                filter_name=filtro_nombre,
+                filter_instance=instancia_valida
             )
             print(msg)
 
