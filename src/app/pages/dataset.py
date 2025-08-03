@@ -13,6 +13,11 @@ from plotly.subplots import make_subplots
 import dash
 from sklearn.preprocessing import LabelEncoder
 
+from shared.fileUtils import get_Data_filePath
+import os
+
+
+
 #from shared.file_reader import is_data_loaded
 
 # registrar página
@@ -22,7 +27,7 @@ register_page(__name__, path="/dataset", name="Dataset")
 layout = html.Div(
     children=[
         dcc.Store(id='full-signal-data'),
-        
+
         html.Div(
     [
         html.Div("Label Color Map:", style={
@@ -87,18 +92,55 @@ layout = html.Div(
     Input("selected-file-path", "data")
 )
 def load_signal_data(selected_file_path):
-    print(selected_file_path)
-    if not selected_file_path or not selected_file_path.endswith(".npy"):
+    
+    
+    
+    
+    print(f"Selected path is: {selected_file_path}")
+    
+    #We check if file passed is valid 
+    if not selected_file_path:
+        
+        
         print("Invalid or missing file.")
         return no_update, True  # Keep interval disabled
     
-    # Load the signal
-    signal = np.load(f"Data/{selected_file_path}")
+    
+    #Now we check if file is a valid format
+    if not selected_file_path.endswith(".npy"):
+        
+        #We check if there's a corresponding .npy in Aux 
+        
+        
+        
+        #We check that the path is actually valid as an absolute one of /Data
+        if not os.path.exists(f"Data/{selected_file_path}"):
+            return no_update, True
+
+        mappedFilePath = get_Data_filePath(f"Data/{selected_file_path}")
+        
+        if os.path.exists(mappedFilePath):
+            
+            print(mappedFilePath)
+            
+            signal = np.load(mappedFilePath, mmap_mode = 'r')
+            full_path = Path(mappedFilePath)
+        else: 
+            return no_update, True
+            
+    else:
+        
+        # Load the signal
+        signal = np.load(f"Data/{selected_file_path}", mmap_mode = 'r')
+        
+        full_path =  Path(f"Data/{selected_file_path}")
+
+        
+    
     
 
     #we want to extract the parent path and the file name to obtain the label that is in the parent directory and in a folder named labels with the same file name 
     
-    full_path =  Path(f"Data/{selected_file_path}")
     parentDir = full_path.parent
     fileName = full_path.name
     
@@ -122,10 +164,21 @@ def load_signal_data(selected_file_path):
     
     
     
+    
+
+    '''
+        Change this later when optimizing right now it's as is because the file wont load in time and the server times out, we need to optimize to load in chunks 
+        or something like that, therefore we only load the first 50k points
+    
+    '''    
+    
+    signal = signal[:5000,:]
+    labels = labels.reshape(-1)[:5000]
+    
     print(f"signal shape: {signal.shape}")  
     print(f"labels shape: {labels.shape}")  
-
     
+        
     # We encode the vector 
     
     encoder = LabelEncoder() 
@@ -153,7 +206,6 @@ def load_signal_data(selected_file_path):
 
 clientside_callback(
     """
-    
     
     
     function(n_intervals, signal_data) {
