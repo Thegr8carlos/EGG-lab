@@ -27,6 +27,7 @@ register_page(__name__, path="/dataset", name="Dataset")
 layout = html.Div(
     children=[
         dcc.Store(id='full-signal-data'),
+        dcc.Store(id='label-color-store'),
 
         html.Div(
     [
@@ -36,25 +37,21 @@ layout = html.Div(
             "marginBottom": "10px",
             "fontSize": "18px"
         }),
-        html.Div([
-            html.Span(style={"display": "inline-block", "width": "20px", "height": "20px", "backgroundColor": "black", "marginRight": "5px", "border": "1px solid white"}),
-            html.Span("Nothing", style={"color": "white", "marginRight": "20px"}),
-
-            html.Span(style={"display": "inline-block", "width": "20px", "height": "20px", "backgroundColor": "orange", "marginRight": "5px", "border": "1px solid white"}),
-            html.Span("Up", style={"color": "white", "marginRight": "20px"}),
-
-            html.Span(style={"display": "inline-block", "width": "20px", "height": "20px", "backgroundColor": "purple", "marginRight": "5px", "border": "1px solid white"}),
-            html.Span("Left", style={"color": "white", "marginRight": "20px"}),
-
-            html.Span(style={"display": "inline-block", "width": "20px", "height": "20px", "backgroundColor": "blue", "marginRight": "5px", "border": "1px solid white"}),
-            html.Span("Right", style={"color": "white", "marginRight": "20px"}),
-
-            html.Span(style={"display": "inline-block", "width": "20px", "height": "20px", "backgroundColor": "green", "marginRight": "5px", "border": "1px solid white"}),
-            html.Span("Down", style={"color": "white", "marginRight": "20px"}),
-
-            
-        ])
+        
+        html.Div(
+            id = "dynamic-color-legend",
+            style = {
+                "padding": "15px",
+                "backgroundColor": "rgba(30, 30, 30, 0.9)",
+                "border": "1px solid white",
+                "borderRadius": "8px",
+                "marginBottom": "15px",
+                "maxWidth": "fit-content"
+            }
+        )
+        
     ],
+    
     style={
         "padding": "15px",
         "backgroundColor": "rgba(30, 30, 30, 0.9)",  # Slightly transparent dark box
@@ -72,7 +69,8 @@ layout = html.Div(
         
         dcc.Interval(
             id='interval-component',
-            interval=1,
+            interval=17,
+           
             n_intervals=0,
             disabled=True
         )
@@ -148,7 +146,6 @@ def load_signal_data(selected_file_path):
     if signal.shape[0] < signal.shape[1]: 
         signal = signal.T
 
-    # labels = np.random.randint(0,5,signal.shape[0])
 
     length_of_segment = 60
      
@@ -158,8 +155,15 @@ def load_signal_data(selected_file_path):
             
             labels[i:i+length_of_segment] = np.random.randint(1,5)
         
-        
-            
+    labels = labels.astype(str)
+    unique_labels = np.unique(labels)
+    
+    label_color_map  = {}
+    
+    for idx, label in enumerate(unique_labels):
+        hue = (idx* 47) % 360
+        label_color_map[str(label)] = f"hsl({hue}, 70%, 50%)"        
+
     
     
     
@@ -197,10 +201,53 @@ def load_signal_data(selected_file_path):
         "data": signal.tolist(),
         "num_channels": signal.shape[1],
         "num_timepoints": signal.shape[0], 
-        "labels": labels.tolist()
+        "labels": labels.tolist(), 
+        "label_color_map" : label_color_map
     }
 
     return signal_dict, False  # Enable interval
+
+
+@callback(
+    Output("dynamic-color-legend","children"), 
+    Input("full-signal-data", "data")
+)
+def update_color_legend(signal_data): 
+    
+    if not signal_data or "label_color_map" not in signal_data:
+        return "No label data loaded"
+    
+    color_map = signal_data["label_color_map"]
+    
+    legend_items = []   
+    count = 0 
+    for label, color in color_map.items(): 
+        
+        
+        legend_items.append(
+            html.Span(style = {
+                "display": "inline-block",
+                "width": "20px",
+                "height": "20px",
+                "backgroundColor": color,
+                "marginRight": "5px",
+                "border": "1px solid white"
+            })
+        )
+        
+        legend_items.append(
+            html.Span(str(label), style = {
+                "color" : "white", 
+                "marginRight" : "20px"
+            })
+        )
+        count +=1
+        
+        if count > 10:
+            break
+    return legend_items
+
+
 
 
 
@@ -214,30 +261,19 @@ clientside_callback(
         }
         
         
-        window.labelColorMap = window.labelColorMap || {};
-        window.colorIndex = window.colorIndex = window.colorIndex || 0; 
-    
+        const labelColorMap = signal_data.label_color_map || {}; 
+        
+        
         function getColorForLabel(label) {
-            if(!(label in window.labelColorMap)) { 
-
-                
-                
-                const hue = (window.colorIndex * 47) % 360;
-                window.labelColorMap[label] = `hsl(${hue}, 70%, 50%)`;
-                window.colorIndex +=1;
-            
-            
-            }
-            
-            return window.labelColorMap[label];
+            return labelColorMap[label] || "gray";
         }
-        
+    
     
         
         
         
-        const STEP = 10;
-        const WINDOW = 1000;
+        const STEP = 1;
+        const WINDOW = 100;
         const signal = signal_data.data;
         const labels = signal_data.labels;
         console.log(labels);
@@ -260,19 +296,6 @@ clientside_callback(
         
         
         
-        const uniqueLabels = [...new Set(label_window)];
-        
-        const labelColorMap = {};
-        
-        uniqueLabels.forEach((label,index) =>{
-            const hue = (index * 360 / uniqueLabels.length) % 360;
-             labelColorMap[label] = `hsl(${hue}, 70%, 50%)`;
-        });
-
-        
-        
-        
-        //Default to gray if unknown 
         
     
         
@@ -296,7 +319,14 @@ clientside_callback(
                 
                 
                 for (let ch =0; ch<num_channels; ch++){
-                    const y_segment = signal_segment.map(row=> row[ch]);
+                    const y_segment = signal_segment.map(row=>{
+                        
+                    if (!row || row.length <= ch){
+                        return 0; 
+                    }
+                    return row[ch];
+                        
+                });
                 
                 
                     subplots.push({
@@ -307,7 +337,7 @@ clientside_callback(
                         line: { color: color || 'black' },
                         xaxis: 'x',
                         yaxis: `y${ch + 1}`,
-                        showlegend: false
+                        showlegend: true
                     });
                 }
 
@@ -316,11 +346,15 @@ clientside_callback(
 
 
         const layout = {
-            height: 250 * num_channels,
+            height: 200 * num_channels,
             showlegend: false,
             title: "Señales Multicanal (Desplazamiento Automático)",
             margin: {t: 40, b: 40},
         };
+
+
+        
+
 
         for (let i = 0; i < num_channels; i++) {
             layout[`yaxis${i+1}`] = {
