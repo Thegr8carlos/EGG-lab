@@ -373,6 +373,6 @@ clientside_callback(
     }
     """,
     Output("signal-graph", "figure"),
-    Input("interval-component", "n_intervals"),
+    [Input("interval-component", "n_intervals"), Input("full-signal-data", "data")],
     State("full-signal-data", "data")
 )
