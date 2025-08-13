@@ -100,25 +100,24 @@ def toggle_sidebar(n_clicks, current_class):
     prevent_initial_call=True
 )
 def on_file_click(n_clicks_list):
-    print("File Clicked")
-    ctx = dash.callback_context
+    import json
+    from dash import callback_context, no_update
+
+    ctx = callback_context
     if not ctx.triggered:
         raise dash.exceptions.PreventUpdate
-    # Find which file was clicked
-    triggered_id = ctx.triggered[0]['prop_id'].split(".n_clicks")[0]
-    triggered_id = json.loads(triggered_id)  
-    
-    file_path = triggered_id['path']
-    print(file_path)
-    
-    return file_path, "/dataset"
 
+    triggered_id = json.loads(ctx.triggered[0]['prop_id'].split(".n_clicks")[0])
+    file_path = triggered_id['path']
+
+    # ✅ Actualiza el store, pero NO cambies de ruta
+    return file_path, no_update
 
 if __name__ == "__main__":
     
     app.run(debug=True) # comment this line if u want to test backend functionality 
     #print("🧐🔎🛠️💻  Backend Debug") # entry point to backend debug 
     #data = Dataset("path", "name")
-    #response = data.upload_dataset("dataset/inner_speech")
+    #response = data.upload_dataset("Data/nieto_inner_speech")
     #print(response)
     

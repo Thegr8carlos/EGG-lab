@@ -169,7 +169,7 @@ cython_debug/
 
 src/Data/nieto_inner_speech
 src/Data/arabic_inner_speech
-
+src/Aux/
 dataset/
 notes.txt
 thingsToDo.txt
