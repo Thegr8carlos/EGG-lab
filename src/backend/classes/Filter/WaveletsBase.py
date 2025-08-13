@@ -1,9 +1,6 @@
-
 from backend.classes.Filter.Filter import Filter
 from pydantic import Field
 from typing import Optional
-
-
 
 
 class WaveletsBase(Filter):
@@ -26,3 +23,14 @@ class WaveletsBase(Filter):
         ge=0.0,
         description="Valor de umbral para denoising (si aplica)"
     )
+
+    @classmethod
+    def apply(cls, instance: "WaveletsBase") -> None:
+        """
+        Simula la aplicación del filtro WaveletsBase.
+        """
+        print(f"[SIMULACIÓN] Aplicando filtro WaveletsBase:")
+        print(f"  Wavelet: {instance.wavelet}")
+        print(f"  Nivel: {instance.level}")
+        print(f"  Modo: {instance.mode}")
+        print(f"  Umbral: {instance.threshold}")

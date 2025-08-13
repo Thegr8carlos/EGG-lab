@@ -20,3 +20,12 @@ class Notch(Filter):
         'fir',
         description="Método para aplicar el filtro notch"
     )
+    @classmethod
+    def apply(cls, instance: "Notch") -> None:
+        """
+        Simula la aplicación del filtro Notch.
+        """
+        print(f"[SIMULACIÓN] Aplicando filtro Notch:")
+        print(f"  Frecuencias: {instance.freqs}")
+        print(f"  Calidad (Q): {instance.quality}")
+        print(f"  Método: {instance.method}")

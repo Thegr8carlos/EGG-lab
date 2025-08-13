@@ -26,3 +26,14 @@ class ICA(Filter):
         le=10000,
         description="Número máximo de iteraciones"
     )
+        
+    @classmethod
+    def apply(cls, instance: "ICA") -> None:
+        """
+        Simula la aplicación del filtro ICA.
+        """
+        print(f"[SIMULACIÓN] Aplicando filtro ICA:")
+        print(f"  Método: {instance.method}")
+        print(f"  Número de Componentes: {instance.numeroComponentes}")
+        print(f"  Random State: {instance.random_state}")
+        print(f"  Máx Iteraciones: {instance.max_iter}")

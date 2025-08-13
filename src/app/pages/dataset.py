@@ -7,6 +7,7 @@ from app.components.PageContainer import get_page_container
 from app.components.DashBoard import get_dashboard_container
 
 from backend.classes.dataset import Dataset
+from backend.classes.Experiment import Experiment
 
 #from shared.file_reader import is_data_loaded
 
@@ -25,6 +26,11 @@ layout = html.Div(id="dataset-view")
 def render_dataset_page(pathname, selected_file_path):
     if selected_file_path != None:
         print(f'📂 Archivo seleccionado: {selected_file_path.split(":")[0]}')
+        
+
+
+
+
         dataset = Dataset("Data/inner_speech", "nieto_dataset")
         data = dataset.read_npy(f'{selected_file_path.split(":")[0]}')
         print(data.shape)

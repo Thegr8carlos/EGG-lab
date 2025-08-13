@@ -20,3 +20,12 @@ class DCTTransform(Transform):
         le=3,
         description="Eje sobre el que se aplica la DCT (ej. -1 para último eje)"
     )
+    @classmethod
+    def apply(cls, instance: "DCTTransform") -> None:
+        """
+        Simula la aplicación de la transformación DCT.
+        """
+        print(f"[SIMULACIÓN] Aplicando transformación DCT:")
+        print(f"  Tipo: {instance.type}")
+        print(f"  Normalización: {instance.norm}")
+        print(f"  Eje: {instance.axis}")

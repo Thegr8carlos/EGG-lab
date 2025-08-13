@@ -21,6 +21,11 @@ from backend.classes.dataset import Dataset
 from app.components.SideBar import get_sideBar
 
 
+
+from backend.classes.Experiment import Experiment
+
+
+
 # using this if in the future more config is needed
 config = {
     "name_app": "Dashboard EEG",
@@ -124,14 +129,33 @@ def on_file_click(n_clicks_list):
     triggered_id = ctx.triggered[0]['prop_id'].split(".n_clicks")[0]
     triggered_id = json.loads(triggered_id)  # {'type': 'file-item', 'path': 'some/file.txt'}
     
+  
     
     file_path = triggered_id['path']
     print("asdfaswdfasd"+file_path)
     
+    
     return file_path, "/dataset"
 
 
+
+
+
+
+
+
+
+
+
+
+    
 if __name__ == "__main__":
+
+    # We create a new experiment
+    try:
+        Experiment.create_blank_json()
+    except Exception as e:
+        print(f"⚠️ Error al crear experimento: {e}")
     
     
     app.run(debug=True) # comment this line if u want to test backend functionality 

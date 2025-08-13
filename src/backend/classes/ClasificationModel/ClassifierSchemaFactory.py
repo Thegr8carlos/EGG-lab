@@ -14,8 +14,15 @@ from pydantic import ValidationError
 from backend.classes.Experiment import Experiment
 class ClassifierSchemaFactory:
     """
-    Genera esquemas detallados para clasificadores.
+    In this classs, we define a factory for generating schemas for various classifiers.
+    It provides methods to retrieve all classifier schemas and to add a classifier instance
+    to an experiment JSON file.
+    In adition, it includes a method to register a callback for handling form submissions
     """
+
+
+    # Available classifiers with their respective classes
+
     available_classifiers = {
         "LSTM": LSTM,
         "GRU": GRU,
@@ -33,11 +40,10 @@ class ClassifierSchemaFactory:
             schema = model.model_json_schema()
             schemas[key] = schema
         return schemas
-    @classmethod
+    @classmethod#######################------------------------------------------------------------------------------------------------------------------------------Chane+--
     def add_classifier_to_experiment(cls, directory: str, experiment_id: str, classifier_name: str, classifier_instance: BaseModel) -> str:
         """
-        Carga un experimento JSON existente y añade una instancia por defecto del clasificador solicitado
-        al campo 'filter'. Guarda el archivo y retorna una descripción del cambio.
+        Adds a default instance of the classifier to the experiment JSON file.
         """
 
         # Validar clasificador
@@ -76,15 +82,14 @@ class ClassifierSchemaFactory:
 
 
 
-
-def registrar_callback(boton_id: str, inputs_map: dict):
+def ClassifierCallbackRegister(boton_id: str, inputs_map: dict):
     available_classifiers = {
         "LSTM": LSTM,
         "GRU": GRU,
         "SVM": SVM,
         "SVNN": SVNN,
         "RandomForest": RandomForest,
-        "CNN": CNN  # ✅ corregido
+        "CNN": CNN
     }
 
     input_ids = list(inputs_map.keys())
@@ -92,42 +97,48 @@ def registrar_callback(boton_id: str, inputs_map: dict):
     @callback(
         Output(boton_id, "children"),
         Input(boton_id, "n_clicks"),
-        [State(input_id, "value") for input_id in input_ids]
+        [State(input_id, "value") for input_id in input_ids],
+        prevent_initial_call=True
     )
-    def manejar_formulario(n_clicks, *values, input_ids=input_ids, validadores=inputs_map):
+    def formManager(n_clicks, *values, input_ids=input_ids, validadores=inputs_map):
         if not n_clicks:
             return no_update
 
-        filtro_nombre = boton_id.replace("btn-aplicar-", "")
-        clase_validadora = available_classifiers.get(filtro_nombre)
+        # btn-aplicar-{type} donde {type} = "LSTM_p300" | "LSTM_inner" | "LSTM"
+        type_raw = boton_id.replace("btn-aplicar-", "")
+        parts = type_raw.split("_")
+        classifier_name = parts[0]                        # "LSTM"
+        ctx = parts[1].lower() if len(parts) > 1 else ""  # "p300" | "inner" | ""
 
-        if clase_validadora is None:
-            print(f"❌ Clasificador '{filtro_nombre}' no reconocido.")
+        validatingClass = available_classifiers.get(classifier_name)
+        if validatingClass is None:
+            print(f"❌ Clasificador '{classifier_name}' no reconocido.")
             return no_update
 
-        datos = {}
+        # Construir payload desde los inputs: "{type}-{field}"
+        data = {}
         for input_id, value in zip(input_ids, values):
-            _, field = input_id.split("-", 1)
-            datos[field] = value
+            # ejemplo: "LSTM_p300-epochs" -> "epochs"
+            try:
+                field = input_id.split("-", 1)[1]
+            except IndexError:
+                continue
+            data[field] = value
 
         try:
-            instancia_valida = clase_validadora(**datos)
-            print(f"✅ Datos válidos para {filtro_nombre}: {instancia_valida}")
+            valid_instance = validatingClass(**data)
+            print(f"✅ Datos válidos para {classifier_name} ({ctx}): {valid_instance}")
+            validatingClass.train(valid_instance)
+            # Enrutar según contexto
+            if ctx == "p300":
+                print(f"✅ Registrando {classifier_name} como P300Classifier.")
+                Experiment.add_P300_classifier(valid_instance)
+            elif ctx in ("inner"):
+                Experiment.add_inner_speech_classifier(valid_instance)
+           
 
-            # Lógica de escritura en JSON de experimento
-            experiment_id = "3"  # 🔁 puedes reemplazarlo por un State dinámico
-            directory = Experiment.get_experiments_dir()
-
-            msg = ClassifierSchemaFactory.add_classifier_to_experiment(
-                directory=directory,
-                experiment_id=experiment_id,
-                classifier_name=filtro_nombre
-            )
-
-            print(msg)
             return no_update
+
         except ValidationError as e:
-            print(f"❌ Errores en {filtro_nombre}: {e}")
-            errores = e.errors()
-            msg = "\n".join(f"{err['loc'][0]}: {err['msg']}" for err in errores)
+            print(f"❌ Errores en {classifier_name} ({ctx}): {e}")
             return no_update

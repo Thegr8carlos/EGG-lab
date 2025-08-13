@@ -20,3 +20,13 @@ class FFTTransform(Transform):
         le=1.0,
         description="Porcentaje de solapamiento (entre 0.0 y 1.0)"
     )
+    
+    @classmethod
+    def apply(cls, instance: "FFTTransform") -> None:
+        """
+        Simula la aplicación de la transformación FFT.
+        """
+        print(f"[SIMULACIÓN] Aplicando transformación FFT:")
+        print(f"  Ventana: {instance.window}")
+        print(f"  NFFT: {instance.nfft}")
+        print(f"  Solapamiento: {instance.overlap}")

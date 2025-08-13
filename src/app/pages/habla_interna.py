@@ -9,7 +9,7 @@ register_page(__name__, path="/hablainterna", name="Modelado Habla Interna")
 
 
 
-rigthColumn = get_rightColumn("clasificationModels")
+rigthColumn = get_rightColumn("clasificationModelsInner")
 layout = html.Div([
     html.Div([  # Contenido principal
         get_page_container("habla interna", "Description")

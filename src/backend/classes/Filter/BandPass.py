@@ -33,5 +33,17 @@ class BandPass(Filter):
         'hamming',
         description="Ventana para diseño FIR: hamming, hann, blackman, etc."
     )
+    @classmethod
+    def apply(cls, instance: "BandPass") -> None:
+        """
+        Simula la aplicación del filtro BandPass.
+        """
+        print(f"[SIMULACIÓN] Aplicando filtro BandPass:")
+        print(f"  Tipo de filtro: {instance.filter_type}")
+        print(f"  Frecuencia(s): {instance.freq}")
+        print(f"  Método: {instance.method}")
+        print(f"  Orden: {instance.order}")
+        print(f"  Fase: {instance.phase}")
+        print(f"  Ventana FIR: {instance.fir_window}")
 
 

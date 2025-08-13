@@ -2,7 +2,7 @@
 from pydantic import  ValidationError
 from typing import  Dict, Any
 from dash import callback, Input, Output, State, no_update
-from backend.helpers.mapaValidacion import generar_mapa_validacion_inputs
+
 from backend.classes.Filter.WaveletsBase import WaveletsBase
 from backend.classes.Filter.Notch import Notch
 from backend.classes.Filter.ICA import ICA
@@ -16,7 +16,7 @@ from pydantic import BaseModel
 
 class FilterSchemaFactory:
     """
-    Genera esquemas simplificados para filtros y sus hijos.
+    In this class, we define a factory for generate various Transforms.
     """
     
     available_filters = {
@@ -92,7 +92,7 @@ class FilterSchemaFactory:
 
 
 
-def registrar_callback(boton_id: str, inputs_map: dict):
+def filterCallbackRegister(boton_id: str, inputs_map: dict):
 
     available_filters = {
         'ICA': ICA,
@@ -107,7 +107,7 @@ def registrar_callback(boton_id: str, inputs_map: dict):
         Input(boton_id, "n_clicks"),
         [State(input_id, "value") for input_id in input_ids]
     )
-    def manejar_formulario(n_clicks, *values, input_ids=input_ids, validadores=inputs_map):
+    def formManager(n_clicks, *values, input_ids=input_ids, validadores=inputs_map):
         if not n_clicks:
             return no_update
 
@@ -120,24 +120,16 @@ def registrar_callback(boton_id: str, inputs_map: dict):
             datos[field] = value
 
         try:
+            # ✅ Validación con pydantic
             instancia_valida = clase_validadora(**datos)
             print(f"✅ Datos válidos para {filtro_nombre}: {instancia_valida}")
 
-            # 🧪 Guardar en el JSON del experimento
-            experiment_id = "3"  # Puedes usar State o sesión si quieres que sea dinámico
-            # Corregido
-            directory = Experiment.get_experiments_dir()
+            # 🧪 Simulación de aplicación del filtro
+            clase_validadora.apply(instancia_valida)
 
-
-
-
-            msg = FilterSchemaFactory.add_filter_to_experiment(
-                directory=directory,
-                experiment_id=experiment_id,
-                filter_name=filtro_nombre,
-                filter_instance=instancia_valida
-            )
-            print(msg)
+            
+            Experiment.add_filter_config(instancia_valida)
+            
 
             return no_update
         except ValidationError as e:
@@ -146,9 +138,7 @@ def registrar_callback(boton_id: str, inputs_map: dict):
             msg = "\n".join(f"{err['loc'][0]}: {err['msg']}" for err in errores)
             return no_update
 
-for grupo in generar_mapa_validacion_inputs(FilterSchemaFactory.get_all_filter_schemas()):
-    for boton_id, inputs_map in grupo.items():
-        registrar_callback(boton_id, inputs_map)
+
 
 # ---------------------------- USO ----------------------------
 

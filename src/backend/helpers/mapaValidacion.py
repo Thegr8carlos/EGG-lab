@@ -1,30 +1,28 @@
-
-
 def generar_mapa_validacion_inputs(all_schemas: dict) -> list[dict]:
-    
     resultado = []
-    print(all_schemas)
 
-    for tipo_filtro, schema in all_schemas.items():
-        propiedades = schema.get("properties", {})
+    for key, schema in all_schemas.items():
+        # Usar el mismo prefijo que usa la UI para los IDs
+        tipo_ui = schema.get("title", schema.get("type", key))
+
+        propiedades = schema.get("properties", {}) or {}
         input_map = {}
 
         for nombre_campo, info in propiedades.items():
-            # This matches exactly the ID used in build_configuration_ui
-            input_id = f"{tipo_filtro}-{nombre_campo}"
+            # Debe coincidir con build_configuration_ui: f"{type}-{field_name}"
+            input_id = f"{tipo_ui}-{nombre_campo}"
 
-            # Determine type
+            # Determinar tipo
             tipo = info.get("type")
             any_of = info.get("anyOf")
             enum = info.get("enum")
 
             if any_of:
-                # Prefer non-null type from anyOf
                 tipos = [a.get("type") for a in any_of if a.get("type") and a["type"] != "null"]
                 if tipos:
                     tipo = tipos[0]
 
-            # Map evaluation function
+            # Map de validación
             if enum:
                 evaluacion = f"validar_enum({enum})"
             elif tipo == "number":
@@ -40,10 +38,7 @@ def generar_mapa_validacion_inputs(all_schemas: dict) -> list[dict]:
 
             input_map[input_id] = evaluacion
 
-        # Ensure the button ID matches the one in build_configuration_ui
-        resultado.append({
-            f"btn-aplicar-{tipo_filtro}": input_map
-        })
-    print(resultado)
+        # Botón debe coincidir con build_configuration_ui: f"btn-aplicar-{type}"
+        resultado.append({f"btn-aplicar-{tipo_ui}": input_map})
 
     return resultado

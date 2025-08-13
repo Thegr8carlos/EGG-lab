@@ -6,7 +6,7 @@ from app.components.RigthComlumn import get_rightColumn
 # registry of the the page 
 register_page(__name__, path="/p300", name="Modelado p300")
 
-rigthColumn = get_rightColumn("clasificationModels")
+rigthColumn = get_rightColumn("clasificationModelsP300")
 layout = html.Div([
     html.Div([  # Contenido principal
         get_page_container("modelado p300", "Description")

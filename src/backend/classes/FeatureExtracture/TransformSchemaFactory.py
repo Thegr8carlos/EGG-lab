@@ -9,10 +9,12 @@ from backend.classes.Experiment import Experiment
 from dash import callback, Input, Output, State, no_update
 from pydantic import ValidationError
 from backend.helpers.mapaValidacion import generar_mapa_validacion_inputs
+from backend.classes.Experiment import Experiment
 
 class TransformSchemaFactory:
     """
-    Genera esquemas detallados para transformadas.
+    Factory class to generate schemas for various transforms.
+    It provides methods to retrieve all transform schemas and to add a transform instance
     """
     available_transforms = {
         "WaveletTransform": WaveletTransform,
@@ -28,7 +30,7 @@ class TransformSchemaFactory:
             schemas[key] = schema
         return schemas
 
-    @classmethod
+    @classmethod###################------------------------------------------------------------------------------------------------------------------------------Change+--
     def add_transform_to_experiment(cls, directory: str, experiment_id: str, transform_name: str, transform_instance: BaseModel) -> str:
         """
         Agrega una instancia por defecto de la transformada al experimento indicado.
@@ -96,7 +98,13 @@ class TransformSchemaFactory:
 
 
 
-def registrar_callback(boton_id: str, inputs_map: dict):
+def TransformCallbackRegister(boton_id: str, inputs_map: dict):
+    """
+    Function to register a callback for the transform buttons.
+    It generates a callback that validates the inputs and adds the transform to the experiment.
+    This function is used to dynamically create callbacks for each transform button, and
+    its invoked from the RightColumn page.
+    """
     available_transforms = {
         "WaveletTransform": WaveletTransform,
         "FFTTransform": FFTTransform,
@@ -110,32 +118,29 @@ def registrar_callback(boton_id: str, inputs_map: dict):
         Input(boton_id, "n_clicks"),
         [State(input_id, "value") for input_id in input_ids]
     )
-    def manejar_formulario(n_clicks, *values, input_ids=input_ids, validadores=inputs_map):
+    def formManager(n_clicks, *values, input_ids=input_ids, validadores=inputs_map):
         if not n_clicks:
             return no_update
-
+        # we extract the transform name from the button ID. 
+        # this is of the form: btn-aplicar-<transform_name>
         transform_name = boton_id.replace("btn-aplicar-", "")
+        # we check if the transform is available
         transform_class = available_transforms.get(transform_name)
 
         datos = {}
+        # We create a instance of the transform with the input values
         for input_id, value in zip(input_ids, values):
             _, field = input_id.split("-", 1)
             datos[field] = value
-        print(datos)
+        #print(datos)
 
         try:
             instancia_valida = transform_class(**datos)
             print(f"✅ Datos válidos para {transform_name}: {instancia_valida}")
 
-            # 🧠 Lógica de integración con JSON de experimento
-            experiment_id = "3"  # Este valor podría venir de otro State
-            directory = Experiment.get_experiments_dir()
+            instancia_valida.apply(instancia_valida)
 
-            msg = TransformSchemaFactory.add_transform_to_experiment(
-                directory, experiment_id, transform_name, instancia_valida
-            )
-
-            print(msg)
+            Experiment.add_transform_config(instancia_valida)
 
             return no_update
         except ValidationError as e:
@@ -144,7 +149,4 @@ def registrar_callback(boton_id: str, inputs_map: dict):
             msg = "\n".join(f"{err['loc'][0]}: {err['msg']}" for err in errores)
             return no_update
 
-# Registrar todos los callbacks
-for grupo in generar_mapa_validacion_inputs(TransformSchemaFactory.get_all_transform_schemas()):
-    for boton_id, inputs_map in grupo.items():
-        registrar_callback(boton_id, inputs_map)
+
