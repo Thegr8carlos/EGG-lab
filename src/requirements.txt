@@ -50,3 +50,4 @@ urllib3==2.4.0
 uv==0.7.2
 Werkzeug==3.0.6
 zipp==3.21.0
+json

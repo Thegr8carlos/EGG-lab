@@ -2,7 +2,7 @@ from pathlib import Path
 import plotly.express as px
 from dash import html, dcc, register_page, callback, Output, Input, no_update, State, MATCH, clientside_callback
 import plotly.express as px
-import numpy as np
+import plotly.graph_objects as go
 
 from app.components.PageContainer import get_page_container
 from app.components.DashBoard import get_dashboard_container, get_dashboard_container_dynamic
@@ -85,8 +85,8 @@ layout = html.Div(
 
 
 @callback(
-    Output("full-signal-data", "data"),
-    Output("interval-component", "disabled"),
+    Output("dataset-view", "children"),
+    Input("url", "pathname"),
     Input("selected-file-path", "data")
 )
 def load_signal_data(selected_file_path):

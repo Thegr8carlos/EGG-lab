@@ -42,7 +42,7 @@ class Dataset:
         print("Entering upload dataset ")
         print("getting all the files with .bdf, .edf extensions, just by now ....")
 
-        if is_folder_not_empty:
+        if is_folder_not_empty(path_to_folder):
             print("Okay so know we are getting the files ")
             files = get_files_by_extensions(path_to_folder,self.extensions_enabled)
             for i in files: 

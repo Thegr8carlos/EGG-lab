@@ -12,10 +12,18 @@ import json
 from app.components.NavBar import get_navBar
 from app.components.Header import get_header
 
+from app.components.RigthComlumn import get_rightColumn
+
+
 
 # backend dependencies 
 from backend.classes.dataset import Dataset
 from app.components.SideBar import get_sideBar
+
+
+
+from backend.classes.Experiment import Experiment
+
 
 
 # using this if in the future more config is needed
@@ -41,12 +49,14 @@ dcc.Store(id='selected-file-path', storage_type='local')  # or 'local' if you wa
 
 navBar = get_navBar(page_registry)
 header = get_header(page_registry)
+
 app.layout = html.Div(
 
     id="app-container",  # 👈 le damos un id para estilizar
     children=[
         header,
         navBar,
+        
         # html.Button("Show sidebar", id= "toggle-sidebar-btn",n_clicks =0 ),
         html.Div(
             id= "main-content-wrapper",
@@ -62,9 +72,15 @@ app.layout = html.Div(
                     id="page-content",
                     children=page_container,
                     style={"flex": 1, "padding": "20px"}
-                )
+                ),
+                
+
+                    
+                
             ]
         ),
+        
+    
         
         
             
@@ -113,7 +129,25 @@ def on_file_click(n_clicks_list):
     # ✅ Actualiza el store, pero NO cambies de ruta
     return file_path, no_update
 
+
+
+
+
+
+
+
+
+
+
+    
 if __name__ == "__main__":
+
+    # We create a new experiment
+    try:
+        Experiment.create_blank_json()
+    except Exception as e:
+        print(f"⚠️ Error al crear experimento: {e}")
+    
     
     app.run(debug=True) # comment this line if u want to test backend functionality 
     #print("🧐🔎🛠️💻  Backend Debug") # entry point to backend debug 

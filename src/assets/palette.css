@@ -2,7 +2,7 @@
   --color-1: #0D0D1A;   /* Fondo principal: negro profundo con matiz azul oscuro */
   --color-2: #111927;   /* Fondo secundario / navbar: gris carbón azulado */
   --color-3: #EAF9FF;   /* Texto claro: blanco azulado suave */
-  --color-4: #00FFF7;   /* Cian neón (botones activos, selecciones) */
+  --color-4: rgb(0, 255, 247);   /* Cian neón (botones activos, selecciones) */
   --color-5: #5C5CFF;   /* Azul violeta (acentos secundarios) */
   --color-6: #00C8A0;   /* Verde azulado para confirmaciones (armoniza con el cian) */
   --color-7: #FF4C4C;   /* Rojo alerta: fuerte pero no chillón */
