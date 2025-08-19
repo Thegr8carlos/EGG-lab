@@ -177,3 +177,7 @@ src/Data/inner_speech.zip
 dataset/
 notes.txt
 thingsToDo.txt
+
+
+src/backend/Experiments/
+
