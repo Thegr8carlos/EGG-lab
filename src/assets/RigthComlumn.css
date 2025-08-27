@@ -1,6 +1,6 @@
 .right-panel-container {
     background-color: var(--color-9);
-    width: 500px;
+    width: 400px;
     max-width: 100%;
     height: 100vh;
     overflow-y: auto;

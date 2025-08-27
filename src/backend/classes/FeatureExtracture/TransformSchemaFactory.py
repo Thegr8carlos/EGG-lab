@@ -116,6 +116,8 @@ def TransformCallbackRegister(boton_id: str, inputs_map: dict):
     @callback(
         Output(boton_id, "children"),
         Input(boton_id, "n_clicks"),
+        ##############################################----------------------------------------------------------------------------
+        #Input("selected-file-path", "data"),
         [State(input_id, "value") for input_id in input_ids]
     )
     def formManager(n_clicks, *values, input_ids=input_ids, validadores=inputs_map):
