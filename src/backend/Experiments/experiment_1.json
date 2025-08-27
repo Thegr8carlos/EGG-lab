@@ -1,0 +1,14 @@
+{
+    "id": "1",
+    "transform": [],
+    "P300Classifier": {
+        "epochs": 50,
+        "batch_size": 32
+    },
+    "innerSpeachClassifier": {
+        "epochs": 50,
+        "batch_size": 32
+    },
+    "filters": [],
+    "evaluation": null
+}

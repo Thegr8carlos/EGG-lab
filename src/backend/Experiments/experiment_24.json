@@ -1,0 +1,23 @@
+{
+    "id": "24",
+    "transform": [],
+    "P300Classifier": null,
+    "innerSpeachClassifier": null,
+    "filters": [
+        {
+            "sp": 1.0,
+            "numeroComponentes": 1,
+            "method": "picard",
+            "random_state": 1,
+            "max_iter": 200
+        },
+        {
+            "sp": 2.0,
+            "numeroComponentes": 1,
+            "method": "picard",
+            "random_state": 1,
+            "max_iter": 200
+        }
+    ],
+    "evaluation": null
+}

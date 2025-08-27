@@ -1,0 +1,15 @@
+{
+    "id": "8",
+    "transform": [],
+    "P300Classifier": null,
+    "innerSpeachClassifier": null,
+    "filters": [
+        {
+            "sp": 1.0
+        },
+        {
+            "sp": 2.0
+        }
+    ],
+    "evaluation": null
+}

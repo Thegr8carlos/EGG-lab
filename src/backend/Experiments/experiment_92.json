@@ -1,0 +1,15 @@
+{
+    "id": "92",
+    "transform": [
+        {
+            "sp": 1.0,
+            "window": "hamming",
+            "nfft": 1,
+            "overlap": 1.0
+        }
+    ],
+    "P300Classifier": null,
+    "innerSpeachClassifier": null,
+    "filters": [],
+    "evaluation": null
+}

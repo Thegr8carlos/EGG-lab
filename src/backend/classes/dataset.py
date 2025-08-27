@@ -1,6 +1,7 @@
 from pathlib import Path
 from shared.fileUtils import get_file_extension, is_folder_not_empty, get_files_by_extensions, get_Data_filePath, get_Label_filePath
-
+from dash import no_update
+from sklearn.preprocessing import LabelEncoder
 import mne, sys
 import numpy as np 
 import os, re
@@ -211,3 +212,133 @@ class Dataset:
         # raw = mne.io.read_raw_bdf(str(file_path), verbose=True, infer_types=True)
         raw = mne.io.read_raw_edf(str(file_path), verbose = True, infer_types = True, preload= True)
         return raw
+    
+
+    
+    def load_signal_data(selected_file_path):
+        
+        
+        
+        
+        print(f"Selected path is: {selected_file_path}")
+        base = Path("Data")
+        full_path = base / selected_file_path
+        #We check if file passed is valid 
+        if not selected_file_path:
+            
+            
+            print("Invalid or missing file.")
+            return no_update, True  # Keep interval disabled
+        
+        
+        #Now we check if file is a valid format
+        if not selected_file_path.endswith(".npy"):
+            
+            #We check if there's a corresponding .npy in Aux 
+            
+            
+            
+            #We check that the path is actually valid as an absolute one of /Data
+            if not os.path.exists(f"Data/{selected_file_path}"):
+                return no_update, True
+
+            mappedFilePath = get_Data_filePath(f"Data/{selected_file_path}")
+            
+            if os.path.exists(mappedFilePath):
+                
+                print(mappedFilePath)
+                
+                signal = np.load(mappedFilePath, mmap_mode = 'r')
+                full_path = Path(mappedFilePath)
+            else: 
+                return no_update, True
+                
+        else:
+            
+            # Load the signal
+            signal = np.load(full_path, mmap_mode='r')
+            
+            
+
+            
+        
+        
+
+        #we want to extract the parent path and the file name to obtain the label that is in the parent directory and in a folder named labels with the same file name 
+        
+        labels_path = full_path.parent / "Labels" / full_path.name
+        print("Buscando etiquetas en:", labels_path, "| Existe?", labels_path.exists())
+
+        
+        
+
+        if not labels_path.exists():
+            print("Labels don't exist")
+            # We create dummy labels for no crash the application
+            labels = np.zeros(signal.shape[0], dtype=int)
+        else:
+            labels = np.load(labels_path, allow_pickle=True)
+
+        if signal.shape[0] < signal.shape[1]:
+            signal = signal.T
+
+        length_of_segment = 60
+        
+        for i in range(0,signal.shape[0],length_of_segment):
+            randint = np.random.randint(0,10)
+            if randint < 3: 
+                
+                labels[i:i+length_of_segment] = np.random.randint(1,5)
+            
+        labels = labels.astype(str)
+        unique_labels = np.unique(labels)
+        
+        label_color_map  = {}
+        
+        for idx, label in enumerate(unique_labels):
+            hue = (idx* 47) % 360
+            label_color_map[str(label)] = f"hsl({hue}, 70%, 50%)"        
+
+        
+        
+        
+        
+        
+
+        '''
+            Change this later when optimizing right now it's as is because the file wont load in time and the server times out, we need to optimize to load in chunks 
+            or something like that, therefore we only load the first 50k points
+        
+        '''    
+        
+        signal = signal[:5000,:]
+        labels = labels.reshape(-1)[:5000]
+        
+        print(f"signal shape: {signal.shape}")  
+        print(f"labels shape: {labels.shape}")  
+        
+            
+        # We encode the vector 
+        
+        encoder = LabelEncoder() 
+        labels = encoder.fit_transform(labels.ravel())
+        
+        
+        
+        print(f"One hot encoded labels shape: {labels.shape}")
+        
+        
+        
+        
+            
+        # Serialize the signal (convert to list to make it JSON serializable)
+        signal_dict = {
+            "data": signal.tolist(),
+            "num_channels": signal.shape[1],
+            "num_timepoints": signal.shape[0], 
+            "labels": labels.tolist(), 
+            "label_color_map" : label_color_map
+        }
+
+        return signal_dict, False  # Enable interval
+    

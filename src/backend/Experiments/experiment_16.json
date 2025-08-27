@@ -1,0 +1,22 @@
+{
+    "id": "16",
+    "transform": [],
+    "P300Classifier": null,
+    "innerSpeachClassifier": null,
+    "filters": [
+        {},
+        {},
+        {},
+        {},
+        {
+            "sp": 2.0,
+            "filter_type": "highpass",
+            "freq": 3.0,
+            "method": "iir",
+            "order": 1,
+            "phase": "minimum",
+            "fir_window": null
+        }
+    ],
+    "evaluation": null
+}

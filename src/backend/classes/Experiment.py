@@ -93,31 +93,54 @@ class Experiment(BaseModel):
             json.dump(experiment.dict(), f, indent=4)
 
     @classmethod
-    def add_transform_config(cls, transform: Transform) -> None:
+    def add_transform_config(cls, transform: "Transform") -> None:
         experiment = cls._load_latest_experiment()
-        experiment.transform.append(transform)
+        
+        transform_name = transform.__class__.__name__
+        transform_data = transform.dict() if isinstance(transform, BaseModel) else vars(transform)
+        
+        if experiment.transform is None:
+            experiment.transform = []
+        
+        experiment.transform.append({transform_name: transform_data})
+        
         cls._save_latest_experiment(experiment)
+
 
     @classmethod
     def add_P300_classifier(cls, classifier) -> None:
         experiment = cls._load_latest_experiment()
-
-        experiment.P300Classifier = classifier.dict() if isinstance(classifier, BaseModel) else vars(classifier)
+        classifier_name = classifier.__class__.__name__
+        classifier_data = classifier.dict() if isinstance(classifier, BaseModel) else vars(classifier)
+        experiment.P300Classifier = {
+            classifier_name: classifier_data
+        }
         cls._save_latest_experiment(experiment)
 
     @classmethod
     def add_inner_speech_classifier(cls, classifier) -> None:
         experiment = cls._load_latest_experiment()
-        experiment.innerSpeachClassifier = classifier.dict() if isinstance(classifier, BaseModel) else vars(classifier)
+        # firt, we get the clasification model name
+        classifier_name = classifier.__class__.__name__
+        # We get the object atributes
+        classifier_data = classifier.dict() if isinstance(classifier, BaseModel) else vars(classifier)
+        # We concat the name on the atributes
+        experiment.innerSpeachClassifier = {
+            classifier_name: classifier_data
+        }
         cls._save_latest_experiment(experiment)
+
 
     @classmethod
     def add_filter_config(cls, filter_instance) -> None:
         experiment = cls._load_latest_experiment()
-        print("Experiment:", experiment)
-        print("✅ Tipo del filtro recibido:", type(filter_instance))
-        print("📦 Contenido del filtro:", filter_instance.dict() if isinstance(filter_instance, BaseModel) else vars(filter_instance))
+        filter_name = filter_instance.__class__.__name__
+    
+        filter_data = filter_instance.dict() if isinstance(filter_instance, BaseModel) else vars(filter_instance)
+        if experiment.filters is None: 
+            experiment.filters = []
 
-        experiment.filters.append(filter_instance.dict())
-        print("experiment after adding filter:", experiment)
+      
+        experiment.filters.append({filter_name:filter_data})
+ 
         cls._save_latest_experiment(experiment)

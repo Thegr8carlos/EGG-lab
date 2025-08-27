@@ -53,7 +53,7 @@ def build_file_tree(folder_structure,base_path=""):
 
 
 
-def get_sideBar(folder_path = "data/"):
+def get_sideBar(folder_path = "Data/"):
     folder_structure = parse_local_folder(folder_path)
     
     

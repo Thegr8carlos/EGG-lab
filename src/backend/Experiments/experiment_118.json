@@ -1,0 +1,25 @@
+{
+    "id": "118",
+    "transform": [],
+    "P300Classifier": null,
+    "innerSpeachClassifier": {
+        "SVNN": {
+            "epochs": 1,
+            "batch_size": 1,
+            "hidden_size": 1,
+            "learning_rate": 1.0
+        }
+    },
+    "filters": [
+        {
+            "ICA": {
+                "sp": 1.0,
+                "numeroComponentes": 1,
+                "method": "fastica",
+                "random_state": 1,
+                "max_iter": 200
+            }
+        }
+    ],
+    "evaluation": null
+}

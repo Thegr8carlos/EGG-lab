@@ -1,0 +1,40 @@
+{
+    "id": "82",
+    "transform": [
+        {
+            "sp": 1.0,
+            "window": "hamming",
+            "nfft": 1,
+            "overlap": 0.0
+        }
+    ],
+    "P300Classifier": {
+        "epochs": 1,
+        "batch_size": 1,
+        "hidden_size": 1,
+        "learning_rate": 0.1
+    },
+    "innerSpeachClassifier": {
+        "epochs": 1,
+        "batch_size": 1,
+        "hidden_size": 1,
+        "learning_rate": 1.0
+    },
+    "filters": [
+        {
+            "sp": 1.0,
+            "numeroComponentes": 1,
+            "method": "fastica",
+            "random_state": 1,
+            "max_iter": 200
+        },
+        {
+            "sp": 1.0,
+            "numeroComponentes": 1,
+            "method": "fastica",
+            "random_state": 1,
+            "max_iter": 200
+        }
+    ],
+    "evaluation": null
+}

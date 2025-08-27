@@ -125,6 +125,9 @@ def filterCallbackRegister(boton_id: str, inputs_map: dict):
             print(f"✅ Datos válidos para {filtro_nombre}: {instancia_valida}")
 
             # 🧪 Simulación de aplicación del filtro
+
+            ####################################------------------------------------------------}
+            #clase_validadora.apply(instancia_valida, fiel_phat)
             clase_validadora.apply(instancia_valida)
 
             
