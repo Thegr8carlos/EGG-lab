@@ -104,10 +104,13 @@ def filterCallbackRegister(boton_id: str, inputs_map: dict):
 
     @callback(
         Output(boton_id, "children"),
+        Input("selected-file-path", "data"),
         Input(boton_id, "n_clicks"),
         [State(input_id, "value") for input_id in input_ids]
     )
-    def formManager(n_clicks, *values, input_ids=input_ids, validadores=inputs_map):
+    def formManager(selected_file_path, n_clicks, *values, input_ids=input_ids, validadores=inputs_map):
+   
+
         if not n_clicks:
             return no_update
 
@@ -127,8 +130,8 @@ def filterCallbackRegister(boton_id: str, inputs_map: dict):
             # 🧪 Simulación de aplicación del filtro
 
             ####################################------------------------------------------------}
-            #clase_validadora.apply(instancia_valida, fiel_phat)
-            clase_validadora.apply(instancia_valida)
+            clase_validadora.apply(instancia_valida, file_path=selected_file_path)
+            #clase_validadora.apply(instancia_valida)
 
             
             Experiment.add_filter_config(instancia_valida)

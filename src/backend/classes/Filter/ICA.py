@@ -28,7 +28,7 @@ class ICA(Filter):
     )
         
     @classmethod
-    def apply(cls, instance: "ICA") -> None:
+    def apply(cls, instance: "ICA", file_path: str) -> None:
         """
         Simula la aplicación del filtro ICA.
         """

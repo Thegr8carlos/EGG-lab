@@ -21,7 +21,7 @@ class Notch(Filter):
         description="Método para aplicar el filtro notch"
     )
     @classmethod
-    def apply(cls, instance: "Notch") -> None:
+    def apply(cls, instance: "Notch", file_path: str) -> None:
         """
         Simula la aplicación del filtro Notch.
         """
