@@ -42,7 +42,7 @@ function initFolderUpload() {
         }
 
         try {
-            const resp = await fetch("http://127.0.0.1:8001/upload-folder", { method: "POST", body: formData });
+            const resp = await fetch("https://l2c9dqkn.usw3.devtunnels.ms:8000/upload-folder", { method: "POST", body: formData });
             if (resp.ok) alert("Upload complete!");
             else alert("Upload failed!");
         } catch (err) {
