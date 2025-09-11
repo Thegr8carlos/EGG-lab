@@ -256,6 +256,8 @@ clientside_callback(
     
     
     function(n_intervals, signal_data) {
+        
+        
         if (!signal_data || !signal_data.data || !signal_data.labels) {
             return window.dash_clientside.no_update;
         }
@@ -276,9 +278,39 @@ clientside_callback(
         const WINDOW = 100;
         const signal = signal_data.data;
         const labels = signal_data.labels;
-        console.log(labels);
+        //console.log(labels);
+        
         const num_channels = signal_data.num_channels;
         const num_timepoints = signal_data.num_timepoints;
+
+        
+        let visibleChannels = [];
+        
+        const container = document.getElementById("dashboard-scroll-wrapper-container");
+        
+        if (container){ 
+            const scrollTop = container.scrollTop; 
+            console.log(scrollTop);
+            
+            const containerHeight = container.clientHeight; 
+            
+            const channelHeight = 200; //Same as in layout 
+            
+            const firstVisibleChannel = Math.floor(scrollTop / channelHeight); 
+            
+            let numVisibleChannels = Math.ceil(containerHeight / channelHeight); 
+            
+            const lastVisibleChannel = Math.min(firstVisibleChannel + numVisibleChannels, num_channels);
+            
+            console.log(firstVisibleChannel); 
+            console.log(lastVisibleChannel);
+            
+            visibleChannels = Array.from( {length: lastVisibleChannel - firstVisibleChannel}, (_,i) => i + firstVisibleChannel)
+            
+        }
+        
+        
+        
 
         let start = n_intervals * STEP;
         let end = start + WINDOW;
@@ -293,6 +325,11 @@ clientside_callback(
         const time = Array.from({length: end - start}, (_, i) => i + start);
         const signal_window = signal.slice(start,end);
         const label_window = labels.slice(start,end);
+        
+        
+
+        
+
         
         
         
@@ -318,15 +355,11 @@ clientside_callback(
                 const color = getColorForLabel(current_label);
                 
                 
-                for (let ch =0; ch<num_channels; ch++){
-                    const y_segment = signal_segment.map(row=>{
-                        
-                    if (!row || row.length <= ch){
-                        return 0; 
-                    }
-                    return row[ch];
-                        
-                });
+                for (let i=0; i < visibleChannels.length; i++){
+                    const ch = visibleChannels[i];
+                    
+                    
+                    const y_segment = signal_segment.map(row=>row[ch] || 0);
                 
                 
                     subplots.push({
@@ -337,7 +370,7 @@ clientside_callback(
                         line: { color: color || 'black' },
                         xaxis: 'x',
                         yaxis: `y${ch + 1}`,
-                        showlegend: true
+                        showlegend: false
                     });
                 }
 
@@ -353,6 +386,11 @@ clientside_callback(
         };
 
 
+
+        const gap = 0;
+        const totalGaps = gap * (num_channels-1);
+        const plotHeight = (1 - totalGaps) / num_channels;
+
         
 
 
@@ -360,8 +398,8 @@ clientside_callback(
             layout[`yaxis${i+1}`] = {
                 title: `Ch ${i+1}`,
                 domain: [
-                    1 - (i + 1) / num_channels,
-                    1 - i / num_channels
+                    1 - (plotHeight + gap) * (i + 1),
+                    1 - (plotHeight + gap) * i
                 ]
             };
         }

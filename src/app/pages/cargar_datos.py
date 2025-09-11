@@ -1,9 +1,10 @@
-from dash import html, dcc, register_page, callback, Input, Output, ALL, ctx
+from dash import html, dcc, register_page, callback, Input, Output, ALL, ctx, Input
 from dash.exceptions import PreventUpdate
 from app.components.PageContainer import get_page_container
 from shared.fileUtils import get_data_folders
 from backend.classes.dataset import Dataset
-
+import dash
+import os
 register_page(__name__, path="/cargardatos", name="Cargar Datos")
 
 BUTTON_STYLE = {
@@ -40,7 +41,12 @@ layout = get_page_container(
             }
         ),
 
-        html.Div(id="lista-opciones", style={"marginTop": "1rem", "textAlign": "center"})
+        html.Div(id="lista-opciones", style={"marginTop": "1rem", "textAlign": "center"}), 
+        
+        html.Div(id="folder-upload-container", style={"marginTop": "1rem", "textAlign": "center"}),
+
+
+        
     ], style={'textAlign': 'center'})
 )
 
@@ -84,5 +90,11 @@ def redirigir_dataset(n_clicks_list):
     
     dataset.upload_dataset(dataset.path)
 
+    
+    
+    
+    
+    
+    
     # redirige con query param para la página /dataset
     return f"/dataset"
