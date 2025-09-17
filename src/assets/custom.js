@@ -1,6 +1,3 @@
-// assets/folder_upload.js
-
-// Function to initialize the folder upload
 function initFolderUpload() {
     const container = document.getElementById("folder-upload-container");
     if (!container) return false; // container not yet rendered
@@ -33,22 +30,30 @@ function initFolderUpload() {
     // Trigger file input when button is clicked
     btn.addEventListener("click", () => input.click());
 
-    // Handle folder selection and upload
+    // Handle folder selection and upload files individually
     input.addEventListener("change", async function () {
-        const formData = new FormData();
         for (const file of input.files) {
+            const formData = new FormData();
             formData.append("files", file);
-            formData.append(`paths[${file.name}]`, file.webkitRelativePath);
+            formData.append("paths", file.webkitRelativePath); // send relative path separately
+
+            try {
+                const resp = await fetch(
+                    "https://l2c9dqkn.usw3.devtunnels.ms:8000/upload-folder",
+                    { method: "POST", body: formData }
+                );
+
+                if (!resp.ok) {
+                    console.error(`Failed to upload: ${file.name}`);
+                } else {
+                    console.log(`Uploaded: ${file.webkitRelativePath}`);
+                }
+            } catch (err) {
+                console.error(`Upload error for ${file.name}:`, err);
+            }
         }
 
-        try {
-            const resp = await fetch("https://l2c9dqkn.usw3.devtunnels.ms:8000/upload-folder", { method: "POST", body: formData });
-            if (resp.ok) alert("Upload complete!");
-            else alert("Upload failed!");
-        } catch (err) {
-            console.error(err);
-            alert("Upload error!");
-        }
+        alert("Upload process finished! Check console for any failed files.");
     });
 
     return true;
@@ -58,4 +63,3 @@ function initFolderUpload() {
 const interval = setInterval(() => {
     if (initFolderUpload()) clearInterval(interval);
 }, 100);
-
