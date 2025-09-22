@@ -173,3 +173,5 @@ src/Data/arabic_inner_speech
 dataset/
 notes.txt
 thingsToDo.txt
+src/Aux/
+src/backend/Experiments/
