@@ -1,6 +1,7 @@
 import dash_bootstrap_components as dbc
 from dash import html
 import os
+from pathlib import Path
 def parse_local_folder(path):
     """
     Recursively walks through a folder and builds a nested dict.
@@ -43,10 +44,12 @@ def build_file_tree(folder_structure,base_path=""):
             tree.append(
                 html.Div(
                     name,
-                    id = {'type': 'file-item', 'path': full_path.replace("\\", "/")},
+                    id={'type': 'file-item', 'path': full_path.replace("\\", "/")},
                     className="file-item",
-                    n_clicks=0
-                    ),
+                    n_clicks=0,
+                    role="button",
+                    tabIndex=0,
+                ),
                 )
 
     return tree
@@ -54,11 +57,42 @@ def build_file_tree(folder_structure,base_path=""):
 
 
 def get_sideBar(folder_path = "Data/"):
-    folder_structure = parse_local_folder(folder_path)
+    # Resolve folder_path: try given path, cwd, and parents of this file until we find it
+    resolved = None
+    # check absolute / cwd first
+    if Path(folder_path).exists():
+        resolved = Path(folder_path)
+    else:
+        # walk upwards from this file's directory
+        for p in [Path.cwd()] + list(Path(__file__).resolve().parents):
+            candidate = p / folder_path
+            if candidate.exists():
+                resolved = candidate
+                break
+
+    if resolved is None:
+        # nothing found; use the original string (parse_local_folder will handle exceptions)
+        resolved_path = folder_path
+    else:
+        resolved_path = str(resolved)
+
+    folder_structure = parse_local_folder(resolved_path)
     
     
     
+    # Static sidebar container; pages decide where to render it.
+    # If folder is empty, show a helpful message with the resolved path for debugging
+    inner = build_file_tree(folder_structure)
+    if not inner:
+        inner = [html.Div(f"No files found (looked at: {resolved_path})", className="file-item")]
+
+    # Make the sidebar visually explicit (inline styles to avoid overridden CSS hiding it)
     return html.Div(
-            
-            html.Div(build_file_tree(folder_structure),id= "sideBar-div", className='file-tree')
+        [
+            html.Div("Archivos", style={"fontWeight": "600", "color": "white", "marginBottom": "8px"}),
+            html.Div(inner, id="sideBar-div", className="file-tree"),
+            html.Div(f"(resolved: {resolved_path})", style={"fontSize": "11px", "color": "#999", "marginTop": "6px"}),
+        ],
+        className="sideBar-root",
+        style={"background": "#222730", "padding": "8px", "borderRadius": "4px", "minHeight": "120px"},
     )

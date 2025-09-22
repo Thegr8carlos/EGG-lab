@@ -8,24 +8,23 @@
     border-radius: 3px;
     margin: 0;
     padding: 1rem;
-    opacity: 0;
+    opacity: 1; /* visible by default */
   }
 
 
 .sideBar-container.shown {
-    opacity: 1;
-    transition: transform 0.3s ease-in-out;
-    transform: translateX(0); /* shown by default */
-    z-index: 10; 
-    
+  opacity: 1;
+  transition: transform 0.3s ease-in-out;
+  transform: translateX(0);
+  z-index: 10;
 }
 
 
   
 /* Hide sidebar by sliding it left */
 .sideBar-container.hidden {
-    transform: translateX(-110%);
-    opacity: 1;
+  transform: translateX(-110%);
+  opacity: 0;
 }
 
 .sideBar-header {

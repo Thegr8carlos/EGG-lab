@@ -66,18 +66,8 @@ app.layout = html.Div(
 )
 
 
-@app.callback(
-    Output("sidebar-wrapper", "className"),
-    Input("gif-btn", "n_clicks"),
-    State("sidebar-wrapper", "className"),
-)
-def toggle_sidebar(n_clicks, current_class):
-    if not current_class:
-        current_class = "sideBar-container"
-    if "hidden" in current_class:
-        return current_class.replace("hidden", "").strip() + " shown"
-    else:
-        return current_class.replace("shown", "").strip() + " hidden"
+# Sidebar visibility is now controlled by pages which render the `sidebar-wrapper`.
+# The old toggle callback (gif button) was removed so the sidebar stays visible.
     
 
 #Listener for list elements     
@@ -97,7 +87,7 @@ def on_file_click(n_clicks_list):
 
     triggered_id = json.loads(ctx.triggered[0]['prop_id'].split(".n_clicks")[0])
     file_path = triggered_id['path']
-
+    print(f"🧐 Selected file: {file_path}")
     # ✅ Actualiza el store, pero NO cambies de ruta
     return file_path, no_update
 
