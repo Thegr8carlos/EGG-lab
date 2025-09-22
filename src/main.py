@@ -41,6 +41,10 @@ app = Dash(__name__,
     )
 app.title = config["name_app"]
 
+# Allow pages to register callbacks for components that are not present
+# in the global layout (we'll let pages render `sidebar-wrapper` themselves).
+app.config.suppress_callback_exceptions = True
+
 
 #Adding a dcc.Store for a client side memory store 
 dcc.Store(id='selected-file-path', storage_type='local')  # or 'local' if you want it to persist longer
@@ -51,61 +55,29 @@ navBar = get_navBar(page_registry)
 header = get_header(page_registry)
 
 app.layout = html.Div(
-
-    id="app-container",  # 👈 le damos un id para estilizar
+    id="app-container",
     children=[
         header,
         navBar,
-        
-        # html.Button("Show sidebar", id= "toggle-sidebar-btn",n_clicks =0 ),
-        html.Div(
-            id= "main-content-wrapper",
-            style= {"display": "flex", "flexDirection":"row"},
-            children= [
-                html.Div(
-                    id = "sidebar-wrapper", 
-                    children = get_sideBar("Data"), 
-                    # style = {"transition" : "transform 0.3s ease-in-out"},
-                    className = "sideBar-container",
-                ),
-                html.Div(
-                    id="page-content",
-                    children=page_container,
-                    style={"flex": 1, "padding": "20px"}
-                ),
-                
-
-                    
-                
-            ]
-        ),
-        
-    
-        
-        
-            
+        html.Div(id="main-content-wrapper", children=page_container),
         dcc.Location(id="url"),
-        dcc.Store(id="selected-file-path", storage_type = "local"), # Local: Persists across browser tabs/ windows and reloads
-
-        
-    ]
+        dcc.Store(id="selected-file-path", storage_type="local"),
+    ],
 )
-
-
 
 
 @app.callback(
     Output("sidebar-wrapper", "className"),
     Input("gif-btn", "n_clicks"),
-    State("sidebar-wrapper", "className")
+    State("sidebar-wrapper", "className"),
 )
 def toggle_sidebar(n_clicks, current_class):
-    
-    if "hidden" in current_class: 
-        
-        return current_class.replace("hidden","").strip() + " shown"
-    else: 
-        return current_class.replace("shown","") + " hidden"
+    if not current_class:
+        current_class = "sideBar-container"
+    if "hidden" in current_class:
+        return current_class.replace("hidden", "").strip() + " shown"
+    else:
+        return current_class.replace("shown", "").strip() + " hidden"
     
 
 #Listener for list elements     
@@ -149,7 +121,8 @@ if __name__ == "__main__":
         print(f"⚠️ Error al crear experimento: {e}")
     
     
-    app.run(debug=True) # comment this line if u want to test backend functionality 
+    #app.run(debug=True) # comment this line if u want to test backend functionality 
+    app.run(debug=True, use_reloader=False, port=8080, host="127.0.0.1")
     #print("🧐🔎🛠️💻  Backend Debug") # entry point to backend debug 
     #data = Dataset("path", "name")
     #response = data.upload_dataset("Data/nieto_inner_speech")

@@ -8,6 +8,7 @@ from app.components.DataView import (
     register_dataset_clientside,
     register_dataset_legend,
 )
+from app.components.SideBar import get_sideBar
 
 # Registrar página
 register_page(__name__, path="/filtros", name="Filtros")
@@ -37,10 +38,21 @@ viewer = get_dataset_view(
 layout = html.Div(
     [
         html.Div(
+            id="sidebar-wrapper",
+            children=[get_sideBar("Data")],
+            className="sideBar-container",
+            style={"width": "260px", "padding": "1rem"},
+        ),
+
+        html.Div(
             get_page_container("Filtros", "Description", viewer),
             style={"flex": "1", "padding": "1rem"},
         ),
-        html.Div(rightColumn),  # barra lateral
+
+        html.Div(
+            get_rightColumn("filter"),
+            style={"width": "340px", "padding": "1rem"},
+        ),
     ],
     style={"display": "flex"},
 )
