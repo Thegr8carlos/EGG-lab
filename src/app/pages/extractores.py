@@ -10,6 +10,7 @@ from app.components.PageContainer import get_page_container
 from app.components.RigthComlumn import get_rightColumn
 from backend.classes.dataset import Dataset
 from app.components.DataView import get_dataset_view
+from app.components.SideBar import get_sideBar
 # Página
 register_page(__name__, path="/extractores", name="Transformadas")
 rightColumn = get_rightColumn("featureExtracture")
@@ -38,14 +39,23 @@ childrenComponent = html.Div(
 
 
 layout = html.Div([
-    # We add the central princip
-    html.Div([  
-        get_page_container("Extractores", "Description",childrenComponent )
-    ], style={"flex": "1", "padding": "1rem"}),
+    html.Div(
+        id="sidebar-wrapper",
+        children=[get_sideBar("Data")],
+        className="sideBar-container",
+        style={"width": "260px", "padding": "1rem"},
+    ),
 
-    html.Div([  # Barra lateral
-        rightColumn
-    ])  # Asegúrate de que coincida con tu CSS
+    html.Div(
+        get_page_container("Extractores", "Description", childrenComponent),
+        style={"flex": "1", "padding": "1rem"},
+    ),
+
+    html.Div(
+        rightColumn,
+        style={"width": "340px", "padding": "1rem"},
+    ),
+
 ], style={"display": "flex"})
 
 

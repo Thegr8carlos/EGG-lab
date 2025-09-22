@@ -5,6 +5,7 @@ from app.components.DataView import (
     register_dataset_clientside,
     register_dataset_legend,
 )
+from app.components.SideBar import get_sideBar
 
 register_page(__name__, path="/dataset", name="Dataset")
 
@@ -17,18 +18,26 @@ GRAPH_ID     = "signal-graph-dataset"
 INTERVAL_ID  = "interval-component-dataset"
 
 layout = html.Div(
-    children=[
-        get_dataset_view(
-            container_id=CONTAINER_ID,
-            full_signal_store_id=STORE_ID,
-            label_color_store_id=LABEL_STORE,
-            legend_container_id=LEGEND_ID,
-            graph_id=GRAPH_ID,
-            interval_id=INTERVAL_ID,
+    [
+        html.Div(
+            id="sidebar-wrapper",
+            children=[get_sideBar("Data")],
+            className="sideBar-container",
+            style={"width": "260px", "padding": "1rem"},
         ),
-        # Ojo: asegúrate de que exista el proveedor de este Input en alguna parte del layout:
-        # dcc.Store(id="selected-file-path")
-    ]
+        html.Div(
+            get_dataset_view(
+                container_id=CONTAINER_ID,
+                full_signal_store_id=STORE_ID,
+                label_color_store_id=LABEL_STORE,
+                legend_container_id=LEGEND_ID,
+                graph_id=GRAPH_ID,
+                interval_id=INTERVAL_ID,
+            ),
+            style={"flex": "1", "padding": "1rem"},
+        ),
+    ],
+    style={"display": "flex"},
 )
 
 # Callback de carga de datos -> escribe en el Store y habilita el Interval
