@@ -8,7 +8,7 @@ def get_page_container(title: str, description: str, *children):
         className="page-container",
         children=[
             html.H2(title, className="page-title"),
-            html.P(description, className="page-description"),
+             html.P(description, className="page-description"),
             *children
         ],
     )

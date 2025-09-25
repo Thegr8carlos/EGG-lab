@@ -10,20 +10,21 @@ BUTTON_STYLE = {
     "display": "inline-block",
     "padding": "0.5rem 1rem",
     "margin": "0.5rem",
-    "backgroundColor": "#00C8A0",
-    "color": "white",
+    "backgroundColor": "var(--accent-3)",
+    "color": "var(--text)",
     "textDecoration": "none",
     "border": "none",
     "borderRadius": "8px",
     "cursor": "pointer",
     "fontWeight": "bold",
-    "boxShadow": "0 4px 6px rgba(0, 0, 0, 0.2)"
+    "boxShadow": "0 4px 6px color-mix(in srgb, var(--shadow-base) 35%, transparent)",
 }
 
 layout = get_page_container(
     "Cargando datos hehe",
     "Presiona el botón para mostrar las opciones",
     html.Div([
+        # ❌ NO declares aquí otro Store con el mismo id.
         dcc.Location(id="redirector", refresh=True),
 
         html.Button(
@@ -31,19 +32,18 @@ layout = get_page_container(
             id="cargar-btn",
             n_clicks=0,
             style={
-                'padding': '0.5rem 1rem',
-                'backgroundColor': '#007bff',
-                'color': 'white',
-                'border': 'none',
-                'borderRadius': '4px',
-                'cursor': 'pointer'
+                "padding": "0.5rem 1rem",
+                "backgroundColor": "var(--surface-2)",
+                "color": "var(--text)",
+                "border": "none",
+                "borderRadius": "4px",
+                "cursor": "pointer"
             }
         ),
 
         html.Div(id="lista-opciones", style={"marginTop": "1rem", "textAlign": "center"})
-    ], style={'textAlign': 'center'})
+    ], style={"textAlign": "center"})
 )
-
 
 @callback(
     Output("lista-opciones", "children"),
@@ -63,6 +63,16 @@ def mostrar_opciones(n):
         for nombre in datasets
     ], style={"display": "flex", "justifyContent": "center", "flexWrap": "wrap"})
 
+# ✅ Escribe en el Store GLOBAL declarado en main.py (storage_type="local")
+@callback(
+    Output("selected-dataset", "data"),
+    Input({"type": "dataset-btn", "index": ALL}, "n_clicks"),
+    prevent_initial_call=True
+)
+def guardar_dataset_seleccionado(n_clicks_list):
+    if not any(n_clicks_list):
+        raise PreventUpdate
+    return ctx.triggered_id.get("index")
 
 @callback(
     Output("redirector", "pathname"),
@@ -70,19 +80,14 @@ def mostrar_opciones(n):
     prevent_initial_call=True
 )
 def redirigir_dataset(n_clicks_list):
-    # Evita disparos falsos cuando la lista se crea (todos n_clicks == 0)
     if not any(n_clicks_list):
         raise PreventUpdate
 
-    # ctx.triggered_id es el dict del botón presionado
     triggered = ctx.triggered_id
     nombre = triggered.get("index")
     print(f"👉 Dataset seleccionado: {nombre}")
 
-
-    dataset = Dataset(f"Data/{nombre}",nombre)
-    
+    dataset = Dataset(f"Data/{nombre}", nombre)
     dataset.upload_dataset(dataset.path)
 
-    # redirige con query param para la página /dataset
     return f"/dataset"

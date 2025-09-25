@@ -21,3 +21,23 @@
     text-align: center;
   }
   
+html, body {
+  height: 100%;
+}
+
+body {
+  overflow: hidden;            /* ← bloquea el scroll global */
+}
+
+/* Estructura general: header/nav arriba, contenido central con scroll */
+#app-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Aquí vive el page_container y SOLO aquí habrá scroll */
+#main-content-wrapper {
+  flex: 1 1 auto;
+  overflow: auto;              /* ← único scroll de la página */
+}

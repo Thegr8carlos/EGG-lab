@@ -57,11 +57,12 @@ header = get_header(page_registry)
 app.layout = html.Div(
     id="app-container",
     children=[
-        header,
+        #header,
         navBar,
         html.Div(id="main-content-wrapper", children=page_container),
         dcc.Location(id="url"),
         dcc.Store(id="selected-file-path", storage_type="local"),
+        dcc.Store(id="selected-dataset", storage_type="local"),
     ],
 )
 
