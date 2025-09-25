@@ -1,5 +1,6 @@
 from pathlib import Path
 import os
+import json
 
 def get_files_by_extensions(path, extensions):
     root = Path(path)
@@ -32,6 +33,47 @@ def get_file_extension(fileName):
     
     return Path(fileName).suffix
 
+
+
+def get_dataset_metadata(file_path: str) -> dict:
+    """
+    Lee Aux/<dataset>/dataset_metadata.json y regresa un dict.
+    Admite:
+      - "nieto_inner_speech"
+      - "Data/nieto_inner_speech"
+      - "Aux/nieto_inner_speech"
+      - ".../dataset_metadata.json"
+    """
+    # Normaliza separadores y quita slashes iniciales/finales
+    norm = file_path.replace("\\", "/").strip("/")
+
+    # Si ya me pasaron el JSON directamente, úsalo tal cual
+    if norm.endswith("dataset_metadata.json"):
+        meta_path = Path(norm)
+        if not meta_path.is_absolute():
+            meta_path = Path(meta_path)  # relativa al cwd actual
+    else:
+        # Quita prefijos "Data/" o "Aux/" si vienen
+        if norm.startswith("Data/"):
+            rel = norm[len("Data/"):]
+        elif norm.startswith("Aux/"):
+            rel = norm[len("Aux/"):]
+        else:
+            rel = norm
+
+        # Construye la ruta al JSON dentro de Aux/<dataset>/
+        meta_path = Path("Aux") / rel / "dataset_metadata.json"
+
+    if not meta_path.exists():
+        raise FileNotFoundError(f"No existe el metadata JSON en: {meta_path}")
+
+    with open(meta_path, "r", encoding="utf-8") as f:
+        try:
+            data = json.load(f)
+        except json.JSONDecodeError as e:
+            raise ValueError(f"dataset_metadata.json inválido: {e}") from e
+
+    return data
 
 def get_Data_filePath(file_path: str, extension: str = ".npy" ) -> str:
     

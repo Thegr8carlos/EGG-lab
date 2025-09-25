@@ -1,15 +1,58 @@
+/* ===== Paleta base ===== */
 :root {
-  --color-1: #0D0D1A;   /* Fondo principal: negro profundo con matiz azul oscuro */
-  --color-2: #111927;   /* Fondo secundario / navbar: gris carbón azulado */
-  --color-3: #EAF9FF;   /* Texto claro: blanco azulado suave */
-  --color-4: rgb(0, 255, 247);   /* Cian neón (botones activos, selecciones) */
-  --color-5: #5C5CFF;   /* Azul violeta (acentos secundarios) */
-  --color-6: #00C8A0;   /* Verde azulado para confirmaciones (armoniza con el cian) */
-  --color-7: #FF4C4C;   /* Rojo alerta: fuerte pero no chillón */
-  --color-8: #FFC107;   /* Amarillo neón para advertencias o highlights */
+  /* Colores base (los tuyos) */
+--color-1: #050014;
+--color-2: #0A0124;
+--color-3: #F9F6FF;
+--color-4: #FF00E5;
+--color-5: #00FFF0;
+--color-6: #38FF97;
+--color-7: #FF235A;
+--color-8: #FFD400;
+--color-9: #1A0A3A;
+--color-10: #0E0730;
+--color-11: #07031A;
+--color-12: #FF66F2;
+--color-13: #6BFFF1;
+--color-14: #7DFFC9;
+--color-15: #FF6E94;
+--color-16: #FFE476;
 
+  /* ===== Mapeos semánticos (todo deriva de la paleta) ===== */
+  --text:        var(--color-3);
+  --text-muted:  color-mix(in srgb, var(--color-3) 70%, transparent);
 
-  --color-9: #19202F;
-  --color-10: #1B1F36;
-  --color-11: #142830;
+  --accent-1: var(--color-4);
+  --accent-2: var(--color-5);
+  --accent-3: var(--color-6);
+
+  /* Superficies */
+  --surface-0: var(--color-11);
+  --surface-1: var(--color-10);
+  --surface-2: var(--color-2);
+
+  /* Transparencias/elevaciones (sin hex fijos) */
+  --card-bg:        color-mix(in srgb, var(--surface-2) 60%, transparent);
+  --card-bg-strong: color-mix(in srgb, var(--surface-2) 80%, transparent);
+
+  --border-weak:   color-mix(in srgb, var(--text) 12%, transparent);
+  --border-strong: color-mix(in srgb, var(--accent-1) 20%, transparent);
+
+  /* Sombras derivadas de la paleta */
+  --shadow-base: var(--color-1);
+  --shadow-1: 0 6px 16px  color-mix(in srgb, var(--shadow-base) 35%, transparent);
+  --shadow-2: 0 12px 28px color-mix(in srgb, var(--shadow-base) 45%, transparent),
+               inset 0 1px 0 color-mix(in srgb, var(--text) 6%, transparent);
+
+  /* Patrón de fondo (grid) */
+  --grid-size: 22px;
+  --grid-dot:  color-mix(in srgb, var(--accent-2) 18%, var(--surface-1) 82%);
+  --grid-line: color-mix(in srgb, var(--accent-1) 12%, var(--surface-1) 88%);
+
+  /* Radios (escala completa, personalizable) */
+  --radius-sm:   8px;
+  --radius-md:  12px;
+  --radius-lg:  16px;
+  --radius-xl:  20px;
+  --radius-2xl: 24px;
 }

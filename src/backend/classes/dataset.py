@@ -1,15 +1,24 @@
 from pathlib import Path
-from shared.fileUtils import get_file_extension, is_folder_not_empty, get_files_by_extensions, get_Data_filePath, get_Label_filePath
+from shared.fileUtils import (
+    get_file_extension,
+    is_folder_not_empty,
+    get_files_by_extensions,
+    get_Data_filePath,
+    get_Label_filePath,
+)
 from dash import no_update
 from sklearn.preprocessing import LabelEncoder
 import mne, sys
-import numpy as np 
+import numpy as np
 import os, re
 import pandas as pd
+import json
+from collections import Counter
 
 
 LABELS = {31: "arriba", 32: "abajo", 33: "derecha", 34: "izquierda"}
 CUE_IDS = set(LABELS.keys())
+
 
 def _inner_speech_cues(events):
     """
@@ -17,20 +26,55 @@ def _inner_speech_cues(events):
     Devuelve lista de (sample, event_id) SOLO para trials dentro de runs de inner speech.
     """
     # 1) quita el evento espurio 65536
-    events = events[events[:,2] != 65536]
+    events = events[events[:, 2] != 65536]
 
     in_inner_run = False
     cues = []
     for sample, _, eid in events:
-        if eid == 15:         # start of run
+        if eid == 15:  # start of run
             in_inner_run = False
-        elif eid == 22:       # start of inner speech run
+        elif eid == 22:  # start of inner speech run
             in_inner_run = True
-        elif eid == 16:       # end of run
+        elif eid == 16:  # end of run
             in_inner_run = False
         elif in_inner_run and eid in CUE_IDS:  # cue de clase dentro del run inner
             cues.append((int(sample), int(eid)))
     return cues
+
+
+def _aux_root_for(path_to_folder: str) -> str:
+    """
+    Mapea Data/... -> Aux/... (solo primer ocurrencia), crea la carpeta y la retorna.
+    Si no empieza con 'Data/', usa la ruta original.
+    """
+    if path_to_folder.startswith("Data/"):
+        aux_root = path_to_folder.replace("Data/", "Aux/", 1)
+    else:
+        aux_root = path_to_folder
+    os.makedirs(aux_root, exist_ok=True)
+    return aux_root
+
+
+# ===== Utilidad para json.dump: castea objetos no serializables a str/isoformat =====
+def _json_fallback(o):
+    try:
+        if hasattr(o, "isoformat"):
+            return o.isoformat()
+    except Exception:
+        pass
+    try:
+        return float(o)
+    except Exception:
+        pass
+    try:
+        return int(o)
+    except Exception:
+        pass
+    try:
+        return list(o)
+    except Exception:
+        pass
+    return str(o)
 
 
 class Dataset:
@@ -39,155 +83,318 @@ class Dataset:
         self.name = name
         self.extensions_enabled = [".bdf", ".edf"]
 
-    def upload_dataset(self,path_to_folder):
+    def upload_dataset(self, path_to_folder):
         print("Entering upload dataset ")
         print("getting all the files with .bdf, .edf extensions, just by now ....")
 
-        if is_folder_not_empty(path_to_folder):
-            print("Okay so know we are getting the files ")
-            files = get_files_by_extensions(path_to_folder,self.extensions_enabled)
-            for i in files: 
-                print(i)
-            if len(files) == 0 : 
-                return {"status": 400, "message": f"No se han encontrado archivos con extension {self.extensions_enabled}"} 
+        if not is_folder_not_empty(path_to_folder):
+            return {"status": 400, "message": "Se ha seleccionado una carpeta Vacia "}
 
-            print("reading the files ")
-            all_entries = []
+        print("Okay so know we are getting the files ")
+        files = get_files_by_extensions(path_to_folder, self.extensions_enabled)
+        for i in files:
+            print(i)
+        if len(files) == 0:
+            return {
+                "status": 400,
+                "message": f"No se han encontrado archivos con extension {self.extensions_enabled}",
+            }
 
-            for file in files:
-                if get_file_extension(file) == ".bdf":
-                    raw_data = self.read_bdf(str(file))
-                    print(f"se ha completado la lectura de {str(file)}, {raw_data.info.ch_names}")
+        print("reading the files ")
+        all_entries = []
 
-                    events = mne.find_events(raw_data, stim_channel='Status', shortest_event=1, verbose=True)
-                    inner_cues = _inner_speech_cues(events)
+        # ======= Acumuladores para METADATA GLOBAL (solo 1 JSON al final) =======
+        class_names = list(LABELS.values())
+        total_class_counts = Counter({k: 0 for k in class_names})
+        unique_sfreqs = set()
+        union_channels = set()
+        ch_types_total = Counter()
+        total_duration_sec = 0.0
 
-                    # Data raw
-                    data, _ = raw_data.get_data(return_times=True)
+        # Metadata "general" tomada de UN BDF (si existe), incluso si se hace skip pesado
+        sampled_meta_done = False
+        sampled_sfreq = None
+        sampled_ch_names = []
+        sampled_ch_types_count = {}
 
-                    # Crear label_array vacío
-                    label_array = np.zeros((1, data.shape[1]), dtype=object)
+        # Carpeta raíz espejo Aux/
+        aux_root = _aux_root_for(path_to_folder)
 
-                    # Duración estimada de cada etiqueta (en segundos)
-                    label_duration_sec = 3.2
-                    sfreq = raw_data.info['sfreq']
-                    label_duration_samples = int(label_duration_sec * sfreq)
+        # ---- Paso previo: si aún no tenemos metadata, intenta leer RÁPIDO el primer .bdf ----
+        # (preload=False por defecto en MNE, leerá encabezados y estructura)
+        if not sampled_meta_done:
+            first_bdf = next((str(f) for f in files if get_file_extension(f) == ".bdf"), None)
+            if first_bdf:
+                try:
+                    raw_hdr = self.read_bdf(first_bdf)
+                    sampled_sfreq = float(raw_hdr.info["sfreq"])
+                    sampled_ch_names = list(raw_hdr.info["ch_names"])
+                    sampled_ch_types_count = dict(Counter(raw_hdr.get_channel_types()))
+                    sampled_meta_done = True
+                    # Inicializa acumuladores con esta muestra
+                    unique_sfreqs.add(sampled_sfreq)
+                    union_channels.update(sampled_ch_names)
+                    ch_types_total.update(sampled_ch_types_count)
+                    print(f"[META] Sampled from BDF: sfreq={sampled_sfreq}, n_channels={len(sampled_ch_names)}")
+                except Exception as e:
+                    print(f"[META] No se pudo muestrear encabezado BDF: {e}")
 
-                    # Asignar etiquetas a cada segmento
-                    for sample_idx, eid in inner_cues:
-                        start = sample_idx
-                        end = min(sample_idx + label_duration_samples, data.shape[1])
-                        label_array[0, start:end] = LABELS[eid]
+        for file in files:
+            ext = get_file_extension(file)
 
-                    label_array = label_array.astype(str)
+            # ===================== BDF =====================
+            if ext == ".bdf":
+                # --- SKIP temprano si ya existen derivados para este archivo ---
+                auxFilePath  = get_Data_filePath(str(file))    # .../Aux/.../<file>.npy (data)
+                auxLabelPath = get_Label_filePath(str(file))   # .../Aux/.../Labels/<file>.npy (labels)
+                labels_dir   = os.path.dirname(auxLabelPath)   # .../Aux/.../Labels
+                events_dir   = os.path.join(os.path.dirname(labels_dir), "Events")  # .../Aux/.../Events
 
-                    # Guardar en la carpeta _aux
-                    auxFilePath = get_Data_filePath(str(file))
-                    auxLabelPath = get_Label_filePath(str(file))
+                data_exists  = os.path.exists(auxFilePath)
+                labels_exist = os.path.exists(auxLabelPath)
+                events_ready = os.path.isdir(events_dir) and any(
+                    fn.endswith(".npy") for fn in os.listdir(events_dir)
+                )
 
-                    os.makedirs(os.path.dirname(auxFilePath), exist_ok=True)
-                    os.makedirs(os.path.dirname(auxLabelPath), exist_ok=True)
+                if data_exists and labels_exist and events_ready:
+                    print(f"[SKIP-BDF] Derivados ya existen para {file}. Saltando lectura del BDF.")
+                    # AUN ASÍ, si no hemos muestreado metadata (caso raro sin primer BDF), muestrea aquí:
+                    if not sampled_meta_done:
+                        try:
+                            raw_hdr = self.read_bdf(str(file))
+                            sampled_sfreq = float(raw_hdr.info["sfreq"])
+                            sampled_ch_names = list(raw_hdr.info["ch_names"])
+                            sampled_ch_types_count = dict(Counter(raw_hdr.get_channel_types()))
+                            sampled_meta_done = True
+                            unique_sfreqs.add(sampled_sfreq)
+                            union_channels.update(sampled_ch_names)
+                            ch_types_total.update(sampled_ch_types_count)
+                            print(f"[META] Sampled (skip branch): sfreq={sampled_sfreq}, n_channels={len(sampled_ch_names)}")
+                        except Exception as e:
+                            print(f"[META] Error sampling on skip: {e}")
+                    continue
 
+                # --- Procesamiento normal (solo si falta algo) ---
+                raw_data = self.read_bdf(str(file))
+                print(f"se ha completado la lectura de {str(file)}, {raw_data.info.ch_names}")
+
+                # Eventos y cues de inner-speech (dentro de runs tag 22)
+                events = mne.find_events(
+                    raw_data, stim_channel="Status", shortest_event=1, verbose=True
+                )
+                inner_cues = _inner_speech_cues(events)  # (sample, eid) con eid en {31,32,33,34}
+                print(f"[BDF] inner_speech_cues (run 22) encontrados: {len(inner_cues)}")
+
+                # Data raw
+                data, _ = raw_data.get_data(return_times=True)  # (n_channels, n_times)
+                sfreq = float(raw_data.info["sfreq"])
+
+                # ===== Etiquetas por muestra =====
+                label_array = np.zeros((1, data.shape[1]), dtype=object)
+
+                label_duration_sec = 3.2  # mantenemos tu valor actual
+                label_duration_samples = int(label_duration_sec * sfreq)
+
+                for sample_idx, eid in inner_cues:
+                    start = sample_idx
+                    end = min(sample_idx + label_duration_samples, data.shape[1])
+                    label_array[0, start:end] = LABELS[eid]
+
+                label_array = label_array.astype(str)
+
+                # ===== Guardado estándar (Data/Labels) con SKIP si existe =====
+                os.makedirs(os.path.dirname(auxFilePath), exist_ok=True)
+                os.makedirs(os.path.dirname(auxLabelPath), exist_ok=True)
+
+                if os.path.exists(auxFilePath):
+                    print(f"[SKIP] Data ya existe: {auxFilePath}")
+                else:
                     np.save(auxFilePath, data)
+
+                if os.path.exists(auxLabelPath):
+                    print(f"[SKIP] Labels ya existe: {auxLabelPath}")
+                else:
                     np.save(auxLabelPath, label_array)
 
-                    # Resumen por archivo
-                    counts = {LABELS[k]: 0 for k in LABELS}
-                    for _, eid in inner_cues:
-                        counts[LABELS[eid]] += 1
-                    print(f"Inner-speech en {Path(file).name}: {counts}")
+                # Conteo por clase (para metadata agregada)
+                counts = {LABELS[k]: 0 for k in LABELS}
+                for _, eid in inner_cues:
+                    counts[LABELS[eid]] += 1
+                print(f"Inner-speech en {Path(file).name}: {counts}")
+                total_class_counts.update(counts)
 
-                    # Guardar entradas (opcional, por si las necesitas de vuelta)
-                    all_entries.extend(
-                        [{"sample": s, "event_id": eid, "clase": LABELS[eid], "file": str(file)}
-                         for (s, eid) in inner_cues]
+                # ===== Un archivo .npy por evento en Events/ con formato <clase>[ini]{fin}.npy =====
+                os.makedirs(events_dir, exist_ok=True)
+                prefer_action_tags = True  # usa 44-45 si existen; si no, cae a 3.2s desde el cue
+
+                for (cue_sample, eid) in inner_cues:
+                    class_name = LABELS[eid]
+
+                    # Delimitación del evento
+                    start_sample = cue_sample
+                    end_sample = min(cue_sample + label_duration_samples, data.shape[1])
+
+                    if prefer_action_tags:
+                        # primer 44 >= cue, y primer 45 >= ese 44
+                        next44 = events[(events[:, 0] >= cue_sample) & (events[:, 2] == 44)]
+                        if next44.size > 0:
+                            start_sample = int(next44[0, 0])
+                            next45 = events[(events[:, 0] >= start_sample) & (events[:, 2] == 45)]
+                            if next45.size > 0:
+                                end_sample = int(next45[0, 0])
+
+                    # Validación
+                    if end_sample <= start_sample or start_sample < 0 or end_sample > data.shape[1]:
+                        print(
+                            f"[Events] Límites inválidos para clase {class_name}: "
+                            f"{start_sample}-{end_sample}. Se omite."
+                        )
+                        continue
+
+                    # Extrae matriz del evento y tiempos
+                    X_event = data[:, start_sample:end_sample].astype(np.float32)
+                    start_time = start_sample / sfreq
+                    end_time = end_sample / sfreq
+
+                    # Nombre: <clase>[ini]{fin}.npy (sin nombre original)
+                    safe_class = re.sub(r'[\\/:*?"<>|]', "_", class_name)
+                    out_name = f"{safe_class}[{start_time:.3f}]{{{end_time:.3f}}}.npy"
+                    out_path = os.path.join(events_dir, out_name)
+
+                    # SKIP si el evento ya existe
+                    if os.path.exists(out_path):
+                        print(f"[SKIP] Event ya existe: {out_path}")
+                        continue
+
+                    np.save(out_path, X_event)
+                    print(
+                        f"[Events] Guardado {out_path} | clase={class_name} | "
+                        f"samples={start_sample}-{end_sample} | shape={X_event.shape}"
                     )
 
-                if get_file_extension(file) == ".edf":
-                    print("using .edf")
-                    raw_data = self.read_edf(str(file))
+                # ===== Acumular METADATA GLOBAL =====
+                ch_names = list(raw_data.info["ch_names"])
+                ch_types = raw_data.get_channel_types()
+                ch_types_count = dict(Counter(ch_types))
+                duration_sec = float(data.shape[1] / sfreq)
 
-                    data, times = raw_data.get_data(return_times = True)
+                unique_sfreqs.add(float(sfreq))
+                union_channels.update(ch_names)
+                ch_types_total.update(ch_types_count)
+                total_duration_sec += duration_sec
 
-                    print(raw_data.info['ch_names'])
-                    events = mne.find_events(raw_data, stim_channel='Trigger')
+            # ===================== EDF (mismo patrón de skip Data/Labels) =====================
+            if ext == ".edf":
+                print("using .edf")
+                raw_data = self.read_edf(str(file))
+                data, times = raw_data.get_data(return_times=True)
 
-                    events = events[events[:,2] == 65380]
+                # Guarda Data/Labels con SKIP si existen
+                auxFilePath = get_Data_filePath(str(file))
+                auxLabelPath = get_Label_filePath(str(file))
+                os.makedirs(os.path.dirname(auxFilePath), exist_ok=True)
+                os.makedirs(os.path.dirname(auxLabelPath), exist_ok=True)
 
-                    current_file = os.path.basename(str(file))
-
-                    match = re.search(r'run-(\d+)', current_file)   
-
-                    if match: 
-                        run_number = int(match.group(1))
-                    else:
-                        run_number = None
-
-                    print(f"Run number is: {run_number}")
-
-                    #Temporary code, fix later
-                    if run_number is not None:
-                        label_file = os.path.join("Data/ciscoEEG/ds005170-1.1.2/textdataset", f"split_data_{run_number}.xlsx")
-                        labels_df = pd.read_excel(label_file)
-
-                        label_list = labels_df.iloc[:, 0].tolist()  
-
-                        if len(label_list) != len(events):
-                            print(f"Warning: Number of labels ({len(label_list)}) != Number of events ({len(events)}). Truncating to min length.")
-                            min_len = min(len(label_list), len(events))
-                            label_list = label_list[:min_len]
-                            events = events[:min_len]
-                    else:
-                        label_list = []  # or raise an error
-
-                    # Prepare label array (object dtype to store strings)
-                    label_array = np.zeros((1, data.shape[1]), dtype=object)
-
-                    label_duration_sec = 3.2  # User-defined parameter
-                    sfreq = raw_data.info['sfreq']
-                    label_duration_samples = int(label_duration_sec * sfreq)
-
-                    # Fill label array by mapping each event's sample window to the sentence label
-                    for event, label in zip(events, label_list):
-                        sample_idx = event[0]
-                        start = sample_idx
-                        end = min(sample_idx + label_duration_samples, data.shape[1])
-                        label_array[0, start:end] = label
-
-                    print("Data shape:", data.shape)
-                    print("Label array shape:", label_array.shape)
-
-                    print(label_array)
-
-                    label_array = label_array.astype(str)
-
-                    unique_labels, counts = np.unique(label_array, return_counts=True)
-                    print("Unique labels and counts:")
-                    for ul, ct in zip(unique_labels, counts):
-                        print(f"{ul}: {ct}")
-
-                    print(f"File name is: {file}")
-
-                    auxFilePath = get_Data_filePath(str(file))
-                    auxLabelPath = get_Label_filePath(str(file))  
-
-                    print(f"Aux file is: {auxFilePath}")
-                    print(f"Aux label is: {auxLabelPath}")
-
-                    #Ensure the path structure for the file exists
-                    os.makedirs(os.path.dirname(auxFilePath), exist_ok=True)
-                    os.makedirs(os.path.dirname(auxLabelPath), exist_ok=True)
-
-                    #Now that we've ensured that the path was created we can now write the .npy
+                if os.path.exists(auxFilePath):
+                    print(f"[SKIP] Data ya existe: {auxFilePath}")
+                else:
                     np.save(auxFilePath, data)
+
+                # Etiquetas EDF (tu lógica actual)
+                print(raw_data.info["ch_names"])
+                events = mne.find_events(raw_data, stim_channel="Trigger")
+                events = events[events[:, 2] == 65380]
+
+                current_file = os.path.basename(str(file))
+                match = re.search(r"run-(\d+)", current_file)
+                if match:
+                    run_number = int(match.group(1))
+                else:
+                    run_number = None
+                print(f"Run number is: {run_number}")
+
+                if run_number is not None:
+                    label_file = os.path.join(
+                        "Data/ciscoEEG/ds005170-1.1.2/textdataset",
+                        f"split_data_{run_number}.xlsx",
+                    )
+                    labels_df = pd.read_excel(label_file)
+                    label_list = labels_df.iloc[:, 0].tolist()
+                    if len(label_list) != len(events):
+                        print(
+                            f"Warning: Number of labels ({len(label_list)}) != Number of events ({len(events)}). "
+                            f"Truncating to min length."
+                        )
+                        min_len = min(len(label_list), len(events))
+                        label_list = label_list[:min_len]
+                        events = events[:min_len]
+                else:
+                    label_list = []
+
+                label_array = np.zeros((1, data.shape[1]), dtype=object)
+                sfreq_f = float(raw_data.info["sfreq"])
+                label_duration_sec = 3.2
+                label_duration_samples = int(label_duration_sec * sfreq_f)
+
+                for event, label in zip(events, label_list):
+                    sample_idx = event[0]
+                    start = sample_idx
+                    end = min(sample_idx + label_duration_samples, data.shape[1])
+                    label_array[0, start:end] = label
+
+                label_array = label_array.astype(str)
+
+                if os.path.exists(auxLabelPath):
+                    print(f"[SKIP] Labels ya existe: {auxLabelPath}")
+                else:
                     np.save(auxLabelPath, label_array)
 
-            print("ending")     
+                # Acumular METADATA GLOBAL
+                ch_names = list(raw_data.info["ch_names"])
+                ch_types = raw_data.get_channel_types()
+                ch_types_count = dict(Counter(ch_types))
+                duration_sec = float(data.shape[1] / sfreq_f)
+                unique_sfreqs.add(float(sfreq_f))
+                union_channels.update(ch_names)
+                ch_types_total.update(ch_types_count)
+                total_duration_sec += duration_sec
 
-            return {"status": 200, "message": f"Se han encontrado {len(files)}  sesiones ", "files" : files, "entries": all_entries}
+        print("ending")
 
-        else:
-            return {"status": 400, "message": "Se ha seleccionado una carpeta Vacia "}
+        # ====== ESCRIBIR JSON GLOBAL (una sola vez) EN LA RAÍZ Aux/ ======
+        # Si por alguna razón no logramos samplear, deja None/[] para esos campos.
+        sampling_frequency_hz = (sampled_sfreq if sampled_meta_done else (sorted(unique_sfreqs)[0] if unique_sfreqs else None))
+        n_channels = (len(sampled_ch_names) if sampled_meta_done else (len(union_channels) if union_channels else None))
+        channel_names_out = (sampled_ch_names if sampled_meta_done else sorted(union_channels))
+        channel_types_out = (sampled_ch_types_count if sampled_meta_done else dict(ch_types_total))
+
+        metadata = {
+            "dataset_name": self.name,
+            "num_classes": len(LABELS),
+            "classes": class_names,
+            "sampling_frequency_hz": sampling_frequency_hz,
+            "n_channels": n_channels,
+            "channel_names": channel_names_out,
+            "channel_types_count": channel_types_out,
+            "total_duration_sec": round(total_duration_sec, 6),
+            "class_counts_total": dict(total_class_counts),
+            "eeg_unit": "V",
+        }
+
+        meta_out = os.path.join(aux_root, "dataset_metadata.json")
+        try:
+            with open(meta_out, "w", encoding="utf-8") as f:
+                json.dump(metadata, f, ensure_ascii=False, indent=2, default=_json_fallback)
+            print(f"[META] Escrito {meta_out}")
+        except Exception as e:
+            print(f"[META] Error escribiendo {meta_out}: {e}")
+
+        return {
+            "status": 200,
+            "message": f"Se han encontrado {len(files)}  sesiones ",
+            "files": files,
+            "entries": all_entries,
+        }
 
     def find_datasets():
         print("finding datasets")
@@ -203,74 +410,43 @@ class Dataset:
         raw = mne.io.read_raw_bdf(str(file_path), verbose=True, infer_types=True)
         return raw
 
-
-    def read_edf(self,path):
+    def read_edf(self, path):
         file_path = Path(path)
         if not file_path.exists():
             raise FileNotFoundError(f"El archivo '{file_path}' no existe.")
-        # MNE espera una cadena, no un Path
-        # raw = mne.io.read_raw_bdf(str(file_path), verbose=True, infer_types=True)
-        raw = mne.io.read_raw_edf(str(file_path), verbose = True, infer_types = True, preload= True)
+        raw = mne.io.read_raw_edf(str(file_path), verbose=True, infer_types=True, preload=True)
         return raw
-    
 
-    
     def load_signal_data(selected_file_path):
-        
-        
-        
-        
         print(f"Selected path is: {selected_file_path}")
         base = Path("Data")
         full_path = base / selected_file_path
-        #We check if file passed is valid 
+        #We check if file passed is valid
         if not selected_file_path:
-            
-            
             print("Invalid or missing file.")
             return no_update, True  # Keep interval disabled
-        
-        
+
         #Now we check if file is a valid format
         if not selected_file_path.endswith(".npy"):
-            
-            #We check if there's a corresponding .npy in Aux 
-            
-            
-            
-            #We check that the path is actually valid as an absolute one of /Data
+            #We check if there's a corresponding .npy in Aux
             if not os.path.exists(f"Data/{selected_file_path}"):
                 return no_update, True
 
             mappedFilePath = get_Data_filePath(f"Data/{selected_file_path}")
-            
+
             if os.path.exists(mappedFilePath):
-                
                 print(mappedFilePath)
-                
-                signal = np.load(mappedFilePath, mmap_mode = 'r')
+                signal = np.load(mappedFilePath, mmap_mode='r')
                 full_path = Path(mappedFilePath)
-            else: 
+            else:
                 return no_update, True
-                
         else:
-            
             # Load the signal
             signal = np.load(full_path, mmap_mode='r')
-            
-            
 
-            
-        
-        
-
-        #we want to extract the parent path and the file name to obtain the label that is in the parent directory and in a folder named labels with the same file name 
-        
+        # we want to extract the parent path and the file name to obtain the label that is in the parent directory and in a folder named labels with the same file name
         labels_path = full_path.parent / "Labels" / full_path.name
         print("Buscando etiquetas en:", labels_path, "| Existe?", labels_path.exists())
-
-        
-        
 
         if not labels_path.exists():
             print("Labels don't exist")
@@ -283,62 +459,45 @@ class Dataset:
             signal = signal.T
 
         length_of_segment = 60
-        
-        for i in range(0,signal.shape[0],length_of_segment):
-            randint = np.random.randint(0,10)
-            if randint < 3: 
-                
-                labels[i:i+length_of_segment] = np.random.randint(1,5)
-            
+
+        for i in range(0, signal.shape[0], length_of_segment):
+            randint = np.random.randint(0, 10)
+            if randint < 3:
+                labels[i:i + length_of_segment] = np.random.randint(1, 5)
+
         labels = labels.astype(str)
         unique_labels = np.unique(labels)
-        
-        label_color_map  = {}
-        
-        for idx, label in enumerate(unique_labels):
-            hue = (idx* 47) % 360
-            label_color_map[str(label)] = f"hsl({hue}, 70%, 50%)"        
 
-        
-        
-        
-        
-        
+        label_color_map = {}
+
+        for idx, label in enumerate(unique_labels):
+            hue = (idx * 47) % 360
+            label_color_map[str(label)] = f"hsl({hue}, 70%, 50%)"
 
         '''
-            Change this later when optimizing right now it's as is because the file wont load in time and the server times out, we need to optimize to load in chunks 
+            Change this later when optimizing right now it's as is because the file wont load in time and the server times out, we need to optimize to load in chunks
             or something like that, therefore we only load the first 50k points
-        
-        '''    
-        
-        signal = signal[:5000,:]
+        '''
+
+        signal = signal[:5000, :]
         labels = labels.reshape(-1)[:5000]
-        
-        print(f"signal shape: {signal.shape}")  
-        print(f"labels shape: {labels.shape}")  
-        
-            
-        # We encode the vector 
-        
-        encoder = LabelEncoder() 
+
+        print(f"signal shape: {signal.shape}")
+        print(f"labels shape: {labels.shape}")
+
+        # We encode the vector
+        encoder = LabelEncoder()
         labels = encoder.fit_transform(labels.ravel())
-        
-        
-        
+
         print(f"One hot encoded labels shape: {labels.shape}")
-        
-        
-        
-        
-            
+
         # Serialize the signal (convert to list to make it JSON serializable)
         signal_dict = {
             "data": signal.tolist(),
             "num_channels": signal.shape[1],
-            "num_timepoints": signal.shape[0], 
-            "labels": labels.tolist(), 
-            "label_color_map" : label_color_map
+            "num_timepoints": signal.shape[0],
+            "labels": labels.tolist(),
+            "label_color_map": label_color_map
         }
 
         return signal_dict, False  # Enable interval
-    
