@@ -83,6 +83,116 @@ class Dataset:
         self.name = name
         self.extensions_enabled = [".bdf", ".edf"]
 
+    def load_events(path_to_folder):
+        """
+        Inspecciona la carpeta Events junto al .npy en Aux/.
+        Además, si encuentra al menos un .npy en Events, carga el primero y lo imprime.
+        """
+        print("\n[load_events] Entering load events")
+        print(f"[load_events] Input path: {path_to_folder!r}")
+
+        if not path_to_folder or not isinstance(path_to_folder, (str, os.PathLike)):
+            msg = "Se ha proporcionado una ruta inválida (no es str/os.PathLike)."
+            print("[load_events]", msg)
+            return {"status": 400, "message": msg}
+
+        p_in = Path(path_to_folder)
+
+        # --- Resolver a ruta del .npy bajo Aux (igual que tu flujo actual) ---
+        if p_in.exists() and p_in.is_dir():
+            print(f"[load_events] Es carpeta existente: {p_in}")
+            aux_root = Path(_aux_root_for(str(p_in if str(p_in).startswith("Data/") else str(p_in))))
+            print(f"[load_events] Aux root espejo (creado si no existe): {aux_root}")
+            npy_candidates = sorted(aux_root.rglob("*.npy"))
+            if not npy_candidates:
+                msg = f"No se encontraron .npy en {aux_root} (Aux espejo de la carpeta)."
+                print("[load_events]", msg)
+                return {"status": 404, "message": msg}
+            npy_path = npy_candidates[0]
+            print(f"[load_events] Primer .npy encontrado en Aux: {npy_path}")
+        else:
+            if not p_in.is_absolute() and not str(p_in).startswith("Data/"):
+                data_full = Path("Data") / p_in
+            else:
+                data_full = p_in
+
+            if data_full.suffix.lower() == ".npy":
+                if "Aux" in str(data_full):
+                    npy_path = data_full
+                    print(f"[load_events] .npy ya bajo Aux: {npy_path}")
+                else:
+                    try:
+                        mapped = get_Data_filePath(str(data_full))
+                        npy_path = Path(mapped)
+                        print(f"[load_events] Mapeado .npy Data->Aux: {data_full} -> {npy_path}")
+                    except Exception as e:
+                        msg = f"Error mapeando .npy a Aux: {e}"
+                        print("[load_events]", msg)
+                        return {"status": 500, "message": msg}
+            else:
+                if not str(data_full).startswith("Data/"):
+                    data_full = Path("Data") / data_full
+                try:
+                    mapped = get_Data_filePath(str(data_full))
+                    npy_path = Path(mapped)
+                    print(f"[load_events] Mapeado Data file -> Aux .npy: {data_full} -> {npy_path}")
+                except Exception as e:
+                    msg = f"Error mapeando archivo a Aux .npy: {e}"
+                    print("[load_events]", msg)
+                    return {"status": 500, "message": msg}
+
+        # --- Ubicar carpeta Events junto al .npy ---
+        events_dir = npy_path.parent / "Events"
+        print(f"[load_events] Buscando Events en: {events_dir} | Existe? {events_dir.exists()}")
+
+        events_files = []
+        if events_dir.exists() and events_dir.is_dir():
+            events_files = sorted([p for p in events_dir.glob("*.npy")])
+            print(f"[load_events] Events encontrados: {len(events_files)}")
+            for p in events_files[:20]:
+                print("   -", p.name)
+            if len(events_files) > 20:
+                print(f"[load_events] ... y {len(events_files)-20} más")
+        else:
+            print("[load_events] Carpeta Events no encontrada.")
+
+        # --- NUEVO: leer e imprimir el primer .npy de Events (si existe) ---
+        first_preview = None
+        if events_files:
+            first_npy = events_files[0]
+            try:
+                print(f"[load_events] Cargando primer evento: {first_npy}")
+                arr = np.load(first_npy, allow_pickle=False)  # eventos son float32 típicamente
+                print(f"[load_events] npy shape={arr.shape}, dtype={arr.dtype}, ndim={arr.ndim}")
+
+                # Pequeño preview para no saturar: primeras 3 filas x 10 columnas (si aplica)
+                if arr.ndim == 2:
+                    r = min(arr.shape[0], 3)
+                    c = min(arr.shape[1], 10)
+                    first_preview = arr[:r, :c]
+                elif arr.ndim == 1:
+                    c = min(arr.shape[0], 10)
+                    first_preview = arr[:c]
+                else:
+                    # Para tensores más altos, solo muestra el primer "slice" comprimido
+                    first_preview = np.array(arr).reshape(-1)[:10]
+
+                print("[load_events] Preview del primer npy:")
+                print(first_preview)
+            except Exception as e:
+                print(f"[load_events] ERROR leyendo {first_npy}: {e}")
+
+        # No cambiamos el contrato: retornamos solo status/logs básicos
+        return {
+            "status": 200,
+            "message": "OK (inspección de Events y lectura del primer .npy impresa en consola)",
+            "events_dir": str(events_dir),
+            "n_events": len(events_files),
+            "first_event_file": str(events_files[0]) if events_files else None,
+            "first_event_shape": tuple(first_preview.shape) if isinstance(first_preview, np.ndarray) else None
+        }
+
+        
     def upload_dataset(self, path_to_folder):
         print("Entering upload dataset ")
         print("getting all the files with .bdf, .edf extensions, just by now ....")

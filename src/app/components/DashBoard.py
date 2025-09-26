@@ -26,23 +26,38 @@ def get_dashboard_container(figures: List[go.Figure], columns_per_row: int = 2):
 
 
 
-def get_dashboard_container_dynamic(graph_id = "signal-graph"): 
-    
-     return html.Div(
+def get_dashboard_container_dynamic(graph_id="signal-graph"):
+    return html.Div(
         className="dashboard-scroll-wrapper",
+        # ⬅️ quita límites y scroll interno del wrapper
+        style={"width": "100%", "overflow": "visible"},
         children=[
             dbc.Container(
                 fluid=True,
                 className="dashboard-container",
+                # ⬅️ quita padding lateral del container bootstrap
+                style={"paddingLeft": 0, "paddingRight": 0},
                 children=[
-                    dbc.Row([
-                        dbc.Col(
-                            dcc.Graph(id=graph_id, figure=None),
-                            width=12
-                        )
-                    ], className="mb-4")
-                ]
+                    dbc.Row(
+                        [
+                            dbc.Col(
+                                dcc.Graph(
+                                    id=graph_id,
+                                    figure=None,
+                                    # ⬅️ tamaño real del lienzo
+                                    style={"width": "100%", "height": "82vh"},
+                                    config={"displayModeBar": True, "responsive": True},
+                                ),
+                                width=12,
+                                # ⬅️ sin padding en la columna
+                                style={"paddingLeft": 0, "paddingRight": 0},
+                            )
+                        ],
+                        className="mb-0",
+                        # ⬅️ sin márgenes de fila
+                        style={"marginLeft": 0, "marginRight": 0},
+                    )
+                ],
             )
-        ]
+        ],
     )
-    
