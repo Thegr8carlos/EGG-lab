@@ -14,50 +14,116 @@ def get_dataset_view(
     outer_box_style: Optional[Dict[str, Any]] = None,
     inner_box_style: Optional[Dict[str, Any]] = None,
 ):
-    default_outer_style = {
-        "padding": "15px",
-        "backgroundColor": "rgba(30, 30, 30, 0.9)",
-        "border": "1px solid white",
-        "borderRadius": "8px",
-        "marginBottom": "15px",
-        "maxWidth": "fit-content",
+    # ---------- Estilos (solo presentación) ----------
+    CENTER_WRAP = {
+        "display": "flex",
+        "justifyContent": "center",
+        "width": "100%",
+        "padding": "0 0.5rem",
     }
-    default_inner_style = {
-        "padding": "15px",
-        "backgroundColor": "rgba(30, 30, 30, 0.9)",
-        "border": "1px solid white",
-        "borderRadius": "8px",
-        "marginBottom": "15px",
-        "maxWidth": "fit-content",
+    CENTER_COL = {
+        # columna central: leyenda arriba (compacta), plot abajo (protagónico)
+        "width": "min(1700px, 95vw)",          # ⬅️ más ancho
+        "display": "grid",
+        "gridTemplateRows": "auto minmax(78vh, auto)",  # ⬅️ plot más alto
+        "gap": "1rem",
+        "alignItems": "start",
+        "margin": "0 auto",
     }
-
-    outer_style = {**default_outer_style, **(outer_box_style or {})}
-    inner_style = {**default_inner_style, **(inner_box_style or {})}
+    CARD_BASE = {
+        "borderRadius": "16px",
+        "padding": "1rem",
+        "boxShadow": "0 10px 24px rgba(0,0,0,0.30)",
+        "border": "1px solid",
+        "borderColor": "color-mix(in srgb, var(--color-4) 35%, transparent)",
+        "background": "linear-gradient(180deg, color-mix(in srgb, var(--color-2) 85%, transparent), var(--color-1))",
+    }
+    # Leyenda más pequeña
+    LEGEND_CARD = {
+        **CARD_BASE,
+        "padding": "0.6rem 0.8rem",   # ⬅️ compacto
+        "minHeight": "60px",
+    }
+    PLOT_CARD = {
+        **CARD_BASE,
+        "overflowX": "auto",
+        "minHeight": "78vh",          # ⬅️ alto por defecto
+        "padding": "1rem 1.25rem",
+    }
+    HEADER_TXT = {
+        "fontWeight": 700,
+        "letterSpacing": "0.2px",
+        "marginBottom": "0.4rem",
+        "color": "var(--color-3)",
+    }
+    SUBTEXT = {
+        "opacity": 0.8,
+        "fontSize": "0.88rem",        # ⬅️ texto de ayuda más chico
+        "margin": "0 0 0.5rem 0",
+        "color": "var(--color-3)",
+    }
+    LEGEND_WRAP = {
+        "display": "flex",
+        "flexWrap": "wrap",
+        "gap": "6px 12px",            # ⬅️ más apretado
+        "alignItems": "center",
+        "padding": "6px",
+        "borderRadius": "10px",
+        "backgroundColor": "rgba(255,255,255,0.02)",
+        "border": "1px dashed color-mix(in srgb, var(--color-5) 45%, transparent)",
+        "color": "var(--color-3)",
+        "fontSize": "0.9rem",         # ⬅️ etiquetas más pequeñas
+    }
 
     return html.Div(
         id=container_id,
         children=[
+            # Stores (NO se tocan)
             dcc.Store(id=full_signal_store_id),
             dcc.Store(id=label_color_store_id),
 
+            # Columna central: leyenda ARRIBA (compacta), plot ABAJO (grande)
             html.Div(
-                [
-                    html.Div(
-                        "Label Color Map:",
-                        style={
-                            "fontWeight": "bold",
-                            "color": "white",
-                            "marginBottom": "10px",
-                            "fontSize": "18px",
-                        },
-                    ),
-                    html.Div(id=legend_container_id, style=inner_style),
-                ],
-                style=outer_style,
+                style=CENTER_WRAP,
+                children=html.Div(
+                    style=CENTER_COL,
+                    children=[
+                        # --- Leyenda arriba ---
+                        html.Div(
+                            style=LEGEND_CARD,
+                            children=[
+                                html.Div("Etiquetas y mapa de color", style=HEADER_TXT),
+                                html.Div(
+                                    "Consulta las clases y sus colores asignados al stream de EEG.",
+                                    style=SUBTEXT
+                                ),
+                                html.Div(id=legend_container_id, style=LEGEND_WRAP),
+                            ],
+                        ),
+                        # --- Plot centrado y mucho más grande ---
+                        html.Div(
+                            style=PLOT_CARD,
+                            children=[
+                                html.Div("Señal multicanal (plot dinámico)", style=HEADER_TXT),
+                                html.Div(
+                                    # NO tocamos IDs ni lógica interna del gráfico
+                                    get_dashboard_container_dynamic(graph_id=graph_id),
+                                    # el contenedor empuja a ocupar ancho y alto
+                                    style={
+                                        "display": "flex",
+                                        "justifyContent": "center",
+                                        "alignItems": "stretch",
+                                        "minHeight": "74vh",   # ⬅️ empuja al alto
+                                        "width": "100%",
+                                    },
+                                ),
+                            ],
+                        ),
+                    ],
+                ),
             ),
 
-            get_dashboard_container_dynamic(graph_id=graph_id),
-
+            # Interval (NO se toca)
             dcc.Interval(
                 id=interval_id,
                 interval=interval_ms,
@@ -67,11 +133,9 @@ def get_dataset_view(
         ],
     )
 
-
 # --- REGISTRADORES DE CALLBACKS (parametrizados por ID) ---
 
 def register_dataset_clientside(graph_id: str, interval_id: str, store_id: str) -> None:
-    """Registra el clientside_callback del gráfico con IDs dinámicos."""
     clientside_callback(
         """
         function(n_intervals, signal_data) {
@@ -88,6 +152,7 @@ def register_dataset_clientside(graph_id: str, interval_id: str, store_id: str) 
             const labels = signal_data.labels;
             const num_channels = signal_data.num_channels;
             const num_timepoints = signal_data.num_timepoints;
+            const channel_names = signal_data.channel_names || [];
 
             let start = n_intervals * STEP;
             let end = start + WINDOW;
@@ -127,18 +192,52 @@ def register_dataset_clientside(graph_id: str, interval_id: str, store_id: str) 
                 segment_start = segment_end;
             }
 
+            // ---- Layout base ----
             const layout = {
                 height: 200 * num_channels,
                 showlegend: false,
                 title: "Señales Multicanal (Desplazamiento Automático)",
-                margin: {t: 40, b: 40}
+                margin: {t: 40, b: 40, l: 60, r: 20}
             };
+
+            // ---- Sub-ejes + anotaciones persistentes por canal ----
+            const annotations = [];
             for (let i = 0; i < num_channels; i++) {
+                const domainStart = 1 - (i + 1) / num_channels;
+                const domainEnd   = 1 - i / num_channels;
+
                 layout[`yaxis${i+1}`] = {
                     title: `Ch ${i+1}`,
-                    domain: [1 - (i + 1) / num_channels, 1 - i / num_channels]
+                    domain: [domainStart, domainEnd]
                 };
+
+                // Nombre del canal y último valor visible en ventana (si existe)
+                let lastVal = null;
+                if (signal_window.length > 0) {
+                    const lastRow = signal_window[signal_window.length - 1];
+                    if (lastRow && lastRow.length > i) lastVal = lastRow[i];
+                }
+                const chName = (channel_names[i] || `Ch ${i+1}`);
+                const label  = (lastVal !== null && lastVal !== undefined)
+                    ? `${chName} • ${lastVal.toFixed(5)}`
+                    : chName;
+
+                // Anotación en la esquina superior-derecha de cada subtrama (coordenadas "paper")
+                annotations.push({
+                    xref: 'paper', yref: 'paper',
+                    x: 0.985, y: (domainEnd - 0.015),  // un poco por debajo del borde superior del dominio
+                    xanchor: 'right', yanchor: 'top',
+                    text: label,
+                    showarrow: false,
+                    align: 'right',
+                    font: { size: 12, color: '#e6e6e6' },
+                    bgcolor: 'rgba(0,0,0,0.35)',
+                    bordercolor: 'rgba(255,255,255,0.18)',
+                    borderwidth: 1,
+                    borderpad: 2
+                });
             }
+            layout.annotations = annotations;
 
             return { data: traces, layout: layout };
         }
@@ -146,7 +245,6 @@ def register_dataset_clientside(graph_id: str, interval_id: str, store_id: str) 
         Output(graph_id, "figure"),
         [Input(interval_id, "n_intervals"), Input(store_id, "data")],
     )
-
 
 def register_dataset_legend(legend_container_id: str, store_id: str) -> None:
     """Registra el callback del mapa de colores (server-side) con IDs dinámicos."""

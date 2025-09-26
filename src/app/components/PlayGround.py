@@ -1,17 +1,20 @@
+# PlayGround.py
 import dash_bootstrap_components as dbc
 from dash import html, dcc
 import plotly.graph_objects as go
+import math
 
-def get_playGround(title: str, description: str, metadata: dict, custom_metadata: dict):
+def get_playGround(title: str, description: str, metadata: dict, custom_metadata: dict, graph_id: str = "pg-main-plot"):
     """
     Layout en 2 filas:
       - Fila 1: Metadata (izq) + Custom Metadata (der)
-      - Fila 2: Plot
+      - Fila 2: Plot (WebGL, sin eventos)
 
     Args:
       metadata: dict { clase -> color_css }
       custom_metadata: dict con keys:
         dataset_name, num_classes, sfreq, n_channels, eeg_unit
+      graph_id: id único para el dcc.Graph (permite reutilizar el componente sin colisiones)
     """
 
     # ============== helpers UI ==============
@@ -72,7 +75,6 @@ def get_playGround(title: str, description: str, metadata: dict, custom_metadata
     # ====== contenido tarjeta Metadata (clases) ======
     classes_section = []
     if metadata and isinstance(metadata, dict):
-        # orden estable por nombre
         for cls in sorted(metadata.keys()):
             col = metadata.get(cls) or "var(--accent-2)"
             classes_section.append(class_chip(cls, col))
@@ -102,19 +104,28 @@ def get_playGround(title: str, description: str, metadata: dict, custom_metadata
         }
     )
 
-    # ====== figura demo (placeholder) ======
+    # ====== figura demo (WEBGL, fija y sin eventos) ======
+    N = 5000
+    x = list(range(N))
+    y = [math.sin(2*math.pi*0.005*i) + 0.5*math.sin(2*math.pi*0.011*i + 0.7) for i in x]
+
     fig_demo = go.Figure(
-        data=[go.Scatter(
-            x=list(range(1, 11)),
-            y=[2, 3, 4, 3, 5, 4, 6, 7, 6, 8],
-            mode="lines+markers",
-            name="Demo"
+        data=[go.Scattergl(
+            x=x,
+            y=y,
+            mode="lines",
+            name="Demo EEG (WebGL)",
+            line=dict(width=1),
+            hoverinfo="skip"
         )]
     )
     fig_demo.update_layout(
         margin=dict(l=10, r=10, t=10, b=10),
         paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)"
+        plot_bgcolor="rgba(0,0,0,0)",
+        showlegend=False,
+        xaxis=dict(title="muestras", showgrid=False, zeroline=False, fixedrange=True),
+        yaxis=dict(title="amplitud", showgrid=True, gridcolor="rgba(128,128,128,0.25)", zeroline=False, fixedrange=True),
     )
 
     # ====== layout ======
@@ -159,14 +170,22 @@ def get_playGround(title: str, description: str, metadata: dict, custom_metadata
                     dbc.Col(
                         html.Div(
                             [
-                                html.Div("Plot", className="pg-card__title"),
+                                html.Div("Plot (WebGL – clientside)", className="pg-card__title"),
                                 html.Div(
                                     dcc.Graph(
-                                        id="pg-main-plot",
+                                        id=graph_id,  # id parametrizable para evitar colisiones entre páginas
                                         figure=fig_demo,
                                         responsive=True,
                                         style={"width": "100%", "minHeight": "460px"},
-                                        config={"displaylogo": False}
+                                        config={
+                                            "displaylogo": False,
+                                            "modeBarButtonsToRemove": [
+                                                "zoom","pan","select","lasso2d",
+                                                "zoomIn2d","zoomOut2d","autoScale2d",
+                                                "resetScale2d","toImage"
+                                            ],
+                                            "staticPlot": True
+                                        },
                                     ),
                                     className="pg-card__body pg-card__body--plot",
                                 ),
