@@ -36,8 +36,9 @@ body {
   flex-direction: column;
 }
 
-/* Aquí vive el page_container y SOLO aquí habrá scroll */
+/* Aquí vive el page_container - SIN scroll global */
 #main-content-wrapper {
   flex: 1 1 auto;
-  overflow: auto;              /* ← único scroll de la página */
+  overflow: auto;
+  height: 0;                   /* ← fuerza al flex item a respetar flex-basis */
 }

@@ -78,6 +78,162 @@ def create_metadata_section(meta: dict):
     return class_color_map, custom
 
 
+def create_navigation_controls(meta: dict):
+    """Crea los controles de navegación de canales y filtrado por clase"""
+    classes = meta.get("classes", []) if isinstance(meta, dict) else []
+
+    return html.Div([
+        # Navegación de canales (sin título)
+        html.Div([
+            html.Div(
+                id='channel-nav-info',
+                children="Canales 0 - 7 de 0",
+                style={
+                    "fontSize": "11px",
+                    "fontWeight": "600",
+                    "color": "var(--text)",
+                    "marginBottom": "6px",
+                    "textAlign": "center"
+                }
+            ),
+            html.Div([
+                html.Button(
+                    '← Anteriores',
+                    id='btn-prev-channels',
+                    n_clicks=0,
+                    disabled=True,
+                    style={
+                        "padding": "3px 8px",
+                        "borderRadius": "var(--radius-sm)",
+                        "border": "none",
+                        "background": "var(--card-bg)",
+                        "color": "var(--text)",
+                        "cursor": "not-allowed",
+                        "fontSize": "10px",
+                        "fontWeight": "500",
+                        "opacity": "0.5",
+                        "flex": "1"
+                    }
+                ),
+                html.Button(
+                    'Siguientes →',
+                    id='btn-next-channels',
+                    n_clicks=0,
+                    disabled=True,
+                    style={
+                        "padding": "3px 8px",
+                        "borderRadius": "var(--radius-sm)",
+                        "border": "none",
+                        "background": "var(--card-bg)",
+                        "color": "var(--text)",
+                        "cursor": "not-allowed",
+                        "fontSize": "10px",
+                        "fontWeight": "500",
+                        "opacity": "0.5",
+                        "flex": "1"
+                    }
+                ),
+            ], style={
+                "display": "flex",
+                "gap": "4px",
+                "marginBottom": "12px"
+            })
+        ]),
+
+        # Divisor
+        html.Hr(style={
+            "border": "none",
+            "borderTop": "1px solid var(--border-weak)",
+            "margin": "8px 0",
+            "opacity": "0.4"
+        }),
+
+        # Filtro por clase en fila (sin título)
+        html.Div([
+            html.Div([
+                html.Button(
+                    'Todas',
+                    id='btn-all-classes',
+                    n_clicks=0,
+                    disabled=True,
+                    style={
+                        "padding": "3px 6px",
+                        "flex": "1",
+                        "borderRadius": "var(--radius-sm)",
+                        "border": "1px solid var(--accent-1)",
+                        "background": "var(--accent-1)",
+                        "color": "var(--text)",
+                        "cursor": "not-allowed",
+                        "fontSize": "10px",
+                        "fontWeight": "500",
+                        "opacity": "0.8",
+                        "whiteSpace": "nowrap"
+                    }
+                ),
+            ] + [
+                html.Button(
+                    str(cls),
+                    id={'type': 'btn-filter-class', 'index': idx},
+                    n_clicks=0,
+                    disabled=True,
+                    style={
+                        "padding": "3px 6px",
+                        "flex": "1",
+                        "borderRadius": "var(--radius-sm)",
+                        "border": "1px solid var(--border-weak)",
+                        "background": "var(--card-bg)",
+                        "color": "var(--text-muted)",
+                        "cursor": "not-allowed",
+                        "fontSize": "10px",
+                        "fontWeight": "500",
+                        "opacity": "0.5",
+                        "whiteSpace": "nowrap"
+                    }
+                ) for idx, cls in enumerate(classes)
+            ], style={
+                "display": "flex",
+                "gap": "4px",
+                "marginBottom": "12px"
+            })
+        ]),
+
+        # Divisor
+        html.Hr(style={
+            "border": "none",
+            "borderTop": "1px solid var(--border-weak)",
+            "margin": "8px 0",
+            "opacity": "0.4"
+        }),
+
+        # Selector de canales específicos (dummy)
+        html.Div([
+            html.Div("Canales específicos", style={
+                "fontSize": "10px",
+                "fontWeight": "500",
+                "color": "var(--text-muted)",
+                "marginBottom": "4px",
+                "opacity": "0.7"
+            }),
+            dcc.Input(
+                id='input-channel-selection',
+                type='text',
+                placeholder='ej: 0,5,10-15',
+                disabled=True,
+                style={
+                    "width": "100%",
+                    "padding": "4px 8px",
+                    "borderRadius": "var(--radius-sm)",
+                    "border": "1px solid var(--border-weak)",
+                    "background": "var(--card-bg)",
+                    "color": "var(--text-muted)",
+                    "fontSize": "10px",
+                    "opacity": "0.5"
+                }
+            )
+        ])
+    ])
+
+
 @callback(
     Output("pg-wrapper-filtros", "children"),
     Input("selected-dataset", "data")
@@ -92,7 +248,8 @@ def update_playground_desc(selected_dataset):
         return get_playGround("Filtros", f"{desc} (sin metadata: {e})", {}, {}, graph_id=GRAPH_ID, multi=True)
 
     meta_dict, custom_dict = create_metadata_section(meta)
-    return get_playGround("Filtros", desc, meta_dict, custom_dict, graph_id=GRAPH_ID, multi=True)
+    nav_controls = create_navigation_controls(meta)
+    return get_playGround("Filtros", desc, meta_dict, custom_dict, graph_id=GRAPH_ID, multi=True, navigation_controls=nav_controls)
 
 
 @callback(
@@ -233,96 +390,7 @@ clientside_callback(
         const channelCount = Math.min(CHANNELS_PER_PAGE, total - channelStart);
 
         const graphs = [];
-        
-        // Controles de navegación
-        const navControls = {
-          props: {
-            id: 'channel-nav-controls',
-            children: [
-              {
-                props: {
-                  children: `Canales ${channelStart} - ${channelStart + channelCount - 1} de ${total}`,
-                  style: {
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    color: 'rgba(255,255,255,0.9)',
-                    marginBottom: '12px',
-                    textAlign: 'center'
-                  }
-                },
-                type: 'Div',
-                namespace: 'dash_html_components'
-              },
-              {
-                props: {
-                  children: [
-                    {
-                      props: {
-                        id: 'btn-prev-channels',
-                        children: '← Anteriores',
-                        n_clicks: 0,
-                        disabled: channelStart === 0,
-                        style: {
-                          padding: '8px 16px',
-                          marginRight: '8px',
-                          borderRadius: '6px',
-                          border: 'none',
-                          background: channelStart === 0 ? 'rgba(128,128,128,0.2)' : 'rgba(59,130,246,0.8)',
-                          color: 'white',
-                          cursor: channelStart === 0 ? 'not-allowed' : 'pointer',
-                          fontSize: '13px',
-                          fontWeight: '500'
-                        }
-                      },
-                      type: 'Button',
-                      namespace: 'dash_html_components'
-                    },
-                    {
-                      props: {
-                        id: 'btn-next-channels',
-                        children: 'Siguientes →',
-                        n_clicks: 0,
-                        disabled: channelStart + channelCount >= total,
-                        style: {
-                          padding: '8px 16px',
-                          borderRadius: '6px',
-                          border: 'none',
-                          background: channelStart + channelCount >= total ? 'rgba(128,128,128,0.2)' : 'rgba(59,130,246,0.8)',
-                          color: 'white',
-                          cursor: channelStart + channelCount >= total ? 'not-allowed' : 'pointer',
-                          fontSize: '13px',
-                          fontWeight: '500'
-                        }
-                      },
-                      type: 'Button',
-                      namespace: 'dash_html_components'
-                    }
-                  ],
-                  style: {
-                    display: 'flex',
-                    justifyContent: 'center',
-                    gap: '8px',
-                    marginBottom: '16px'
-                  }
-                },
-                type: 'Div',
-                namespace: 'dash_html_components'
-              }
-            ],
-            style: {
-              padding: '12px',
-              background: 'rgba(0,0,0,0.2)',
-              borderRadius: '8px',
-              marginBottom: '16px',
-              border: '1px solid rgba(255,255,255,0.1)'
-            }
-          },
-          type: 'Div',
-          namespace: 'dash_html_components'
-        };
-        
-        graphs.push(navControls);
-        
+
         // Renderizar plots
         for (let i = 0; i < channelCount; i++) {
           const ch = channelStart + i;
@@ -451,4 +519,140 @@ clientside_callback(
     Input('btn-next-channels', 'n_clicks'),
     [State(CHANNEL_RANGE_STORE, 'data'), State(DATA_STORE_ID, 'data')],
     prevent_initial_call=True
+)
+
+
+# CALLBACK: Actualizar texto de información de canales
+clientside_callback(
+    """
+    function(channelRange, signalData) {
+      if (!(signalData && Array.isArray(signalData.matrix))) {
+        return "Canales 0 - 0 de 0";
+      }
+
+      const CHANNELS_PER_PAGE = 8;
+      const total = signalData.matrix.length;
+      const start = (channelRange && channelRange.start) || 0;
+      const count = Math.min(CHANNELS_PER_PAGE, total - start);
+      const end = start + count - 1;
+
+      return `Canales ${start} - ${end} de ${total}`;
+    }
+    """,
+    Output('channel-nav-info', 'children'),
+    [Input(CHANNEL_RANGE_STORE, 'data'), Input(DATA_STORE_ID, 'data')]
+)
+
+
+# CALLBACK: Actualizar estilo botón anterior
+clientside_callback(
+    """
+    function(channelRange, signalData) {
+      if (!(signalData && Array.isArray(signalData.matrix))) {
+        return {
+          padding: '3px 8px',
+          borderRadius: 'var(--radius-sm)',
+          border: 'none',
+          background: 'var(--card-bg)',
+          color: 'var(--text)',
+          cursor: 'not-allowed',
+          fontSize: '10px',
+          fontWeight: '500',
+          opacity: '0.5',
+          flex: '1'
+        };
+      }
+
+      const start = (channelRange && channelRange.start) || 0;
+      const isDisabled = start === 0;
+
+      return {
+        padding: '3px 8px',
+        borderRadius: 'var(--radius-sm)',
+        border: 'none',
+        background: isDisabled ? 'var(--card-bg)' : 'var(--accent-1)',
+        color: 'var(--text)',
+        cursor: isDisabled ? 'not-allowed' : 'pointer',
+        fontSize: '10px',
+        fontWeight: '500',
+        opacity: isDisabled ? '0.5' : '1',
+        flex: '1'
+      };
+    }
+    """,
+    Output('btn-prev-channels', 'style'),
+    [Input(CHANNEL_RANGE_STORE, 'data'), Input(DATA_STORE_ID, 'data')]
+)
+
+
+# CALLBACK: Actualizar estilo botón siguiente
+clientside_callback(
+    """
+    function(channelRange, signalData) {
+      if (!(signalData && Array.isArray(signalData.matrix))) {
+        return {
+          padding: '3px 8px',
+          borderRadius: 'var(--radius-sm)',
+          border: 'none',
+          background: 'var(--card-bg)',
+          color: 'var(--text)',
+          cursor: 'not-allowed',
+          fontSize: '10px',
+          fontWeight: '500',
+          opacity: '0.5',
+          flex: '1'
+        };
+      }
+
+      const CHANNELS_PER_PAGE = 8;
+      const total = signalData.matrix.length;
+      const start = (channelRange && channelRange.start) || 0;
+      const isDisabled = start + CHANNELS_PER_PAGE >= total;
+
+      return {
+        padding: '3px 8px',
+        borderRadius: 'var(--radius-sm)',
+        border: 'none',
+        background: isDisabled ? 'var(--card-bg)' : 'var(--accent-1)',
+        color: 'var(--text)',
+        cursor: isDisabled ? 'not-allowed' : 'pointer',
+        fontSize: '10px',
+        fontWeight: '500',
+        opacity: isDisabled ? '0.5' : '1',
+        flex: '1'
+      };
+    }
+    """,
+    Output('btn-next-channels', 'style'),
+    [Input(CHANNEL_RANGE_STORE, 'data'), Input(DATA_STORE_ID, 'data')]
+)
+
+
+# CALLBACK: Actualizar disabled botón anterior
+clientside_callback(
+    """
+    function(channelRange, signalData) {
+      if (!(signalData && Array.isArray(signalData.matrix))) return true;
+      const start = (channelRange && channelRange.start) || 0;
+      return start === 0;
+    }
+    """,
+    Output('btn-prev-channels', 'disabled'),
+    [Input(CHANNEL_RANGE_STORE, 'data'), Input(DATA_STORE_ID, 'data')]
+)
+
+
+# CALLBACK: Actualizar disabled botón siguiente
+clientside_callback(
+    """
+    function(channelRange, signalData) {
+      if (!(signalData && Array.isArray(signalData.matrix))) return true;
+      const CHANNELS_PER_PAGE = 8;
+      const total = signalData.matrix.length;
+      const start = (channelRange && channelRange.start) || 0;
+      return start + CHANNELS_PER_PAGE >= total;
+    }
+    """,
+    Output('btn-next-channels', 'disabled'),
+    [Input(CHANNEL_RANGE_STORE, 'data'), Input(DATA_STORE_ID, 'data')]
 )
