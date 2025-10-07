@@ -59,7 +59,7 @@ DATASET_BUTTON_STYLE = {
 
 layout = get_page_container(
     "Carga y gestión de datos EEG",
-    "Selecciona un conjunto ya cargado o importa uno nuevo.",
+    "Carga datasets EEG (actualmente .bdf y .edf) o elige uno ya cargado para trabajar.",
     html.Div(
         style=PANEL_STYLE,
         children=[
@@ -88,6 +88,21 @@ layout = get_page_container(
                         title="Importar un nuevo dataset al sistema (pendiente de lógica)"
                     ),
                 ],
+            ),
+                        # Texto de ayuda (no afecta funcionalidad)
+            html.Div(
+                children=[
+                    html.Div("¿Qué puedes hacer aquí?", style={
+                        "fontWeight": 700, "letterSpacing": "0.2px",
+                        "margin": "0.2rem 0 0.4rem 0", "color": "var(--color-3)"
+                    }),
+                    html.Ul([
+                        html.Li("Importar datasets EEG — por ahora se admiten archivos .bdf y .edf."),
+                        html.Li("Ver la lista de datasets ya cargados en el sistema."),
+                        html.Li("Seleccionar un dataset para continuar con su exploración/visualización."),
+                    ], style={"margin": "0 0 0.75rem 1.25rem", "color": "var(--color-3)", "opacity": 0.9}),
+                ],
+                style={"textAlign": "left"}
             ),
 
             html.Div(

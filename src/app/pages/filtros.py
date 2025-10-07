@@ -1,9 +1,10 @@
-# filtros.py
+# filtros.py - SOLUCIÓN HÍBRIDA: WebGL con controles de navegación
 from pathlib import Path
 import time
 import numpy as np
 from dash import html, dcc, register_page, callback, Output, Input, State, clientside_callback, no_update
 from shared.fileUtils import get_dataset_metadata
+import dash_bootstrap_components as dbc
 
 from app.components.PageContainer import get_page_container
 from app.components.PlayGround import get_playGround
@@ -12,15 +13,13 @@ from app.components.SideBar import get_sideBar
 
 from backend.classes.dataset import Dataset
 
-# Registrar página
 register_page(__name__, path="/filtros", name="Filtros")
 
-# IDs únicos para ESTA PÁGINA (evitar colisiones con otras páginas)
 GRAPH_ID = "pg-main-plot-filtros"
-EVENTS_STORE_ID = "events-store-filtros"   # path + ts
-DATA_STORE_ID   = "signal-store-filtros"   # matriz (primer .npy de Events)
+EVENTS_STORE_ID = "events-store-filtros"
+DATA_STORE_ID = "signal-store-filtros"
+CHANNEL_RANGE_STORE = "channel-range-store"
 
-# Layout con barra lateral
 layout = html.Div(
     [
         html.Div(
@@ -31,23 +30,20 @@ layout = html.Div(
         ),
         html.Div(
             id="pg-wrapper-filtros",
-            children=get_playGround("Filtros", "Description", {}, {}, graph_id=GRAPH_ID),
+            children=get_playGround("Filtros", "Description", {}, {}, graph_id=GRAPH_ID, multi=True),
             style={"flex": "1", "padding": "1rem"},
         ),
         html.Div(
             get_rightColumn("filter"),
             style={"width": "340px", "padding": "1rem"},
         ),
-        # Stores
         dcc.Store(id=EVENTS_STORE_ID),
         dcc.Store(id=DATA_STORE_ID),
+        dcc.Store(id=CHANNEL_RANGE_STORE, data={"start": 0, "count": 8}),
     ],
     style={"display": "flex"},
 )
 
-# =========================
-# Helpers de normalización
-# =========================
 def create_metadata_section(meta: dict):
     if not isinstance(meta, dict):
         return {}, {}
@@ -82,9 +78,6 @@ def create_metadata_section(meta: dict):
     return class_color_map, custom
 
 
-# ==========================================================
-# 1) Re-renderiza el PlayGround con metadata (server side)
-# ==========================================================
 @callback(
     Output("pg-wrapper-filtros", "children"),
     Input("selected-dataset", "data")
@@ -92,22 +85,16 @@ def create_metadata_section(meta: dict):
 def update_playground_desc(selected_dataset):
     desc = selected_dataset or "Selecciona un dataset en 'Cargar Datos'"
     if not selected_dataset:
-        print("[filtros] update_playground_desc: selected-dataset vacío -> render básico")
-        return get_playGround("Filtros", desc, {}, {}, graph_id=GRAPH_ID)
+        return get_playGround("Filtros", desc, {}, {}, graph_id=GRAPH_ID, multi=True)
     try:
         meta = get_dataset_metadata(selected_dataset)
-        print(f"[filtros] get_dataset_metadata OK para: {selected_dataset}")
     except Exception as e:
-        print(f"[filtros] get_dataset_metadata ERROR para {selected_dataset}: {e}")
-        return get_playGround("Filtros", f"{desc} (sin metadata: {e})", {}, {}, graph_id=GRAPH_ID)
+        return get_playGround("Filtros", f"{desc} (sin metadata: {e})", {}, {}, graph_id=GRAPH_ID, multi=True)
 
     meta_dict, custom_dict = create_metadata_section(meta)
-    return get_playGround("Filtros", desc, meta_dict, custom_dict, graph_id=GRAPH_ID)
+    return get_playGround("Filtros", desc, meta_dict, custom_dict, graph_id=GRAPH_ID, multi=True)
 
 
-# ==========================================================
-# 2) Backend: devolver (a) path+ts y (b) matriz del primer evento .npy
-# ==========================================================
 @callback(
     [
         Output(EVENTS_STORE_ID, "data"),
@@ -117,18 +104,9 @@ def update_playground_desc(selected_dataset):
     prevent_initial_call=True
 )
 def pass_selected_path(selected_file_path):
-    """
-    - Normaliza y devuelve el 'path' seleccionado (con ts) en EVENTS_STORE_ID.
-    - Ubica la carpeta Events junto al .npy mapeado en Aux y carga el PRIMER .npy completo.
-      Ese array se envía serializado (list) en DATA_STORE_ID.
-    """
-    print(f"[filtros] pass_selected_path: raw value={selected_file_path!r} (type={type(selected_file_path).__name__})")
-
     if selected_file_path is None:
-        print("[filtros] pass_selected_path: None -> no_update")
         return no_update, no_update
 
-    # Normaliza (acepta str o dict con 'path'/'file')
     if isinstance(selected_file_path, dict):
         candidate = selected_file_path.get("path") or selected_file_path.get("file") or ""
     else:
@@ -136,18 +114,13 @@ def pass_selected_path(selected_file_path):
 
     candidate = candidate.strip()
     if not candidate:
-        print("[filtros] pass_selected_path: vacío tras normalizar -> no_update")
         return no_update, no_update
 
     payload = {"path": candidate, "ts": time.time()}
-    print(f"[filtros] pass_selected_path: payload -> {payload}")
 
-    # Localizar Events y cargar el primer .npy completo
     data_payload = no_update
     try:
-        res = Dataset.load_events(candidate)  # helper que ubica Aux/Events
-        print(f"[filtros] load_events result: {res}")
-
+        res = Dataset.load_events(candidate)
         first_evt = res.get("first_event_file") if isinstance(res, dict) else None
         if first_evt:
             arr = np.load(first_evt, allow_pickle=False)
@@ -155,115 +128,327 @@ def pass_selected_path(selected_file_path):
                 "source": first_evt,
                 "shape": list(arr.shape),
                 "dtype": str(arr.dtype),
-                "matrix": arr.tolist(),  # serialize para JSON
+                "matrix": arr.tolist(),
                 "ts": time.time(),
             }
-            print(f"[filtros] DATA_STORE payload listo. shape={arr.shape}, dtype={arr.dtype}")
-        else:
-            print("[filtros] No se encontró first_event_file; DATA_STORE no se enviará.")
     except Exception as e:
         print(f"[filtros] ERROR cargando primer evento .npy: {e}")
 
     return payload, data_payload
 
 
-# ==========================================================
-# 3) Frontend (clientside): 
-#    - Confirma recepción (logs)
-#    - PLOTEA con WebGL la PRIMERA FILA vs todas sus columnas
-# ==========================================================
+# CLIENTSIDE: Renderiza plots con WebGL + limpieza de contextos
 clientside_callback(
     """
-    function(storeData, selectedPathRaw, signalData, currentFigure) {
-        try {
-            console.log("[clientside] storeData =", storeData,
-                        " selectedPathRaw =", selectedPathRaw,
-                        " signalData =", signalData,
-                        " currentFigure =", currentFigure);
-
-            // 1) Lee path desde Store y/o input directo
-            var pathFromStore = (storeData && typeof storeData.path !== "undefined")
-                ? ("" + storeData.path) : "";
-            var pathFromInput = (typeof selectedPathRaw !== "undefined" && selectedPathRaw !== null)
-                ? (typeof selectedPathRaw === "object"
-                    ? (selectedPathRaw.path || selectedPathRaw.file || "")
-                    : ("" + selectedPathRaw))
-                : "";
-            var selectedPath = (pathFromStore || pathFromInput);
-            selectedPath = (typeof selectedPath === "string") ? selectedPath.trim() : ("" + selectedPath);
-
-            // 2) Base figure (usar figure actual como punto de partida)
-            var fig = currentFigure || {};
-            fig = JSON.parse(JSON.stringify(fig || {})); // deep copy
-
-            // Estructura mínima
-            fig.data = Array.isArray(fig.data) ? fig.data : [];
-            fig.layout = (typeof fig.layout === "object" && fig.layout !== null) ? fig.layout : {};
-            if (typeof fig.config !== "undefined") delete fig.config; // evitar warnings
-
-            // 3) Si llegó la matriz -> plotea PRIMERA FILA con Scattergl (línea)
-            if (signalData && signalData.matrix && Array.isArray(signalData.matrix)) {
-                // shape esperada: [n_canales, n_time]
-                var y = signalData.matrix[0]; // primera fila
-                if (Array.isArray(y)) {
-                    var x = Array.from({length: y.length}, (_, i) => i);
-
-                    fig.data = [{
-                        type: "scattergl",
-                        mode: "lines",
-                        x: x,
-                        y: y,
-                        name: "Canal 0 (primer evento)",
-                        line: { width: 1 },
-                        hoverinfo: "skip"
-                    }];
-
-                    // logs de confirmación
-                    console.log("[clientside] ✅ matriz recibida y ploteada",
-                                { source: signalData.source,
-                                  shape: signalData.shape,
-                                  dtype: signalData.dtype,
-                                  filas: signalData.matrix.length,
-                                  columnas: signalData.matrix[0].length
-                                });
-                } else {
-                    console.warn("[clientside] matrix[0] no es array, no se puede plotear.");
+    function(storeData, selectedPathRaw, signalData, channelRange) {
+      try {
+        // ===== ⚙️ CONFIGURACIÓN PRINCIPAL =====
+        
+        // Tipo de renderizado
+        const USE_WEBGL = false;  
+        // true  = WebGL (más rápido, límite ~8 gráficos simultáneos)
+        // false = SVG (sin límite, pero más lento con muchos puntos)
+        // Rango recomendado: true o false
+        
+        // Downsampling (reducción de puntos)
+        const USE_DOWNSAMPLING = false;  
+        // true  = Activa reducción de puntos (RECOMENDADO)
+        // false = Muestra todos los puntos (puede ser muy lento)
+        // Rango recomendado: true
+        
+        const DS_FACTOR = 2;  
+        // Factor de reducción: toma 1 de cada N puntos
+        // Rango recomendado: 1-20
+        //   1  = Sin reducción (todos los puntos)
+        //   2  = Muestra 1 de cada 2 puntos (50% de datos)
+        //   4  = Muestra 1 de cada 4 puntos (25% de datos) ← RECOMENDADO
+        //   8  = Muestra 1 de cada 8 puntos (12.5% de datos)
+        //   16 = Muestra 1 de cada 16 puntos (6.25% de datos)
+        // Nota: A mayor factor, más rápido pero menos detalle
+        
+        const MAX_POINTS = 15000;  
+        // Límite máximo de puntos por canal después del downsampling
+        // Rango recomendado: 2000-15000
+        //   2000  = Muy rápido, poco detalle
+        //   4000  = Rápido, buen balance
+        //   8000  = Balance óptimo ← RECOMENDADO
+        //   12000 = Más detalle, algo más lento
+        //   15000 = Máximo detalle con WebGL
+        // Nota: Si DS_FACTOR ya reduce suficiente, este límite puede no aplicarse
+        
+        const CHANNELS_PER_PAGE = 16;  
+        // Número de canales a mostrar por página
+        // Rango recomendado: 4-16
+        //   4  = Muy pocos, muchas páginas
+        //   6  = Seguro para WebGL
+        //   8  = Balance óptimo ← RECOMENDADO
+        //   12 = Más canales, puede causar problemas con WebGL
+        //   16 = Máximo recomendado solo con SVG (USE_WEBGL=false)
+        // Nota: Con WebGL=true, no exceder de 8-10 para evitar errores de contexto
+        
+        // Limpieza de contextos WebGL previos
+        if (window.plotlyGraphRefs && USE_WEBGL) {
+          window.plotlyGraphRefs.forEach(ref => {
+            try {
+              if (ref && ref._fullLayout && ref._fullLayout._glcontainer) {
+                const gl = ref._fullLayout._glcontainer.querySelector('canvas');
+                if (gl) {
+                  const context = gl.getContext('webgl') || gl.getContext('experimental-webgl');
+                  if (context) {
+                    const loseContext = context.getExtension('WEBGL_lose_context');
+                    if (loseContext) loseContext.loseContext();
+                  }
                 }
-            } else {
-                // si aún no hay matriz, solo actualiza el título
-                console.warn("[clientside] (sin matriz aún o payload vacío)");
-            }
-
-            // 4) Título (si hay selectedPath)
-            if (selectedPath) {
-                fig.layout.title = {
-                    text: "Plot (WebGL) — " + selectedPath,
-                    x: 0, xanchor: "left",
-                    font: { size: 14 }
-                };
-            }
-
-            // 5) Ajustes de layout mínimos (por si no estaban)
-            fig.layout.margin = fig.layout.margin || {l:10, r:10, t:10, b:10};
-            fig.layout.paper_bgcolor = fig.layout.paper_bgcolor || "rgba(0,0,0,0)";
-            fig.layout.plot_bgcolor  = fig.layout.plot_bgcolor  || "rgba(0,0,0,0)";
-            fig.layout.showlegend = false;
-            fig.layout.xaxis = Object.assign({title:"muestras", showgrid:false, zeroline:false, fixedrange:true}, fig.layout.xaxis||{});
-            fig.layout.yaxis = Object.assign({title:"amplitud", showgrid:true, gridcolor:"rgba(128,128,128,0.25)", zeroline:false, fixedrange:true}, fig.layout.yaxis||{});
-
-            return fig;
-        } catch (err) {
-            console.error("[clientside] ERROR en callback:", err);
-            return window.dash_clientside.no_update;
+              }
+            } catch(e) { /* silenciar */ }
+          });
+          window.plotlyGraphRefs = [];
         }
+
+        function downsampling(xArr, yArr, opts) {
+          if (!Array.isArray(yArr) || yArr.length === 0) return { x: xArr, y: yArr };
+          const factor = Math.max(1, (opts && opts.factor) ? opts.factor : 1);
+          const maxPts = Math.max(0, (opts && opts.maxPoints) ? opts.maxPoints : 0);
+          let eff = factor;
+          if (maxPts > 0 && yArr.length > maxPts) eff = Math.max(eff, Math.ceil(yArr.length / maxPts));
+          if (eff <= 1) return { x: xArr, y: yArr };
+          const xd = [], yd = [];
+          for (let i = 0; i < yArr.length; i += eff) { 
+            yd.push(yArr[i]); 
+            xd.push(xArr ? xArr[i] : i); 
+          }
+          return { x: xd, y: yd };
+        }
+
+        if (!(signalData && Array.isArray(signalData.matrix) && Array.isArray(signalData.matrix[0]))) {
+          return [];
+        }
+
+        const total = signalData.matrix.length;
+        const cols = signalData.matrix[0].length;
+        const xFull = Array.from({length: cols}, (_, i) => i);
+
+        // Obtener rango de canales a mostrar
+        const channelStart = (channelRange && channelRange.start) || 0;
+        const channelCount = Math.min(CHANNELS_PER_PAGE, total - channelStart);
+
+        const graphs = [];
+        
+        // Controles de navegación
+        const navControls = {
+          props: {
+            id: 'channel-nav-controls',
+            children: [
+              {
+                props: {
+                  children: `Canales ${channelStart} - ${channelStart + channelCount - 1} de ${total}`,
+                  style: {
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    color: 'rgba(255,255,255,0.9)',
+                    marginBottom: '12px',
+                    textAlign: 'center'
+                  }
+                },
+                type: 'Div',
+                namespace: 'dash_html_components'
+              },
+              {
+                props: {
+                  children: [
+                    {
+                      props: {
+                        id: 'btn-prev-channels',
+                        children: '← Anteriores',
+                        n_clicks: 0,
+                        disabled: channelStart === 0,
+                        style: {
+                          padding: '8px 16px',
+                          marginRight: '8px',
+                          borderRadius: '6px',
+                          border: 'none',
+                          background: channelStart === 0 ? 'rgba(128,128,128,0.2)' : 'rgba(59,130,246,0.8)',
+                          color: 'white',
+                          cursor: channelStart === 0 ? 'not-allowed' : 'pointer',
+                          fontSize: '13px',
+                          fontWeight: '500'
+                        }
+                      },
+                      type: 'Button',
+                      namespace: 'dash_html_components'
+                    },
+                    {
+                      props: {
+                        id: 'btn-next-channels',
+                        children: 'Siguientes →',
+                        n_clicks: 0,
+                        disabled: channelStart + channelCount >= total,
+                        style: {
+                          padding: '8px 16px',
+                          borderRadius: '6px',
+                          border: 'none',
+                          background: channelStart + channelCount >= total ? 'rgba(128,128,128,0.2)' : 'rgba(59,130,246,0.8)',
+                          color: 'white',
+                          cursor: channelStart + channelCount >= total ? 'not-allowed' : 'pointer',
+                          fontSize: '13px',
+                          fontWeight: '500'
+                        }
+                      },
+                      type: 'Button',
+                      namespace: 'dash_html_components'
+                    }
+                  ],
+                  style: {
+                    display: 'flex',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    marginBottom: '16px'
+                  }
+                },
+                type: 'Div',
+                namespace: 'dash_html_components'
+              }
+            ],
+            style: {
+              padding: '12px',
+              background: 'rgba(0,0,0,0.2)',
+              borderRadius: '8px',
+              marginBottom: '16px',
+              border: '1px solid rgba(255,255,255,0.1)'
+            }
+          },
+          type: 'Div',
+          namespace: 'dash_html_components'
+        };
+        
+        graphs.push(navControls);
+        
+        // Renderizar plots
+        for (let i = 0; i < channelCount; i++) {
+          const ch = channelStart + i;
+          const yRaw = signalData.matrix[ch];
+          if (!Array.isArray(yRaw)) continue;
+
+          const xy = USE_DOWNSAMPLING
+            ? downsampling(xFull, yRaw, { factor: DS_FACTOR, maxPoints: MAX_POINTS })
+            : { x: xFull, y: yRaw };
+
+          const fig = {
+            data: [{
+              type: USE_WEBGL ? 'scattergl' : 'scatter',
+              mode: 'lines', 
+              x: xy.x, 
+              y: xy.y,
+              line: { width: 1 }, 
+              hoverinfo: 'skip', 
+              name: 'Ch ' + ch
+            }],
+            layout: {
+              margin: { l: 50, r: 10, t: 24, b: 24 },
+              paper_bgcolor: 'rgba(0,0,0,0)', 
+              plot_bgcolor: 'rgba(0,0,0,0)',
+              showlegend: false,
+              xaxis: { showgrid: false, zeroline: false, fixedrange: true, title: 'muestras' },
+              yaxis: { 
+                showgrid: true, 
+                gridcolor: 'rgba(128,128,128,0.25)', 
+                zeroline: false, 
+                fixedrange: true, 
+                title: 'Ch ' + ch 
+              },
+              height: 320,
+              autosize: true,
+              uirevision: 'mp-const-' + ch
+            }
+          };
+
+          graphs.push({
+            props: {
+              id: `pg-multi-${ch}`,
+              figure: fig,
+              responsive: true,
+              className: 'plot-item',
+              style: { height: '320px', width: '100%', minHeight: 0, marginBottom: '12px' },
+              config: {
+                displaylogo: false,
+                responsive: true,
+                modeBarButtonsToRemove: [
+                  'zoom','pan','select','lasso2d','zoomIn2d','zoomOut2d',
+                  'autoScale2d','resetScale2d','toImage'
+                ]
+              }
+            },
+            type: 'Graph',
+            namespace: 'dash_core_components'
+          });
+        }
+
+        // Guardar referencias para limpieza futura
+        if (USE_WEBGL) {
+          setTimeout(() => {
+            if (!window.plotlyGraphRefs) window.plotlyGraphRefs = [];
+            for (let i = 0; i < channelCount; i++) {
+              const el = document.getElementById(`pg-multi-${channelStart + i}`);
+              if (el && el._fullData) window.plotlyGraphRefs.push(el);
+            }
+            window.dispatchEvent(new Event('resize'));
+          }, 100);
+        } else {
+          setTimeout(() => { window.dispatchEvent(new Event('resize')); }, 0);
+        }
+
+        return graphs;
+      } catch (e) {
+        console.error('[clientside:hybrid] ERROR:', e);
+        return window.dash_clientside.no_update;
+      }
     }
     """,
-    Output(GRAPH_ID, "figure"),
+    Output('plots-container', 'children'),
     [
-        Input(EVENTS_STORE_ID, "data"),        # path+ts
-        Input("selected-file-path", "data"),   # respaldo directo
-        Input(DATA_STORE_ID, "data"),          # dispara cuando llega la matriz
+        Input(EVENTS_STORE_ID, 'data'), 
+        Input('selected-file-path', 'data'), 
+        Input(DATA_STORE_ID, 'data'),
+        Input(CHANNEL_RANGE_STORE, 'data')
     ],
-    State(GRAPH_ID, "figure"),
+    prevent_initial_call=True
+)
+
+
+# CALLBACK: Navegación de canales (Anterior)
+clientside_callback(
+    """
+    function(n_clicks, currentRange) {
+      if (!n_clicks || n_clicks === 0) return window.dash_clientside.no_update;
+      const CHANNELS_PER_PAGE = 8;
+      const currentStart = (currentRange && currentRange.start) || 0;
+      const newStart = Math.max(0, currentStart - CHANNELS_PER_PAGE);
+      return {start: newStart, count: CHANNELS_PER_PAGE};
+    }
+    """,
+    Output(CHANNEL_RANGE_STORE, 'data', allow_duplicate=True),
+    Input('btn-prev-channels', 'n_clicks'),
+    State(CHANNEL_RANGE_STORE, 'data'),
+    prevent_initial_call=True
+)
+
+
+# CALLBACK: Navegación de canales (Siguiente)
+clientside_callback(
+    """
+    function(n_clicks, currentRange, signalData) {
+      if (!n_clicks || n_clicks === 0) return window.dash_clientside.no_update;
+      if (!(signalData && Array.isArray(signalData.matrix))) return window.dash_clientside.no_update;
+      
+      const CHANNELS_PER_PAGE = 8;
+      const total = signalData.matrix.length;
+      const currentStart = (currentRange && currentRange.start) || 0;
+      const newStart = Math.min(total - CHANNELS_PER_PAGE, currentStart + CHANNELS_PER_PAGE);
+      return {start: newStart, count: CHANNELS_PER_PAGE};
+    }
+    """,
+    Output(CHANNEL_RANGE_STORE, 'data', allow_duplicate=True),
+    Input('btn-next-channels', 'n_clicks'),
+    [State(CHANNEL_RANGE_STORE, 'data'), State(DATA_STORE_ID, 'data')],
     prevent_initial_call=True
 )

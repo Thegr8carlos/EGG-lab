@@ -4,22 +4,72 @@ from dash import html, dcc
 import plotly.graph_objects as go
 import math
 
-def get_playGround(title: str, description: str, metadata: dict, custom_metadata: dict, graph_id: str = "pg-main-plot"):
+# ===== Helpers for multi-plot rendering =====
+def _make_single_fig(x, y, name):
+    fig = go.Figure(
+        data=[go.Scattergl(x=x, y=y, mode="lines", name=name, line=dict(width=1), hoverinfo="skip")]
+    )
+    fig.update_layout(
+        margin=dict(l=10, r=10, t=10, b=10),
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        showlegend=False,
+        xaxis=dict(title="muestras", showgrid=False, zeroline=False, fixedrange=True),
+        yaxis=dict(title="amplitud", showgrid=True, gridcolor="rgba(128,128,128,0.25)", zeroline=False, fixedrange=True),
+        autosize=True,
+    )
+    return fig
+
+
+def _demo_series(k=4, n=1000):
+    x = list(range(n))
+    out = []
+    for i in range(k):
+        y = [math.sin(2 * math.pi * (0.002 + 0.0007 * i) * t + i) for t in x]
+        out.append({"x": x, "y": y, "name": f"demo-{i+1}"})
+    return out
+
+
+def render_plots_list(series, base_id="pg-plot", height_px=320):
+    graphs = []
+    for i, s in enumerate(series):
+        name = s.get("name", f"series-{i}")
+        fig = _make_single_fig(s["x"], s["y"], name)
+        graphs.append(
+            dcc.Graph(
+                id=f"{base_id}-{i}",
+                figure=fig,
+                responsive=True,
+                className="plot-item",
+                style={"height": f"{height_px}px", "width": "100%", "minHeight": 0},
+                config={
+                    "displaylogo": False,
+                    "modeBarButtonsToRemove": [
+                        "zoom",
+                        "pan",
+                        "select",
+                        "lasso2d",
+                        "zoomIn2d",
+                        "zoomOut2d",
+                        "autoScale2d",
+                        "resetScale2d",
+                        "toImage",
+                    ],
+                    "staticPlot": True,
+                },
+            )
+        )
+    return html.Div(id="plots-container", className="plots-list", children=graphs)
+
+def get_playGround(title: str, description: str, metadata: dict, custom_metadata: dict | None = None, graph_id: str = "pg-main-plot", multi: bool = False, series: list | None = None):
     """
     Layout en 2 filas:
       - Fila 1: Metadata (izq) + Custom Metadata (der)
-      - Fila 2: Plot (WebGL, sin eventos)
-
-    Args:
-      metadata: dict { clase -> color_css }
-      custom_metadata: dict con keys:
-        dataset_name, num_classes, sfreq, n_channels, eeg_unit
-      graph_id: id único para el dcc.Graph (permite reutilizar el componente sin colisiones)
+      - Fila 2: Plot (WebGL) dentro de un contenedor con SCROLL VERTICAL
     """
 
     # ============== helpers UI ==============
     def class_chip(name: str, color: str):
-        # chip con puntito de color y borde del mismo color
         return html.Span(
             [
                 html.Span("", style={
@@ -104,19 +154,14 @@ def get_playGround(title: str, description: str, metadata: dict, custom_metadata
         }
     )
 
-    # ====== figura demo (WEBGL, fija y sin eventos) ======
+    # ====== figura demo (WEBGL) ======
     N = 5000
     x = list(range(N))
     y = [math.sin(2*math.pi*0.005*i) + 0.5*math.sin(2*math.pi*0.011*i + 0.7) for i in x]
-
     fig_demo = go.Figure(
         data=[go.Scattergl(
-            x=x,
-            y=y,
-            mode="lines",
-            name="Demo EEG (WebGL)",
-            line=dict(width=1),
-            hoverinfo="skip"
+            x=x, y=y, mode="lines", name="Demo EEG (WebGL)",
+            line=dict(width=1), hoverinfo="skip"
         )]
     )
     fig_demo.update_layout(
@@ -126,6 +171,7 @@ def get_playGround(title: str, description: str, metadata: dict, custom_metadata
         showlegend=False,
         xaxis=dict(title="muestras", showgrid=False, zeroline=False, fixedrange=True),
         yaxis=dict(title="amplitud", showgrid=True, gridcolor="rgba(128,128,128,0.25)", zeroline=False, fixedrange=True),
+        height=600  # altura inicial razonable; luego el clientside la ajusta dinámicamente
     )
 
     # ====== layout ======
@@ -164,33 +210,56 @@ def get_playGround(title: str, description: str, metadata: dict, custom_metadata
                 align="stretch",
             ),
 
-            # Row 2: Plot grande
+            # Row 2: zona de plots (single o múltiples) con SCROLL local
             dbc.Row(
                 [
                     dbc.Col(
                         html.Div(
-                            [
-                                html.Div("Plot (WebGL – clientside)", className="pg-card__title"),
-                                html.Div(
-                                    dcc.Graph(
-                                        id=graph_id,  # id parametrizable para evitar colisiones entre páginas
-                                        figure=fig_demo,
-                                        responsive=True,
-                                        style={"width": "100%", "minHeight": "460px"},
-                                        config={
-                                            "displaylogo": False,
-                                            "modeBarButtonsToRemove": [
-                                                "zoom","pan","select","lasso2d",
-                                                "zoomIn2d","zoomOut2d","autoScale2d",
-                                                "resetScale2d","toImage"
-                                            ],
-                                            "staticPlot": True
-                                        },
-                                    ),
-                                    className="pg-card__body pg-card__body--plot",
+                            children=[
+                                # mantener un graph oculto para compatibilidad con callbacks existentes
+                                dcc.Graph(
+                                    id=graph_id,
+                                    figure=fig_demo,
+                                    responsive=True,
+                                    style={"width": "100%", "minHeight": "460px", "display": "none"},
+                                    config={
+                                        "displaylogo": False,
+                                        "modeBarButtonsToRemove": [
+                                            "zoom","pan","select","lasso2d",
+                                            "zoomIn2d","zoomOut2d","autoScale2d",
+                                            "resetScale2d","toImage"
+                                        ],
+                                        "staticPlot": True
+                                    },
                                 ),
+                                # lista de gráficos visibles si multi=True; si no, un único gráfico visible
+                                (render_plots_list(series or _demo_series(), base_id=graph_id)
+                                 if multi else
+                                 dcc.Graph(
+                                     id=f"{graph_id}-visible",
+                                     figure=fig_demo,
+                                     responsive=True,
+                                     style={"width": "100%", "minHeight": "460px"},
+                                     config={
+                                         "displaylogo": False,
+                                         "modeBarButtonsToRemove": [
+                                             "zoom","pan","select","lasso2d",
+                                             "zoomIn2d","zoomOut2d","autoScale2d",
+                                             "resetScale2d","toImage"
+                                         ],
+                                         "staticPlot": True
+                                     },
+                                 ))
                             ],
-                            className="pg-card pg-card--plot",
+                            # ← El wrapper es el que scroll-ea
+                            style={
+                                "maxHeight": "72vh",
+                                "overflowY": "auto",
+                                "overflowX": "hidden",
+                                "padding": "4px",
+                                "borderRadius": "12px",
+                                "background": "transparent"
+                            },
                         ),
                         width=12,
                     ),
