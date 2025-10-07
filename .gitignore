@@ -181,3 +181,5 @@ dataset/
 notes.txt
 thingsToDo.txt
 src/backend/Experiments/*
+
+.claude
