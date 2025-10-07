@@ -124,6 +124,15 @@
   overflow-y: auto;
   padding-right: 6px;
 }
+
+/* Contenedor de plots con scroll */
+.plots-scroll-container {
+  max-height: 600px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 4px;
+}
+
 .plot-item {
   flex: 0 0 auto;
   height: 320px;

@@ -61,11 +61,14 @@ def render_plots_list(series, base_id="pg-plot", height_px=320):
         )
     return html.Div(id="plots-container", className="plots-list", children=graphs)
 
-def get_playGround(title: str, description: str, metadata: dict, custom_metadata: dict | None = None, graph_id: str = "pg-main-plot", multi: bool = False, series: list | None = None):
+def get_playGround(title: str, description: str, metadata: dict, custom_metadata: dict | None = None, graph_id: str = "pg-main-plot", multi: bool = False, series: list | None = None, navigation_controls: html.Div | None = None):
     """
     Layout en 2 filas:
-      - Fila 1: Metadata (izq) + Custom Metadata (der)
+      - Fila 1: Metadata (izq) + Custom Metadata/Controles (der)
       - Fila 2: Plot (WebGL) dentro de un contenedor con SCROLL VERTICAL
+
+    Args:
+        navigation_controls: Componente opcional de controles para la tarjeta derecha
     """
 
     # ============== helpers UI ==============
@@ -122,16 +125,17 @@ def get_playGround(title: str, description: str, metadata: dict, custom_metadata
             }
         )
 
-    # ====== contenido tarjeta Metadata (clases) ======
+    # ====== Metadata Unificada ======
+    # Sección de chips de clases
     classes_section = []
     if metadata and isinstance(metadata, dict):
         for cls in sorted(metadata.keys()):
             col = metadata.get(cls) or "var(--accent-2)"
             classes_section.append(class_chip(cls, col))
     else:
-        classes_section = [html.Div("Sin metadata de clases.", style={"opacity": 0.8})]
+        classes_section = [html.Div("Sin metadata de clases.", style={"opacity": 0.8, "color": "var(--text-muted)"})]
 
-    # ====== contenido tarjeta Custom Metadata ======
+    # Datos numéricos de metadata
     ds_name = (custom_metadata or {}).get("dataset_name") or "—"
     n_cls   = str((custom_metadata or {}).get("num_classes", "—"))
     sfreq   = (custom_metadata or {}).get("sfreq")
@@ -139,19 +143,51 @@ def get_playGround(title: str, description: str, metadata: dict, custom_metadata
     n_ch    = str((custom_metadata or {}).get("n_channels", "—"))
     unit    = (custom_metadata or {}).get("eeg_unit") or "—"
 
-    custom_grid = html.Div(
+    # Grid unificado: clases arriba, datos abajo
+    unified_metadata = html.Div(
         [
-            meta_grid_item("Dataset", ds_name),
-            meta_grid_item("Clases", n_cls),
-            meta_grid_item("Fs", sfreq_s),
-            meta_grid_item("Canales", n_ch),
-            meta_grid_item("Unidad", unit),
-        ],
-        style={
-            "display": "grid",
-            "gridTemplateColumns": "repeat(auto-fit, minmax(160px, 1fr))",
-            "gap": "12px"
-        }
+            # Sección de clases
+            html.Div(
+                [
+                    html.Div("Clases", style={
+                        "fontSize": "13px",
+                        "fontWeight": "600",
+                        "color": "var(--text-muted)",
+                        "marginBottom": "12px",
+                        "textTransform": "uppercase",
+                        "letterSpacing": "0.5px"
+                    }),
+                    html.Div(classes_section, style={
+                        "display": "flex",
+                        "flexWrap": "wrap",
+                        "gap": "8px",
+                        "marginBottom": "24px"
+                    })
+                ]
+            ),
+            # Divisor
+            html.Hr(style={
+                "border": "none",
+                "borderTop": "1px solid var(--border-weak)",
+                "margin": "16px 0",
+                "opacity": "0.6"
+            }),
+            # Grid de datos
+            html.Div(
+                [
+                    meta_grid_item("Dataset", ds_name),
+                    meta_grid_item("Número de clases", n_cls),
+                    meta_grid_item("Frecuencia de muestreo", sfreq_s),
+                    meta_grid_item("Canales", n_ch),
+                    meta_grid_item("Unidad", unit),
+                ],
+                style={
+                    "display": "grid",
+                    "gridTemplateColumns": "repeat(auto-fit, minmax(180px, 1fr))",
+                    "gap": "12px"
+                }
+            )
+        ]
     )
 
     # ====== figura demo (WEBGL) ======
@@ -182,14 +218,14 @@ def get_playGround(title: str, description: str, metadata: dict, custom_metadata
             html.H2(title + " PG", className="page-title"),
             html.P(description, className="page-description"),
 
-            # Row 1: Metadata + Custom Metadata
+            # Row 1: Metadata Unificada + Tarjeta vacía
             dbc.Row(
                 [
                     dbc.Col(
                         html.Div(
                             [
-                                html.Div("Metadata", className="pg-card__title"),
-                                html.Div(classes_section, className="pg-card__body"),
+                                html.Div("Metadata del Dataset", className="pg-card__title"),
+                                html.Div(unified_metadata, className="pg-card__body"),
                             ],
                             className="pg-card pg-card--meta",
                         ),
@@ -198,8 +234,17 @@ def get_playGround(title: str, description: str, metadata: dict, custom_metadata
                     dbc.Col(
                         html.Div(
                             [
-                                html.Div("Custom Metadata", className="pg-card__title"),
-                                html.Div(custom_grid, className="pg-card__body"),
+                                html.Div("Configuración", className="pg-card__title"),
+                                html.Div(
+                                    navigation_controls if navigation_controls else html.Div("Por definir", style={
+                                        "opacity": 0.6,
+                                        "color": "var(--text-muted)",
+                                        "fontStyle": "italic",
+                                        "padding": "24px",
+                                        "textAlign": "center"
+                                    }),
+                                    className="pg-card__body"
+                                ),
                             ],
                             className="pg-card pg-card--custom",
                         ),
@@ -251,15 +296,7 @@ def get_playGround(title: str, description: str, metadata: dict, custom_metadata
                                      },
                                  ))
                             ],
-                            # ← El wrapper es el que scroll-ea
-                            style={
-                                "maxHeight": "72vh",
-                                "overflowY": "auto",
-                                "overflowX": "hidden",
-                                "padding": "4px",
-                                "borderRadius": "12px",
-                                "background": "transparent"
-                            },
+                            className="plots-scroll-container",
                         ),
                         width=12,
                     ),
