@@ -13,26 +13,26 @@ from app.components.DataView import get_dataset_view
 from app.components.SideBar import get_sideBar
 # Página
 register_page(__name__, path="/extractores", name="Transformadas")
-rightColumn = get_rightColumn("featureExtracture")
+rightColumn = get_rightColumn("filter")
 
 
 
-# first, we define the children Component for the Extractores page
+# # first, we define the children Component for the Extractores page
 
-childrenComponent = html.Div(
-    id="transformadas-view",
-    children=[
-        get_dataset_view(
-            container_id="dataset-view-transform",
-            full_signal_store_id="full-signal-data-transform",
-            label_color_store_id="label-color-store-transform",
-            legend_container_id="dynamic-color-legend-transform",
-            graph_id="signal-graph-transform",
-            interval_id="interval-component-transform",
-        ),
+# childrenComponent = html.Div(
+#     id="transformadas-view",
+#     children=[
+#         get_dataset_view(
+#             container_id="dataset-view-transform",
+#             full_signal_store_id="full-signal-data-transform",
+#             label_color_store_id="label-color-store-transform",
+#             legend_container_id="dynamic-color-legend-transform",
+#             graph_id="signal-graph-transform",
+#             interval_id="interval-component-transform",
+#         ),
         
-    ],
-)
+#     ],
+# )
 
 
 
@@ -47,7 +47,7 @@ layout = html.Div([
     ),
 
     html.Div(
-        get_page_container("Extractores", "Description", childrenComponent),
+        get_page_container("Extractores", "Description"),
         style={"flex": "1", "padding": "1rem"},
     ),
 
