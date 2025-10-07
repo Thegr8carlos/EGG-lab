@@ -18,6 +18,7 @@ register_page(__name__, path="/filtros", name="Filtros")
 GRAPH_ID = "pg-main-plot-filtros"
 EVENTS_STORE_ID = "events-store-filtros"
 DATA_STORE_ID = "signal-store-filtros"
+FILTERED_DATA_STORE_ID = "filtered-signal-store-filtros"
 CHANNEL_RANGE_STORE = "channel-range-store"
 
 layout = html.Div(
@@ -39,6 +40,7 @@ layout = html.Div(
         ),
         dcc.Store(id=EVENTS_STORE_ID),
         dcc.Store(id=DATA_STORE_ID),
+        dcc.Store(id=FILTERED_DATA_STORE_ID),
         dcc.Store(id=CHANNEL_RANGE_STORE, data={"start": 0, "count": 8}),
     ],
     style={"display": "flex"},
@@ -389,9 +391,10 @@ clientside_callback(
         const channelStart = (channelRange && channelRange.start) || 0;
         const channelCount = Math.min(CHANNELS_PER_PAGE, total - channelStart);
 
-        const graphs = [];
+        const graphsOriginal = [];
+        const graphsFiltered = [];
 
-        // Renderizar plots
+        // Renderizar plots para ambas columnas
         for (let i = 0; i < channelCount; i++) {
           const ch = channelStart + i;
           const yRaw = signalData.matrix[ch];
@@ -401,39 +404,99 @@ clientside_callback(
             ? downsampling(xFull, yRaw, { factor: DS_FACTOR, maxPoints: MAX_POINTS })
             : { x: xFull, y: yRaw };
 
-          const fig = {
+          // Plot original (columna izquierda)
+          const figOriginal = {
             data: [{
               type: USE_WEBGL ? 'scattergl' : 'scatter',
-              mode: 'lines', 
-              x: xy.x, 
+              mode: 'lines',
+              x: xy.x,
               y: xy.y,
-              line: { width: 1 }, 
-              hoverinfo: 'skip', 
+              line: { width: 1, color: '#3b82f6' },
+              hoverinfo: 'skip',
               name: 'Ch ' + ch
             }],
             layout: {
               margin: { l: 50, r: 10, t: 24, b: 24 },
-              paper_bgcolor: 'rgba(0,0,0,0)', 
+              paper_bgcolor: 'rgba(0,0,0,0)',
               plot_bgcolor: 'rgba(0,0,0,0)',
               showlegend: false,
               xaxis: { showgrid: false, zeroline: false, fixedrange: true, title: 'muestras' },
-              yaxis: { 
-                showgrid: true, 
-                gridcolor: 'rgba(128,128,128,0.25)', 
-                zeroline: false, 
-                fixedrange: true, 
-                title: 'Ch ' + ch 
+              yaxis: {
+                showgrid: true,
+                gridcolor: 'rgba(128,128,128,0.25)',
+                zeroline: false,
+                fixedrange: true,
+                title: 'Ch ' + ch
               },
               height: 320,
               autosize: true,
-              uirevision: 'mp-const-' + ch
+              uirevision: 'mp-const-orig-' + ch
             }
           };
 
-          graphs.push({
+          graphsOriginal.push({
             props: {
-              id: `pg-multi-${ch}`,
-              figure: fig,
+              id: `pg-multi-orig-${ch}`,
+              figure: figOriginal,
+              responsive: true,
+              className: 'plot-item',
+              style: { height: '320px', width: '100%', minHeight: 0, marginBottom: '12px' },
+              config: {
+                displaylogo: false,
+                responsive: true,
+                modeBarButtonsToRemove: [
+                  'zoom','pan','select','lasso2d','zoomIn2d','zoomOut2d',
+                  'autoScale2d','resetScale2d','toImage'
+                ]
+              }
+            },
+            type: 'Graph',
+            namespace: 'dash_core_components'
+          });
+
+          // Plot filtrado (columna derecha) - por ahora con datos vacíos/placeholder
+          const figFiltered = {
+            data: [{
+              type: USE_WEBGL ? 'scattergl' : 'scatter',
+              mode: 'lines',
+              x: xy.x,
+              y: xy.y.map(() => 0), // Placeholder: valores en cero
+              line: { width: 1, color: '#a855f7' },
+              hoverinfo: 'skip',
+              name: 'Filtrado Ch ' + ch
+            }],
+            layout: {
+              margin: { l: 50, r: 10, t: 24, b: 24 },
+              paper_bgcolor: 'rgba(0,0,0,0)',
+              plot_bgcolor: 'rgba(0,0,0,0)',
+              showlegend: false,
+              xaxis: { showgrid: false, zeroline: false, fixedrange: true, title: 'muestras' },
+              yaxis: {
+                showgrid: true,
+                gridcolor: 'rgba(128,128,128,0.25)',
+                zeroline: false,
+                fixedrange: true,
+                title: 'Filt Ch ' + ch
+              },
+              height: 320,
+              autosize: true,
+              uirevision: 'mp-const-filt-' + ch,
+              annotations: [{
+                text: 'Sin filtro aplicado',
+                xref: 'paper',
+                yref: 'paper',
+                x: 0.5,
+                y: 0.5,
+                showarrow: false,
+                font: { size: 12, color: 'rgba(255,255,255,0.3)' }
+              }]
+            }
+          };
+
+          graphsFiltered.push({
+            props: {
+              id: `pg-multi-filt-${ch}`,
+              figure: figFiltered,
               responsive: true,
               className: 'plot-item',
               style: { height: '320px', width: '100%', minHeight: 0, marginBottom: '12px' },
@@ -456,8 +519,11 @@ clientside_callback(
           setTimeout(() => {
             if (!window.plotlyGraphRefs) window.plotlyGraphRefs = [];
             for (let i = 0; i < channelCount; i++) {
-              const el = document.getElementById(`pg-multi-${channelStart + i}`);
-              if (el && el._fullData) window.plotlyGraphRefs.push(el);
+              const ch = channelStart + i;
+              const elOrig = document.getElementById(`pg-multi-orig-${ch}`);
+              const elFilt = document.getElementById(`pg-multi-filt-${ch}`);
+              if (elOrig && elOrig._fullData) window.plotlyGraphRefs.push(elOrig);
+              if (elFilt && elFilt._fullData) window.plotlyGraphRefs.push(elFilt);
             }
             window.dispatchEvent(new Event('resize'));
           }, 100);
@@ -465,7 +531,78 @@ clientside_callback(
           setTimeout(() => { window.dispatchEvent(new Event('resize')); }, 0);
         }
 
-        return graphs;
+        // Retornar estructura de dos columnas
+        return {
+          props: {
+            children: [
+              {
+                props: {
+                  children: [
+                    {
+                      props: {
+                        children: 'Señal Original',
+                        style: {
+                          fontSize: '14px',
+                          fontWeight: '600',
+                          color: 'var(--text)',
+                          marginBottom: '12px',
+                          paddingBottom: '8px',
+                          borderBottom: '2px solid #3b82f6'
+                        }
+                      },
+                      type: 'Div',
+                      namespace: 'dash_html_components'
+                    },
+                    ...graphsOriginal
+                  ],
+                  style: {
+                    flex: 1,
+                    paddingRight: '8px',
+                    minWidth: 0
+                  }
+                },
+                type: 'Div',
+                namespace: 'dash_html_components'
+              },
+              {
+                props: {
+                  children: [
+                    {
+                      props: {
+                        children: 'Señal Filtrada',
+                        style: {
+                          fontSize: '14px',
+                          fontWeight: '600',
+                          color: 'var(--text)',
+                          marginBottom: '12px',
+                          paddingBottom: '8px',
+                          borderBottom: '2px solid #a855f7'
+                        }
+                      },
+                      type: 'Div',
+                      namespace: 'dash_html_components'
+                    },
+                    ...graphsFiltered
+                  ],
+                  style: {
+                    flex: 1,
+                    paddingLeft: '8px',
+                    minWidth: 0
+                  }
+                },
+                type: 'Div',
+                namespace: 'dash_html_components'
+              }
+            ],
+            style: {
+              display: 'flex',
+              gap: '16px',
+              width: '100%'
+            }
+          },
+          type: 'Div',
+          namespace: 'dash_html_components'
+        };
       } catch (e) {
         console.error('[clientside:hybrid] ERROR:', e);
         return window.dash_clientside.no_update;
