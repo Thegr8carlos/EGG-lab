@@ -30,7 +30,7 @@ def _demo_series(k=4, n=1000):
     return out
 
 
-def render_plots_list(series, base_id="pg-plot", height_px=320):
+def render_plots_list(series, base_id="pg-plot", height_px=320, container_id="plots-container"):
     graphs = []
     for i, s in enumerate(series):
         name = s.get("name", f"series-{i}")
@@ -59,9 +59,9 @@ def render_plots_list(series, base_id="pg-plot", height_px=320):
                 },
             )
         )
-    return html.Div(id="plots-container", className="plots-list", children=graphs)
+    return html.Div(id=container_id, className="plots-list", children=graphs)
 
-def get_playGround(title: str, description: str, metadata: dict, custom_metadata: dict | None = None, graph_id: str = "pg-main-plot", multi: bool = False, series: list | None = None, navigation_controls: html.Div | None = None):
+def get_playGround(title: str, description: str, metadata: dict, custom_metadata: dict | None = None, graph_id: str = "pg-main-plot", multi: bool = False, series: list | None = None, navigation_controls: html.Div | None = None, plots_container_id: str = "plots-container"):
     """
     Layout en 2 filas:
       - Fila 1: Metadata (izq) + Custom Metadata/Controles (der)
@@ -215,9 +215,6 @@ def get_playGround(title: str, description: str, metadata: dict, custom_metadata
         fluid=True,
         className="page-container pg-wrap",
         children=[
-            html.H2(title + " PG", className="page-title"),
-            html.P(description, className="page-description"),
-
             # Row 1: Metadata Unificada + Tarjeta vacía
             dbc.Row(
                 [
@@ -278,7 +275,7 @@ def get_playGround(title: str, description: str, metadata: dict, custom_metadata
                                     },
                                 ),
                                 # lista de gráficos visibles si multi=True; si no, un único gráfico visible
-                                (render_plots_list(series or _demo_series(), base_id=graph_id)
+                                (render_plots_list(series or _demo_series(), base_id=graph_id, container_id=plots_container_id)
                                  if multi else
                                  dcc.Graph(
                                      id=f"{graph_id}-visible",

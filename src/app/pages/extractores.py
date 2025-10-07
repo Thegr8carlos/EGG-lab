@@ -1,282 +1,759 @@
-import os
+# extractores.py - Transformadas con vista de dos columnas
 from pathlib import Path
+import time
 import numpy as np
 from dash import html, dcc, register_page, callback, Output, Input, State, clientside_callback, no_update
-from sklearn.preprocessing import LabelEncoder
+from shared.fileUtils import get_dataset_metadata
+import dash_bootstrap_components as dbc
 
-from app.components.DashBoard import get_dashboard_container_dynamic
-from shared.fileUtils import get_Data_filePath
 from app.components.PageContainer import get_page_container
+from app.components.PlayGround import get_playGround
 from app.components.RigthComlumn import get_rightColumn
-from backend.classes.dataset import Dataset
-from app.components.DataView import get_dataset_view
 from app.components.SideBar import get_sideBar
-# Página
+
+from backend.classes.dataset import Dataset
+
 register_page(__name__, path="/extractores", name="Transformadas")
-rightColumn = get_rightColumn("filter")
 
+GRAPH_ID = "pg-main-plot-extractores"
+EVENTS_STORE_ID = "events-store-extractores"
+DATA_STORE_ID = "signal-store-extractores"
+TRANSFORMED_DATA_STORE_ID = "transformed-signal-store-extractores"
+CHANNEL_RANGE_STORE = "channel-range-store-extractores"
 
-
-# # first, we define the children Component for the Extractores page
-
-# childrenComponent = html.Div(
-#     id="transformadas-view",
-#     children=[
-#         get_dataset_view(
-#             container_id="dataset-view-transform",
-#             full_signal_store_id="full-signal-data-transform",
-#             label_color_store_id="label-color-store-transform",
-#             legend_container_id="dynamic-color-legend-transform",
-#             graph_id="signal-graph-transform",
-#             interval_id="interval-component-transform",
-#         ),
-        
-#     ],
-# )
-
-
-
-
-
-layout = html.Div([
-    html.Div(
-        id="sidebar-wrapper",
-        children=[get_sideBar("Data")],
-        className="sideBar-container",
-        style={"width": "260px", "padding": "1rem"},
-    ),
-
-    html.Div(
-        get_page_container("Extractores", "Description"),
-        style={"flex": "1", "padding": "1rem"},
-    ),
-
-    html.Div(
-        rightColumn,
-        style={"width": "340px", "padding": "1rem"},
-    ),
-
-], style={"display": "flex"})
-
-
-
-
-
-
-
-
-
-
-
-
-# ------- Callbacks (carga de datos, como en dataset) -------
-
-@callback(
-    Output("full-signal-data-transform", "data"),
-    Output("interval-component-transform", "disabled"),
-    Input("selected-file-path", "data"),
+layout = html.Div(
+    [
+        html.Div(
+            id="sidebar-wrapper",
+            children=[get_sideBar("Data")],
+            className="sideBar-container",
+            style={"width": "260px", "padding": "1rem"},
+        ),
+        html.Div(
+            id="pg-wrapper-extractores",
+            children=get_playGround("Extractores", "Description", {}, {}, graph_id=GRAPH_ID, multi=True, plots_container_id="plots-container-extractores"),
+            style={"flex": "1", "padding": "1rem"},
+        ),
+        html.Div(
+            get_rightColumn("transform"),
+            style={"width": "340px", "padding": "1rem"},
+        ),
+        dcc.Store(id=EVENTS_STORE_ID),
+        dcc.Store(id=DATA_STORE_ID),
+        dcc.Store(id=TRANSFORMED_DATA_STORE_ID),
+        dcc.Store(id=CHANNEL_RANGE_STORE, data={"start": 0, "count": 8}),
+    ],
+    style={"display": "flex"},
 )
-def load_signal_data(selected_file_path):
-    return Dataset.load_signal_data(selected_file_path)
+
+def create_metadata_section(meta: dict):
+    if not isinstance(meta, dict):
+        return {}, {}
+    classes = meta.get("classes", []) or []
+    class_color_map = {}
+    for idx, label in enumerate(classes):
+        hue = (idx * 47) % 360
+        class_color_map[str(label)] = f"hsl({hue}, 70%, 50%)"
+    sfreq = (
+        meta.get("sampling_frequency_hz")
+        or meta.get("sfreq")
+        or ((meta.get("unique_sfreqs") or [None])[0] if isinstance(meta.get("unique_sfreqs"), (list, tuple)) else None)
+    )
+    if isinstance(sfreq, str):
+        try:
+            sfreq = float(sfreq)
+        except Exception:
+            sfreq = None
+    n_channels = (
+        meta.get("n_channels")
+        or len(meta.get("channel_names") or [])
+        or len(meta.get("channel_name_union") or [])
+        or None
+    )
+    custom = {
+        "dataset_name": meta.get("dataset_name"),
+        "num_classes": meta.get("num_classes", len(classes)),
+        "sfreq": float(sfreq) if isinstance(sfreq, (int, float)) else None,
+        "n_channels": int(n_channels) if isinstance(n_channels, (int, float)) else None,
+        "eeg_unit": meta.get("eeg_unit", "V"),
+    }
+    return class_color_map, custom
 
 
+def create_navigation_controls(meta: dict):
+    """Crea los controles de navegación de canales y filtrado por clase"""
+    classes = meta.get("classes", []) if isinstance(meta, dict) else []
 
-
-
-    
-
-@callback(
-    Output("dynamic-color-legend-transform", "children"),
-    Input("full-signal-data-transform", "data"),
-)
-def update_color_legend_transform(signal_data):
-    if not signal_data or "label_color_map" not in signal_data:
-        return "No label data loaded"
-
-    color_map = signal_data["label_color_map"]
-    legend_items = []
-    count = 0
-    for label, color in color_map.items():
-        legend_items.append(
-            html.Span(
+    return html.Div([
+        # Navegación de canales (sin título)
+        html.Div([
+            html.Div(
+                id='channel-nav-info-extractores',
+                children="Canales 0 - 7 de 0",
                 style={
-                    "display": "inline-block",
-                    "width": "16px",
-                    "height": "16px",
-                    "backgroundColor": color,
-                    "marginRight": "6px",
-                    "border": "1px solid white",
+                    "fontSize": "11px",
+                    "fontWeight": "600",
+                    "color": "var(--text)",
+                    "marginBottom": "6px",
+                    "textAlign": "center"
+                }
+            ),
+            html.Div([
+                html.Button(
+                    '← Anteriores',
+                    id='btn-prev-channels-extractores',
+                    n_clicks=0,
+                    disabled=True,
+                    style={
+                        "padding": "3px 8px",
+                        "borderRadius": "var(--radius-sm)",
+                        "border": "none",
+                        "background": "var(--card-bg)",
+                        "color": "var(--text)",
+                        "cursor": "not-allowed",
+                        "fontSize": "10px",
+                        "fontWeight": "500",
+                        "opacity": "0.5",
+                        "flex": "1"
+                    }
+                ),
+                html.Button(
+                    'Siguientes →',
+                    id='btn-next-channels-extractores',
+                    n_clicks=0,
+                    disabled=True,
+                    style={
+                        "padding": "3px 8px",
+                        "borderRadius": "var(--radius-sm)",
+                        "border": "none",
+                        "background": "var(--card-bg)",
+                        "color": "var(--text)",
+                        "cursor": "not-allowed",
+                        "fontSize": "10px",
+                        "fontWeight": "500",
+                        "opacity": "0.5",
+                        "flex": "1"
+                    }
+                ),
+            ], style={
+                "display": "flex",
+                "gap": "4px",
+                "marginBottom": "12px"
+            })
+        ]),
+
+        # Divisor
+        html.Hr(style={
+            "border": "none",
+            "borderTop": "1px solid var(--border-weak)",
+            "margin": "8px 0",
+            "opacity": "0.4"
+        }),
+
+        # Filtro por clase en fila (sin título)
+        html.Div([
+            html.Div([
+                html.Button(
+                    'Todas',
+                    id='btn-all-classes-extractores',
+                    n_clicks=0,
+                    disabled=True,
+                    style={
+                        "padding": "3px 6px",
+                        "flex": "1",
+                        "borderRadius": "var(--radius-sm)",
+                        "border": "1px solid var(--accent-1)",
+                        "background": "var(--accent-1)",
+                        "color": "var(--text)",
+                        "cursor": "not-allowed",
+                        "fontSize": "10px",
+                        "fontWeight": "500",
+                        "opacity": "0.8",
+                        "whiteSpace": "nowrap"
+                    }
+                ),
+            ] + [
+                html.Button(
+                    str(cls),
+                    id={'type': 'btn-filter-class-extractores', 'index': idx},
+                    n_clicks=0,
+                    disabled=True,
+                    style={
+                        "padding": "3px 6px",
+                        "flex": "1",
+                        "borderRadius": "var(--radius-sm)",
+                        "border": "1px solid var(--border-weak)",
+                        "background": "var(--card-bg)",
+                        "color": "var(--text-muted)",
+                        "cursor": "not-allowed",
+                        "fontSize": "10px",
+                        "fontWeight": "500",
+                        "opacity": "0.5",
+                        "whiteSpace": "nowrap"
+                    }
+                ) for idx, cls in enumerate(classes)
+            ], style={
+                "display": "flex",
+                "gap": "4px",
+                "marginBottom": "12px"
+            })
+        ]),
+
+        # Divisor
+        html.Hr(style={
+            "border": "none",
+            "borderTop": "1px solid var(--border-weak)",
+            "margin": "8px 0",
+            "opacity": "0.4"
+        }),
+
+        # Selector de canales específicos (dummy)
+        html.Div([
+            html.Div("Canales específicos", style={
+                "fontSize": "10px",
+                "fontWeight": "500",
+                "color": "var(--text-muted)",
+                "marginBottom": "4px",
+                "opacity": "0.7"
+            }),
+            dcc.Input(
+                id='input-channel-selection-extractores',
+                type='text',
+                placeholder='ej: 0,5,10-15',
+                disabled=True,
+                style={
+                    "width": "100%",
+                    "padding": "4px 8px",
+                    "borderRadius": "var(--radius-sm)",
+                    "border": "1px solid var(--border-weak)",
+                    "background": "var(--card-bg)",
+                    "color": "var(--text-muted)",
+                    "fontSize": "10px",
+                    "opacity": "0.5"
                 }
             )
-        )
-        legend_items.append(
-            html.Span(str(label), style={"color": "white", "marginRight": "16px"})
-        )
-        count += 1
-        if count > 12:
-            break
-    return legend_items
+        ])
+    ])
 
 
-# --------- Clientside: mitad tiempo / mitad transformada ---------
+@callback(
+    Output("pg-wrapper-extractores", "children"),
+    Input("selected-dataset", "data")
+)
+def update_playground_desc(selected_dataset):
+    desc = selected_dataset or "Selecciona un dataset en 'Cargar Datos'"
+    if not selected_dataset:
+        return get_playGround("Extractores", desc, {}, {}, graph_id=GRAPH_ID, multi=True, plots_container_id="plots-container-extractores")
+    try:
+        meta = get_dataset_metadata(selected_dataset)
+    except Exception as e:
+        return get_playGround("Extractores", f"{desc} (sin metadata: {e})", {}, {}, graph_id=GRAPH_ID, multi=True, plots_container_id="plots-container-extractores")
+
+    meta_dict, custom_dict = create_metadata_section(meta)
+    nav_controls = create_navigation_controls(meta)
+    return get_playGround("Extractores", desc, meta_dict, custom_dict, graph_id=GRAPH_ID, multi=True, navigation_controls=nav_controls, plots_container_id="plots-container-extractores")
+
+
+@callback(
+    [
+        Output(EVENTS_STORE_ID, "data"),
+        Output(DATA_STORE_ID, "data"),
+    ],
+    Input("selected-file-path", "data"),
+    prevent_initial_call=True
+)
+def pass_selected_path(selected_file_path):
+    if selected_file_path is None:
+        return no_update, no_update
+
+    if isinstance(selected_file_path, dict):
+        candidate = selected_file_path.get("path") or selected_file_path.get("file") or ""
+    else:
+        candidate = str(selected_file_path)
+
+    candidate = candidate.strip()
+    if not candidate:
+        return no_update, no_update
+
+    payload = {"path": candidate, "ts": time.time()}
+
+    data_payload = no_update
+    try:
+        res = Dataset.load_events(candidate)
+        first_evt = res.get("first_event_file") if isinstance(res, dict) else None
+        if first_evt:
+            arr = np.load(first_evt, allow_pickle=False)
+            data_payload = {
+                "source": first_evt,
+                "shape": list(arr.shape),
+                "dtype": str(arr.dtype),
+                "matrix": arr.tolist(),
+                "ts": time.time(),
+            }
+    except Exception as e:
+        print(f"[extractores] ERROR cargando primer evento .npy: {e}")
+
+    return payload, data_payload
+
+
+# CLIENTSIDE: Renderiza plots con dos columnas (Original + Transformada)
 clientside_callback(
     """
-    function(n_intervals, transform_type, signal_data) {
-        if (!signal_data || !signal_data.data || !signal_data.labels) {
-            return window.dash_clientside.no_update;
+    function(storeData, selectedPathRaw, signalData, channelRange) {
+      try {
+        // ===== ⚙️ CONFIGURACIÓN PRINCIPAL =====
+
+        const USE_WEBGL = false;
+        const USE_DOWNSAMPLING = false;
+        const DS_FACTOR = 2;
+        const MAX_POINTS = 15000;
+        const CHANNELS_PER_PAGE = 16;
+
+        // Limpieza de contextos WebGL previos
+        if (window.plotlyGraphRefsExtractores && USE_WEBGL) {
+          window.plotlyGraphRefsExtractores.forEach(ref => {
+            try {
+              if (ref && ref._fullLayout && ref._fullLayout._glcontainer) {
+                const gl = ref._fullLayout._glcontainer.querySelector('canvas');
+                if (gl) {
+                  const context = gl.getContext('webgl') || gl.getContext('experimental-webgl');
+                  if (context) {
+                    const loseContext = context.getExtension('WEBGL_lose_context');
+                    if (loseContext) loseContext.loseContext();
+                  }
+                }
+              }
+            } catch(e) { /* silenciar */ }
+          });
+          window.plotlyGraphRefsExtractores = [];
         }
 
-        const labelColorMap = signal_data.label_color_map || {};
-        const getColorForLabel = (l) => labelColorMap[l] || "gray";
-
-        // Streaming
-        const STEP = 1;      // 1 muestra por tick
-        const WINDOW = 100;  // tamaño de ventana visible
-        const signal = signal_data.data;
-        const labels = signal_data.labels;
-        const C = signal_data.num_channels;
-        const T = signal_data.num_timepoints;
-
-        // Ventana ACTUAL (para ambos paneles)
-        let start = n_intervals * STEP;
-        let end   = start + WINDOW;
-        if (end > T) { start = 0; end = WINDOW; }
-
-        const tCurr  = Array.from({length: end - start}, (_, i) => i + start);
-        const sigCurr = signal.slice(start, end);
-        const labCurr = labels.slice(start, end);
-
-        // Color “principal” de la ventana actual (para la transformada)
-        const specColor = getColorForLabel(labCurr[labCurr.length - 1]);
-
-        // --- FFT naive (N=100) ---
-        function fftMagReal(x) {
-            const N = x.length;
-            const half = Math.floor(N/2);
-            const mags = new Array(half);
-            for (let k = 0; k < half; k++) {
-                let re = 0, im = 0;
-                for (let n = 0; n < N; n++) {
-                    const phi = -2 * Math.PI * k * n / N;
-                    re += x[n] * Math.cos(phi);
-                    im += x[n] * Math.sin(phi);
-                }
-                mags[k] = Math.sqrt(re*re + im*im) / N;
-            }
-            return mags;
+        function downsampling(xArr, yArr, opts) {
+          if (!Array.isArray(yArr) || yArr.length === 0) return { x: xArr, y: yArr };
+          const factor = Math.max(1, (opts && opts.factor) ? opts.factor : 1);
+          const maxPts = Math.max(0, (opts && opts.maxPoints) ? opts.maxPoints : 0);
+          let eff = factor;
+          if (maxPts > 0 && yArr.length > maxPts) eff = Math.max(eff, Math.ceil(yArr.length / maxPts));
+          if (eff <= 1) return { x: xArr, y: yArr };
+          const xd = [], yd = [];
+          for (let i = 0; i < yArr.length; i += eff) {
+            yd.push(yArr[i]);
+            xd.push(xArr ? xArr[i] : i);
+          }
+          return { x: xd, y: yd };
         }
 
-        // --- Haar demo (3 niveles, energía) ---
-        function haarDemo(x) {
-            let arr = x.slice();
-            const energies = [];
-            for (let level = 0; level < 3; level++) {
-                const a = [], d = [];
-                for (let i = 0; i < arr.length - 1; i += 2) {
-                    const approx = (arr[i] + arr[i+1]) / Math.SQRT2;
-                    const detail = Math.abs((arr[i] - arr[i+1]) / Math.SQRT2);
-                    a.push(approx); d.push(detail);
-                }
-                const L = Math.floor(x.length/2);
-                const band = new Array(L).fill(0);
-                for (let i = 0; i < L; i++) {
-                    const src = Math.floor(i * d.length / L);
-                    band[i] = d[Math.min(src, d.length-1)] || 0;
-                }
-                energies.push(band);
-                arr = a;
-                if (a.length < 2) break;
-            }
-            const L = Math.floor(x.length/2);
-            const out = new Array(L).fill(0);
-            for (let b = 0; b < energies.length; b++) {
-                for (let i = 0; i < L; i++) out[i] = Math.max(out[i], energies[b][i] || 0);
-            }
-            return out;
+        if (!(signalData && Array.isArray(signalData.matrix) && Array.isArray(signalData.matrix[0]))) {
+          return [];
         }
 
-        // Layout con DOS ejes Y por canal:
-        //  - yaxis(1..C): izquierda (crudo), anchor 'x'
-        //  - yaxis(C+1..2C): derecha (transformada), anchor 'x2'
-        const layout = {
-            height: 200 * C,
-            showlegend: false,
-            title: "Señal cruda (izq)  vs  Transformada (der, ventana actual)",
-            margin: {t: 40, b: 40, l: 60, r: 20},
-            xaxis:  { domain: [0.0, 0.48], title: "Tiempo (muestras)" },
-            xaxis2: { domain: [0.52, 1.0], title: (transform_type === "fft" ? "Frecuencia (bins)" : "Energía Haar") },
+        const total = signalData.matrix.length;
+        const cols = signalData.matrix[0].length;
+        const xFull = Array.from({length: cols}, (_, i) => i);
+
+        // Obtener rango de canales a mostrar
+        const channelStart = (channelRange && channelRange.start) || 0;
+        const channelCount = Math.min(CHANNELS_PER_PAGE, total - channelStart);
+
+        const graphsOriginal = [];
+        const graphsTransformed = [];
+
+        // Renderizar plots para ambas columnas
+        for (let i = 0; i < channelCount; i++) {
+          const ch = channelStart + i;
+          const yRaw = signalData.matrix[ch];
+          if (!Array.isArray(yRaw)) continue;
+
+          const xy = USE_DOWNSAMPLING
+            ? downsampling(xFull, yRaw, { factor: DS_FACTOR, maxPoints: MAX_POINTS })
+            : { x: xFull, y: yRaw };
+
+          // Plot original (columna izquierda)
+          const figOriginal = {
+            data: [{
+              type: USE_WEBGL ? 'scattergl' : 'scatter',
+              mode: 'lines',
+              x: xy.x,
+              y: xy.y,
+              line: { width: 1, color: '#3b82f6' },
+              hoverinfo: 'skip',
+              name: 'Ch ' + ch
+            }],
+            layout: {
+              margin: { l: 50, r: 10, t: 24, b: 24 },
+              paper_bgcolor: 'rgba(0,0,0,0)',
+              plot_bgcolor: 'rgba(0,0,0,0)',
+              showlegend: false,
+              xaxis: { showgrid: false, zeroline: false, fixedrange: true, title: 'muestras' },
+              yaxis: {
+                showgrid: true,
+                gridcolor: 'rgba(128,128,128,0.25)',
+                zeroline: false,
+                fixedrange: true,
+                title: 'Ch ' + ch
+              },
+              height: 320,
+              autosize: true,
+              uirevision: 'mp-const-orig-ext-' + ch
+            }
+          };
+
+          graphsOriginal.push({
+            props: {
+              id: `pg-multi-orig-ext-${ch}`,
+              figure: figOriginal,
+              responsive: true,
+              className: 'plot-item',
+              style: { height: '320px', width: '100%', minHeight: 0, marginBottom: '12px' },
+              config: {
+                displaylogo: false,
+                responsive: true,
+                modeBarButtonsToRemove: [
+                  'zoom','pan','select','lasso2d','zoomIn2d','zoomOut2d',
+                  'autoScale2d','resetScale2d','toImage'
+                ]
+              }
+            },
+            type: 'Graph',
+            namespace: 'dash_core_components'
+          });
+
+          // Plot transformada (columna derecha) - por ahora con datos vacíos/placeholder
+          const figTransformed = {
+            data: [{
+              type: USE_WEBGL ? 'scattergl' : 'scatter',
+              mode: 'lines',
+              x: xy.x,
+              y: xy.y.map(() => 0), // Placeholder: valores en cero
+              line: { width: 1, color: '#10b981' },
+              hoverinfo: 'skip',
+              name: 'Transform Ch ' + ch
+            }],
+            layout: {
+              margin: { l: 50, r: 10, t: 24, b: 24 },
+              paper_bgcolor: 'rgba(0,0,0,0)',
+              plot_bgcolor: 'rgba(0,0,0,0)',
+              showlegend: false,
+              xaxis: { showgrid: false, zeroline: false, fixedrange: true, title: 'frecuencia/nivel' },
+              yaxis: {
+                showgrid: true,
+                gridcolor: 'rgba(128,128,128,0.25)',
+                zeroline: false,
+                fixedrange: true,
+                title: 'Trans Ch ' + ch
+              },
+              height: 320,
+              autosize: true,
+              uirevision: 'mp-const-trans-ext-' + ch,
+              annotations: [{
+                text: 'Sin transformada aplicada',
+                xref: 'paper',
+                yref: 'paper',
+                x: 0.5,
+                y: 0.5,
+                showarrow: false,
+                font: { size: 12, color: 'rgba(255,255,255,0.3)' }
+              }]
+            }
+          };
+
+          graphsTransformed.push({
+            props: {
+              id: `pg-multi-trans-ext-${ch}`,
+              figure: figTransformed,
+              responsive: true,
+              className: 'plot-item',
+              style: { height: '320px', width: '100%', minHeight: 0, marginBottom: '12px' },
+              config: {
+                displaylogo: false,
+                responsive: true,
+                modeBarButtonsToRemove: [
+                  'zoom','pan','select','lasso2d','zoomIn2d','zoomOut2d',
+                  'autoScale2d','resetScale2d','toImage'
+                ]
+              }
+            },
+            type: 'Graph',
+            namespace: 'dash_core_components'
+          });
+        }
+
+        // Guardar referencias para limpieza futura
+        if (USE_WEBGL) {
+          setTimeout(() => {
+            if (!window.plotlyGraphRefsExtractores) window.plotlyGraphRefsExtractores = [];
+            for (let i = 0; i < channelCount; i++) {
+              const ch = channelStart + i;
+              const elOrig = document.getElementById(`pg-multi-orig-ext-${ch}`);
+              const elTrans = document.getElementById(`pg-multi-trans-ext-${ch}`);
+              if (elOrig && elOrig._fullData) window.plotlyGraphRefsExtractores.push(elOrig);
+              if (elTrans && elTrans._fullData) window.plotlyGraphRefsExtractores.push(elTrans);
+            }
+            window.dispatchEvent(new Event('resize'));
+          }, 100);
+        } else {
+          setTimeout(() => { window.dispatchEvent(new Event('resize')); }, 0);
+        }
+
+        // Retornar estructura de dos columnas
+        return {
+          props: {
+            children: [
+              {
+                props: {
+                  children: [
+                    {
+                      props: {
+                        children: 'Señal Original',
+                        style: {
+                          fontSize: '14px',
+                          fontWeight: '600',
+                          color: 'var(--text)',
+                          marginBottom: '12px',
+                          paddingBottom: '8px',
+                          borderBottom: '2px solid #3b82f6'
+                        }
+                      },
+                      type: 'Div',
+                      namespace: 'dash_html_components'
+                    },
+                    ...graphsOriginal
+                  ],
+                  style: {
+                    flex: 1,
+                    paddingRight: '8px',
+                    minWidth: 0
+                  }
+                },
+                type: 'Div',
+                namespace: 'dash_html_components'
+              },
+              {
+                props: {
+                  children: [
+                    {
+                      props: {
+                        children: 'Transformada',
+                        style: {
+                          fontSize: '14px',
+                          fontWeight: '600',
+                          color: 'var(--text)',
+                          marginBottom: '12px',
+                          paddingBottom: '8px',
+                          borderBottom: '2px solid #10b981'
+                        }
+                      },
+                      type: 'Div',
+                      namespace: 'dash_html_components'
+                    },
+                    ...graphsTransformed
+                  ],
+                  style: {
+                    flex: 1,
+                    paddingLeft: '8px',
+                    minWidth: 0
+                  }
+                },
+                type: 'Div',
+                namespace: 'dash_html_components'
+              }
+            ],
+            style: {
+              display: 'flex',
+              gap: '16px',
+              width: '100%'
+            }
+          },
+          type: 'Div',
+          namespace: 'dash_html_components'
         };
-
-        for (let i = 0; i < C; i++) {
-            const domLow  = 1 - (i + 1) / C;
-            const domHigh = 1 - i / C;
-            // Izquierda (crudo)
-            layout[`yaxis${i+1}`] = {
-                title: `Ch ${i+1}`,
-                domain: [domLow, domHigh],
-                anchor: 'x',
-                autorange: true
-            };
-            // Derecha (transformada)
-            layout[`yaxis${C + i + 1}`] = {
-                title: `Ch ${i+1}`,
-                domain: [domLow, domHigh],
-                anchor: 'x2',
-                autorange: true
-            };
-        }
-
-        const traces = [];
-
-        // --- IZQUIERDA: señal cruda (misma ventana actual), segmentada por etiqueta ---
-        let segStart = 0;
-        while (segStart < tCurr.length) {
-            const segLabel = labCurr[segStart];
-            let segEnd = segStart + 1;
-            while (segEnd < tCurr.length && labCurr[segEnd] === segLabel) segEnd++;
-            const time_seg = tCurr.slice(segStart, segEnd);
-            const sig_seg  = sigCurr.slice(segStart, segEnd);
-            const color = getColorForLabel(segLabel);
-
-            for (let ch = 0; ch < C; ch++) {
-                const y_seg = sig_seg.map(row => (row && row.length > ch) ? row[ch] : 0);
-                traces.push({
-                    x: time_seg,
-                    y: y_seg,
-                    mode: 'lines',
-                    line: { color: color || 'black' },
-                    xaxis: 'x',
-                    yaxis: `y${ch + 1}`,           // <- eje Y de la IZQUIERDA (solo crudo)
-                    showlegend: false,
-                    hoverinfo: 'x+y',
-                });
-            }
-            segStart = segEnd;
-        }
-
-        // --- DERECHA: transformada de la ventana ACTUAL ---
-        for (let ch = 0; ch < C; ch++) {
-            const x_curr = sigCurr.map(row => (row && row.length > ch) ? row[ch] : 0);
-            const spec = (transform_type === "fft") ? fftMagReal(x_curr) : haarDemo(x_curr);
-            const fBins = Array.from({length: spec.length}, (_, i) => i);
-
-            traces.push({
-                x: fBins,
-                y: spec,
-                mode: 'lines',
-                line: { color: specColor || 'gray' },
-                xaxis: 'x2',
-                yaxis: `y${C + ch + 1}`,          // <- eje Y de la DERECHA (solo transformada)
-                showlegend: false,
-                hoverinfo: 'x+y',
-            });
-        }
-
-        return { data: traces, layout: layout };
+      } catch (e) {
+        console.error('[clientside:extractores] ERROR:', e);
+        return window.dash_clientside.no_update;
+      }
     }
     """,
-    Output("signal-graph-transform", "figure"),
-    [Input("interval-component-transform", "n_intervals"),
-     Input("transform-type", "value")],
-    State("full-signal-data-transform", "data"),
+    Output('plots-container-extractores', 'children'),
+    [
+        Input(EVENTS_STORE_ID, 'data'),
+        Input('selected-file-path', 'data'),
+        Input(DATA_STORE_ID, 'data'),
+        Input(CHANNEL_RANGE_STORE, 'data')
+    ],
+    prevent_initial_call=True
+)
+
+
+# CALLBACK: Navegación de canales (Anterior)
+clientside_callback(
+    """
+    function(n_clicks, currentRange) {
+      if (!n_clicks || n_clicks === 0) return window.dash_clientside.no_update;
+      const CHANNELS_PER_PAGE = 8;
+      const currentStart = (currentRange && currentRange.start) || 0;
+      const newStart = Math.max(0, currentStart - CHANNELS_PER_PAGE);
+      return {start: newStart, count: CHANNELS_PER_PAGE};
+    }
+    """,
+    Output(CHANNEL_RANGE_STORE, 'data', allow_duplicate=True),
+    Input('btn-prev-channels-extractores', 'n_clicks'),
+    State(CHANNEL_RANGE_STORE, 'data'),
+    prevent_initial_call=True
+)
+
+
+# CALLBACK: Navegación de canales (Siguiente)
+clientside_callback(
+    """
+    function(n_clicks, currentRange, signalData) {
+      if (!n_clicks || n_clicks === 0) return window.dash_clientside.no_update;
+      if (!(signalData && Array.isArray(signalData.matrix))) return window.dash_clientside.no_update;
+
+      const CHANNELS_PER_PAGE = 8;
+      const total = signalData.matrix.length;
+      const currentStart = (currentRange && currentRange.start) || 0;
+      const newStart = Math.min(total - CHANNELS_PER_PAGE, currentStart + CHANNELS_PER_PAGE);
+      return {start: newStart, count: CHANNELS_PER_PAGE};
+    }
+    """,
+    Output(CHANNEL_RANGE_STORE, 'data', allow_duplicate=True),
+    Input('btn-next-channels-extractores', 'n_clicks'),
+    [State(CHANNEL_RANGE_STORE, 'data'), State(DATA_STORE_ID, 'data')],
+    prevent_initial_call=True
+)
+
+
+# CALLBACK: Actualizar texto de información de canales
+clientside_callback(
+    """
+    function(channelRange, signalData) {
+      if (!(signalData && Array.isArray(signalData.matrix))) {
+        return "Canales 0 - 0 de 0";
+      }
+
+      const CHANNELS_PER_PAGE = 8;
+      const total = signalData.matrix.length;
+      const start = (channelRange && channelRange.start) || 0;
+      const count = Math.min(CHANNELS_PER_PAGE, total - start);
+      const end = start + count - 1;
+
+      return `Canales ${start} - ${end} de ${total}`;
+    }
+    """,
+    Output('channel-nav-info-extractores', 'children'),
+    [Input(CHANNEL_RANGE_STORE, 'data'), Input(DATA_STORE_ID, 'data')]
+)
+
+
+# CALLBACK: Actualizar estilo botón anterior
+clientside_callback(
+    """
+    function(channelRange, signalData) {
+      if (!(signalData && Array.isArray(signalData.matrix))) {
+        return {
+          padding: '3px 8px',
+          borderRadius: 'var(--radius-sm)',
+          border: 'none',
+          background: 'var(--card-bg)',
+          color: 'var(--text)',
+          cursor: 'not-allowed',
+          fontSize: '10px',
+          fontWeight: '500',
+          opacity: '0.5',
+          flex: '1'
+        };
+      }
+
+      const start = (channelRange && channelRange.start) || 0;
+      const isDisabled = start === 0;
+
+      return {
+        padding: '3px 8px',
+        borderRadius: 'var(--radius-sm)',
+        border: 'none',
+        background: isDisabled ? 'var(--card-bg)' : 'var(--accent-1)',
+        color: 'var(--text)',
+        cursor: isDisabled ? 'not-allowed' : 'pointer',
+        fontSize: '10px',
+        fontWeight: '500',
+        opacity: isDisabled ? '0.5' : '1',
+        flex: '1'
+      };
+    }
+    """,
+    Output('btn-prev-channels-extractores', 'style'),
+    [Input(CHANNEL_RANGE_STORE, 'data'), Input(DATA_STORE_ID, 'data')]
+)
+
+
+# CALLBACK: Actualizar estilo botón siguiente
+clientside_callback(
+    """
+    function(channelRange, signalData) {
+      if (!(signalData && Array.isArray(signalData.matrix))) {
+        return {
+          padding: '3px 8px',
+          borderRadius: 'var(--radius-sm)',
+          border: 'none',
+          background: 'var(--card-bg)',
+          color: 'var(--text)',
+          cursor: 'not-allowed',
+          fontSize: '10px',
+          fontWeight: '500',
+          opacity: '0.5',
+          flex: '1'
+        };
+      }
+
+      const CHANNELS_PER_PAGE = 8;
+      const total = signalData.matrix.length;
+      const start = (channelRange && channelRange.start) || 0;
+      const isDisabled = start + CHANNELS_PER_PAGE >= total;
+
+      return {
+        padding: '3px 8px',
+        borderRadius: 'var(--radius-sm)',
+        border: 'none',
+        background: isDisabled ? 'var(--card-bg)' : 'var(--accent-1)',
+        color: 'var(--text)',
+        cursor: isDisabled ? 'not-allowed' : 'pointer',
+        fontSize: '10px',
+        fontWeight: '500',
+        opacity: isDisabled ? '0.5' : '1',
+        flex: '1'
+      };
+    }
+    """,
+    Output('btn-next-channels-extractores', 'style'),
+    [Input(CHANNEL_RANGE_STORE, 'data'), Input(DATA_STORE_ID, 'data')]
+)
+
+
+# CALLBACK: Actualizar disabled botón anterior
+clientside_callback(
+    """
+    function(channelRange, signalData) {
+      if (!(signalData && Array.isArray(signalData.matrix))) return true;
+      const start = (channelRange && channelRange.start) || 0;
+      return start === 0;
+    }
+    """,
+    Output('btn-prev-channels-extractores', 'disabled'),
+    [Input(CHANNEL_RANGE_STORE, 'data'), Input(DATA_STORE_ID, 'data')]
+)
+
+
+# CALLBACK: Actualizar disabled botón siguiente
+clientside_callback(
+    """
+    function(channelRange, signalData) {
+      if (!(signalData && Array.isArray(signalData.matrix))) return true;
+      const CHANNELS_PER_PAGE = 8;
+      const total = signalData.matrix.length;
+      const start = (channelRange && channelRange.start) || 0;
+      return start + CHANNELS_PER_PAGE >= total;
+    }
+    """,
+    Output('btn-next-channels-extractores', 'disabled'),
+    [Input(CHANNEL_RANGE_STORE, 'data'), Input(DATA_STORE_ID, 'data')]
 )
