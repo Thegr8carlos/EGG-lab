@@ -2,7 +2,8 @@
 from pathlib import Path
 import time
 import numpy as np
-from dash import html, dcc, register_page, callback, Output, Input, State, clientside_callback, no_update
+import dash
+from dash import html, dcc, register_page, callback, Output, Input, State, clientside_callback, no_update, ALL
 from shared.fileUtils import get_dataset_metadata
 import dash_bootstrap_components as dbc
 
@@ -20,6 +21,7 @@ EVENTS_STORE_ID = "events-store-filtros"
 DATA_STORE_ID = "signal-store-filtros"
 FILTERED_DATA_STORE_ID = "filtered-signal-store-filtros"
 CHANNEL_RANGE_STORE = "channel-range-store"
+SELECTED_CLASS_STORE = "selected-class-store"
 
 layout = html.Div(
     [
@@ -42,6 +44,7 @@ layout = html.Div(
         dcc.Store(id=DATA_STORE_ID),
         dcc.Store(id=FILTERED_DATA_STORE_ID),
         dcc.Store(id=CHANNEL_RANGE_STORE, data={"start": 0, "count": 8}),
+        dcc.Store(id=SELECTED_CLASS_STORE, data=None),
     ],
     style={"display": "flex"},
 )
@@ -157,7 +160,6 @@ def create_navigation_controls(meta: dict):
                     'Todas',
                     id='btn-all-classes',
                     n_clicks=0,
-                    disabled=True,
                     style={
                         "padding": "3px 6px",
                         "flex": "1",
@@ -165,10 +167,10 @@ def create_navigation_controls(meta: dict):
                         "border": "1px solid var(--accent-1)",
                         "background": "var(--accent-1)",
                         "color": "var(--text)",
-                        "cursor": "not-allowed",
+                        "cursor": "pointer",
                         "fontSize": "10px",
                         "fontWeight": "500",
-                        "opacity": "0.8",
+                        "opacity": "1",
                         "whiteSpace": "nowrap"
                     }
                 ),
@@ -177,18 +179,17 @@ def create_navigation_controls(meta: dict):
                     str(cls),
                     id={'type': 'btn-filter-class', 'index': idx},
                     n_clicks=0,
-                    disabled=True,
                     style={
                         "padding": "3px 6px",
                         "flex": "1",
                         "borderRadius": "var(--radius-sm)",
                         "border": "1px solid var(--border-weak)",
                         "background": "var(--card-bg)",
-                        "color": "var(--text-muted)",
-                        "cursor": "not-allowed",
+                        "color": "var(--text)",
+                        "cursor": "pointer",
                         "fontSize": "10px",
                         "fontWeight": "500",
-                        "opacity": "0.5",
+                        "opacity": "0.8",
                         "whiteSpace": "nowrap"
                     }
                 ) for idx, cls in enumerate(classes)
@@ -259,10 +260,12 @@ def update_playground_desc(selected_dataset):
         Output(EVENTS_STORE_ID, "data"),
         Output(DATA_STORE_ID, "data"),
     ],
-    Input("selected-file-path", "data"),
-    prevent_initial_call=True
+    [
+        Input("selected-file-path", "data"),
+        Input(SELECTED_CLASS_STORE, "data")
+    ]
 )
-def pass_selected_path(selected_file_path):
+def pass_selected_path(selected_file_path, selected_class):
     if selected_file_path is None:
         return no_update, no_update
 
@@ -279,21 +282,187 @@ def pass_selected_path(selected_file_path):
 
     data_payload = no_update
     try:
-        res = Dataset.load_events(candidate)
+        # Usar la nueva función que filtra por clase
+        res = Dataset.get_events_by_class(candidate, class_name=selected_class)
         first_evt = res.get("first_event_file") if isinstance(res, dict) else None
         if first_evt:
             arr = np.load(first_evt, allow_pickle=False)
+
+            # Extraer nombre del archivo (ej: "abajo[439.357]{441.908}.npy")
+            import os
+            import re
+            file_name = os.path.basename(first_evt)
+
+            # Extraer sesión del path (ej: "sub-02/ses-03")
+            session_match = re.search(r'(sub-\d+)/(ses-\d+)', first_evt)
+            session_info = f"{session_match.group(1)}/{session_match.group(2)}" if session_match else "Unknown"
+
+            # Calcular duración (necesitamos la frecuencia de muestreo)
+            # Intentar obtener metadata para la frecuencia
+            try:
+                from shared.fileUtils import get_dataset_metadata
+                meta = get_dataset_metadata(candidate.split('/')[0])  # "nieto_inner_speech"
+                sfreq = meta.get("sampling_frequency_hz", 1024.0)
+            except:
+                sfreq = 1024.0  # Default
+
+            n_samples = arr.shape[1] if arr.ndim == 2 else arr.shape[0]
+            duration_sec = n_samples / sfreq
+
             data_payload = {
                 "source": first_evt,
                 "shape": list(arr.shape),
                 "dtype": str(arr.dtype),
                 "matrix": arr.tolist(),
                 "ts": time.time(),
+                "class_filter": selected_class,
+                "n_events": res.get("n_events", 0),
+                "file_name": file_name.replace('.npy', ''),  # Sin extensión
+                "session": session_info,
+                "duration_sec": round(duration_sec, 3),
+                "sfreq": sfreq
             }
+            print(f"[filtros] ✅ Cargado evento de clase '{selected_class}': {first_evt}")
+            print(f"[filtros] 📊 Sesión: {session_info}, Duración: {duration_sec:.3f}s, Muestras: {n_samples}")
     except Exception as e:
-        print(f"[filtros] ERROR cargando primer evento .npy: {e}")
+        print(f"[filtros] ERROR cargando evento .npy: {e}")
 
     return payload, data_payload
+
+
+# CALLBACK: Seleccionar todas las clases (limpiar filtro)
+@callback(
+    Output(SELECTED_CLASS_STORE, "data", allow_duplicate=True),
+    Input("btn-all-classes", "n_clicks"),
+    prevent_initial_call=True
+)
+def select_all_classes(n_clicks):
+    if not n_clicks:
+        return no_update
+    print("[filtros] 📊 Seleccionado: TODAS las clases")
+    return None  # None significa "todas las clases"
+
+
+# CALLBACK: Seleccionar clase específica
+@callback(
+    Output(SELECTED_CLASS_STORE, "data", allow_duplicate=True),
+    Input({'type': 'btn-filter-class', 'index': ALL}, 'n_clicks'),
+    State("selected-dataset", "data"),
+    prevent_initial_call=True
+)
+def select_specific_class(n_clicks_list, selected_dataset):
+    if not any(n_clicks_list):
+        return no_update
+
+    # Obtener metadata para saber qué clase corresponde al botón clickeado
+    try:
+        meta = get_dataset_metadata(selected_dataset)
+        classes = meta.get("classes", [])
+    except Exception:
+        return no_update
+
+    # Encontrar cuál botón fue clickeado
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        return no_update
+
+    triggered_id = ctx.triggered[0]['prop_id'].split('.')[0]
+    if triggered_id == '':
+        return no_update
+
+    import json
+    button_id = json.loads(triggered_id)
+    class_index = button_id.get('index', -1)
+
+    if 0 <= class_index < len(classes):
+        selected_class = classes[class_index]
+        print(f"[filtros] 🎯 Seleccionado clase: {selected_class}")
+        return selected_class
+
+    return no_update
+
+
+# CALLBACK: Actualizar estilo del botón "Todas"
+@callback(
+    Output("btn-all-classes", "style"),
+    Input(SELECTED_CLASS_STORE, "data")
+)
+def update_all_button_style(selected_class):
+    is_selected = selected_class is None
+    return {
+        "padding": "3px 6px",
+        "flex": "1",
+        "borderRadius": "var(--radius-sm)",
+        "border": f"1px solid {'var(--accent-1)' if is_selected else 'var(--border-weak)'}",
+        "background": "var(--accent-1)" if is_selected else "var(--card-bg)",
+        "color": "var(--text)",
+        "cursor": "pointer",
+        "fontSize": "10px",
+        "fontWeight": "600" if is_selected else "500",
+        "opacity": "1" if is_selected else "0.7",
+        "whiteSpace": "nowrap"
+    }
+
+
+# CALLBACK: Actualizar estilos de botones de clase
+@callback(
+    Output({'type': 'btn-filter-class', 'index': ALL}, 'style'),
+    Input(SELECTED_CLASS_STORE, "data"),
+    State("selected-dataset", "data")
+)
+def update_class_buttons_style(selected_class, selected_dataset):
+    try:
+        meta = get_dataset_metadata(selected_dataset)
+        classes = meta.get("classes", [])
+    except Exception:
+        classes = []
+
+    styles = []
+    for cls in classes:
+        is_selected = selected_class == cls
+        styles.append({
+            "padding": "3px 6px",
+            "flex": "1",
+            "borderRadius": "var(--radius-sm)",
+            "border": f"1px solid {'var(--accent-1)' if is_selected else 'var(--border-weak)'}",
+            "background": "var(--accent-1)" if is_selected else "var(--card-bg)",
+            "color": "var(--text)",
+            "cursor": "pointer",
+            "fontSize": "10px",
+            "fontWeight": "600" if is_selected else "500",
+            "opacity": "1" if is_selected else "0.7",
+            "whiteSpace": "nowrap"
+        })
+
+    return styles
+
+
+# CALLBACK: Habilitar/deshabilitar botón "Todas"
+@callback(
+    Output("btn-all-classes", "disabled"),
+    Input(DATA_STORE_ID, "data")
+)
+def enable_all_button(signal_data):
+    # Habilitar solo si hay datos cargados
+    return signal_data is None or not isinstance(signal_data, dict)
+
+
+# CALLBACK: Habilitar/deshabilitar botones de clase
+@callback(
+    Output({'type': 'btn-filter-class', 'index': ALL}, 'disabled'),
+    Input(DATA_STORE_ID, "data"),
+    State("selected-dataset", "data")
+)
+def enable_class_buttons(signal_data, selected_dataset):
+    try:
+        meta = get_dataset_metadata(selected_dataset)
+        classes = meta.get("classes", [])
+    except Exception:
+        classes = []
+
+    # Habilitar solo si hay datos cargados
+    has_data = signal_data is not None and isinstance(signal_data, dict)
+    return [not has_data] * len(classes)
 
 
 # CLIENTSIDE: Renderiza plots con WebGL + limpieza de contextos
@@ -777,7 +946,6 @@ clientside_callback(
     Output('btn-prev-channels', 'disabled'),
     [Input(CHANNEL_RANGE_STORE, 'data'), Input(DATA_STORE_ID, 'data')]
 )
-
 
 # CALLBACK: Actualizar disabled botón siguiente
 clientside_callback(

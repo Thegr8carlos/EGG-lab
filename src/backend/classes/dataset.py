@@ -83,6 +83,86 @@ class Dataset:
         self.name = name
         self.extensions_enabled = [".bdf", ".edf"]
 
+    def get_events_by_class(path_to_folder, class_name=None):
+        """
+        Busca archivos .npy en la carpeta Events, opcionalmente filtrando por clase.
+
+        Args:
+            path_to_folder: Ruta al dataset (ej: "Data/nieto_inner_speech" o archivo .bdf)
+            class_name: Nombre de la clase a filtrar (ej: "abajo", "arriba"). Si es None, retorna todos.
+
+        Returns:
+            dict con:
+                - status: código de estado
+                - message: mensaje descriptivo
+                - events_dir: directorio de eventos
+                - event_files: lista de archivos .npy filtrados por clase
+                - first_event_file: primer archivo encontrado
+        """
+        print(f"\n[get_events_by_class] Buscando eventos para clase: {class_name}")
+        print(f"[get_events_by_class] Path: {path_to_folder}")
+
+        if not path_to_folder or not isinstance(path_to_folder, (str, os.PathLike)):
+            msg = "Ruta inválida"
+            print(f"[get_events_by_class] {msg}")
+            return {"status": 400, "message": msg, "event_files": []}
+
+        p_in = Path(path_to_folder)
+
+        # Resolver ruta al directorio Events en Aux
+        if p_in.exists() and p_in.is_dir():
+            aux_root = Path(_aux_root_for(str(p_in if str(p_in).startswith("Data/") else str(p_in))))
+            events_dirs = list(aux_root.rglob("Events"))
+            if not events_dirs:
+                msg = f"No se encontró carpeta Events en {aux_root}"
+                print(f"[get_events_by_class] {msg}")
+                return {"status": 404, "message": msg, "event_files": []}
+            events_dir = events_dirs[0]  # Tomar el primer directorio Events encontrado
+        else:
+            # Si es un archivo, mapear a Aux y buscar Events
+            if not p_in.is_absolute() and not str(p_in).startswith("Data/"):
+                data_full = Path("Data") / p_in
+            else:
+                data_full = p_in
+
+            try:
+                mapped = get_Data_filePath(str(data_full))
+                npy_path = Path(mapped)
+                events_dir = npy_path.parent / "Events"
+            except Exception as e:
+                msg = f"Error mapeando a Aux: {e}"
+                print(f"[get_events_by_class] {msg}")
+                return {"status": 500, "message": msg, "event_files": []}
+
+        if not events_dir.exists() or not events_dir.is_dir():
+            msg = f"Directorio Events no existe: {events_dir}"
+            print(f"[get_events_by_class] {msg}")
+            return {"status": 404, "message": msg, "event_files": []}
+
+        # Buscar archivos .npy
+        all_events = sorted([p for p in events_dir.glob("*.npy")])
+
+        # Filtrar por clase si se especifica
+        if class_name:
+            # Los archivos tienen formato: <clase>[inicio]{fin}.npy
+            # Ejemplo: abajo[348.903]{351.453}.npy
+            filtered_events = [p for p in all_events if p.name.startswith(f"{class_name}[")]
+            print(f"[get_events_by_class] Encontrados {len(filtered_events)} eventos de clase '{class_name}'")
+        else:
+            filtered_events = all_events
+            print(f"[get_events_by_class] Encontrados {len(filtered_events)} eventos totales")
+
+        first_event = filtered_events[0] if filtered_events else None
+
+        return {
+            "status": 200,
+            "message": f"OK - {len(filtered_events)} eventos encontrados",
+            "events_dir": str(events_dir),
+            "event_files": [str(p) for p in filtered_events],
+            "first_event_file": str(first_event) if first_event else None,
+            "n_events": len(filtered_events)
+        }
+
     def load_events(path_to_folder):
         """
         Inspecciona la carpeta Events junto al .npy en Aux/.
@@ -554,6 +634,18 @@ class Dataset:
             # Load the signal
             signal = np.load(full_path, mmap_mode='r')
 
+        # Load metadata JSON if available
+        metadata = None
+        metadata_path = full_path.parent.parent / "dataset_metadata.json"
+        if metadata_path.exists():
+            try:
+                with open(metadata_path, 'r', encoding='utf-8') as f:
+                    metadata = json.load(f)
+                print(f"✅ Metadata cargada desde: {metadata_path}")
+            except Exception as e:
+                print(f"⚠️ Error cargando metadata: {e}")
+                metadata = None
+
         # we want to extract the parent path and the file name to obtain the label that is in the parent directory and in a folder named labels with the same file name
         labels_path = full_path.parent / "Labels" / full_path.name
         print("Buscando etiquetas en:", labels_path, "| Existe?", labels_path.exists())
@@ -607,7 +699,8 @@ class Dataset:
             "num_channels": signal.shape[1],
             "num_timepoints": signal.shape[0],
             "labels": labels.tolist(),
-            "label_color_map": label_color_map
+            "label_color_map": label_color_map,
+            "metadata": metadata  # Include metadata from JSON
         }
 
         return signal_dict, False  # Enable interval
