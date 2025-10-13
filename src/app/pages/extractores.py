@@ -35,7 +35,7 @@ layout = html.Div(
             style={"flex": "1", "padding": "1rem"},
         ),
         html.Div(
-            get_rightColumn("transform"),
+            get_rightColumn("featureExtracture"),
             style={"width": "340px", "padding": "1rem"},
         ),
         dcc.Store(id=EVENTS_STORE_ID),
@@ -757,3 +757,4 @@ clientside_callback(
     Output('btn-next-channels-extractores', 'disabled'),
     [Input(CHANNEL_RANGE_STORE, 'data'), Input(DATA_STORE_ID, 'data')]
 )
+
