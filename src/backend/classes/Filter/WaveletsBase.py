@@ -1,36 +1,170 @@
+# backend/classes/Filter/WaveletsBase.py
 from backend.classes.Filter.Filter import Filter
 from pydantic import Field
-from typing import Optional
-
+from typing import Optional, Tuple, Dict, Any
+from pathlib import Path
+import numpy as np
+import pywt
+import json
+import os
+from backend.helpers.numeric_array import _load_numeric_array
+from backend.classes.Experiment import Experiment
 
 class WaveletsBase(Filter):
     wavelet: str = Field(
         ...,
-        description="Nombre de la wavelet a usar (por ejemplo: db4, coif5, etc.)"
+        description="Nombre de la wavelet a usar (p. ej. db4, coif5, sym6, etc.)"
     )
     level: Optional[int] = Field(
         None,
         ge=1,
         le=10,
-        description="Nivel de descomposición (opcional)"
+        description="Nivel de descomposición (opcional). Si es None, se calcula el máximo posible."
     )
     mode: Optional[str] = Field(
         'symmetric',
-        description="Modo de extensión de bordes: symmetric, periodic, etc."
+        description="Modo de extensión de bordes para PyWavelets (p. ej., symmetric, periodic, reflect...)."
     )
     threshold: Optional[float] = Field(
         None,
         ge=0.0,
-        description="Valor de umbral para denoising (si aplica)"
+        description="Umbral global para denoising (si se omite, se usa umbral universal por canal)."
     )
 
     @classmethod
-    def apply(cls, instance: "WaveletsBase") -> None:
+    def apply(cls, instance: "WaveletsBase", file_path: str) -> str:
         """
-        Simula la aplicación del filtro WaveletsBase.
+        Aplica denoising por wavelets canal-por-canal sobre un .npy (1D o 2D).
+        Guarda <nombre>_wav.npy y <nombre>_wav_meta.json en Data/_aux/<lastExperiment>/...
         """
-        print(f"[SIMULACIÓN] Aplicando filtro WaveletsBase:")
-        print(f"  Wavelet: {instance.wavelet}")
-        print(f"  Nivel: {instance.level}")
-        print(f"  Modo: {instance.mode}")
-        print(f"  Umbral: {instance.threshold}")
+        # ---------- resolver archivo ----------
+        p_in = Path(str(file_path)).expanduser()
+        if not p_in.exists():
+            raise FileNotFoundError(f"No existe el archivo: {p_in}")
+
+        # ---------- cargar datos (robusto a pickle) ----------
+        X = _load_numeric_array(str(p_in))
+        orig_was_1d = False
+        if X.ndim == 1:
+            X = X[np.newaxis, :]           # (1, n_times)
+            orig_was_1d = True
+        elif X.ndim != 2:
+            raise ValueError(f"Se esperaba señal 1D o 2D, recibido ndim={X.ndim}")
+
+        # Estándar: (n_channels, n_times)
+        transposed = False
+        if X.shape[0] > X.shape[1]:
+            # típico: (n_times, n_channels) -> transponer
+            X = X.T
+            transposed = True
+
+        n_channels, n_times = X.shape
+
+        # ---------- parámetros wavelet ----------
+        wavelet = pywt.Wavelet(instance.wavelet)
+
+        valid_modes = set(m.lower() for m in pywt.Modes.modes)
+        mode_in = (instance.mode or "symmetric").lower()
+        aliases = {
+            "periodic": "periodization",
+            "per": "periodization",
+            "reflect": "symmetric",
+            "sym": "symmetric",
+            "const": "constant",
+            "zpd": "zero",
+            "sp1": "smooth",
+            "ppd": "periodization",
+        }
+        mode = aliases.get(mode_in, mode_in)
+        if mode not in valid_modes:
+            raise ValueError(
+                f"Modo de borde inválido: '{instance.mode}'. "
+                f"Usa uno de: {sorted(valid_modes)}. "
+                f"Tip: en PyWavelets es 'periodization', no 'periodic'."
+            )
+
+        max_level_possible = pywt.dwt_max_level(data_len=n_times, filter_len=wavelet.dec_len)
+        level = instance.level if instance.level is not None else max(1, max_level_possible)
+
+        # ---------- denoising canal-por-canal ----------
+        X_denoised = np.empty_like(X, dtype=float)
+        used_thresholds: Dict[int, float] = {}
+
+        for ch in range(n_channels):
+            sig = X[ch, :]
+
+            coeffs = pywt.wavedec(sig, wavelet=wavelet, mode=mode, level=level)
+            # coeffs = [cA_L, cD_L, cD_{L-1}, ..., cD_1]
+            cA = coeffs[0]
+            details = coeffs[1:]
+
+            # umbral
+            if instance.threshold is None:
+                d1 = details[-1] if details else np.array([])
+                if d1.size == 0:
+                    sigma = 0.0
+                else:
+                    sigma = np.median(np.abs(d1)) / 0.6745
+                thr = sigma * np.sqrt(2 * np.log(max(1, n_times)))
+            else:
+                thr = float(instance.threshold)
+
+            used_thresholds[ch] = float(thr)
+
+            new_details = [pywt.threshold(d, value=thr, mode="soft") for d in details]
+            rec = pywt.waverec([cA] + new_details, wavelet=wavelet, mode=mode)
+
+            # recorte / pad
+            if rec.shape[0] < n_times:
+                pad = n_times - rec.shape[0]
+                rec = np.pad(rec, (0, pad), mode="edge")
+            elif rec.shape[0] > n_times:
+                rec = rec[:n_times]
+
+            X_denoised[ch, :] = rec
+
+        # ---------- restaurar orientación ----------
+        Y = X_denoised
+        if transposed:
+            Y = Y.T
+        if orig_was_1d:
+            Y = np.squeeze(Y)
+
+        # ---------- ruta de salida: insertar <lastExperiment> tras "_aux" ----------
+        lastExperiment = Experiment._get_last_experiment_id()
+        parts = list(p_in.parts)
+        try:
+            idx = parts.index("_aux")
+        except ValueError:
+            try:
+                idx = parts.index("Data")
+            except ValueError:
+                idx = 0
+        parts.insert(idx + 1, str(lastExperiment))
+
+        out_dir = Path(*parts[:-1])
+        out_dir.mkdir(parents=True, exist_ok=True)
+
+        in_filename = Path(parts[-1])
+        out_base = in_filename.stem
+        out_path = out_dir / f"{out_base}_wav{in_filename.suffix}"
+        meta_path = out_dir / f"{out_base}_wav_meta.json"
+
+        # ---------- guardar ----------
+        np.save(str(out_path), Y)
+        meta = {
+            "input": str(p_in),
+            "output": str(out_path),
+            "wavelet": instance.wavelet,
+            "level": int(level),
+            "mode": mode,
+            "threshold_input": (None if instance.threshold is None else float(instance.threshold)),
+            "thresholds_used_per_channel": used_thresholds,
+            "shape_input": [int(n_channels), int(n_times)],
+            "shape_output": list(Y.shape),
+        }
+        with open(meta_path, "w", encoding="utf-8") as f:
+            json.dump(meta, f, indent=2, ensure_ascii=False)
+
+        print(f"[WaveletsBase.apply] Señal denoised guardada en: {out_path}")
+        return str(out_path)
