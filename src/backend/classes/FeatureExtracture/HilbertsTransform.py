@@ -129,35 +129,35 @@ class DCTTransform(Transform):
         base = Path(parts[-1]).stem
         p_coeffs      = out_dir / f"{base}_dct_coeffs.npy"
         p_coeffs_plot = out_dir / f"{base}_dct_coeffs_plot.npy"
-        p_meta        = out_dir / f"{base}_dct_meta.json"
+        #p_meta        = out_dir / f"{base}_dct_meta.json"
 
         # ---------- guardar ----------
         np.save(str(p_coeffs), coeffs.astype(np.float32, copy=False))
         np.save(str(p_coeffs_plot), coeffs_plot.astype(np.float32, copy=False))
+        ##--------------In this section, if we need it, we can save the metadata as Experiment.
+        # meta = dict(
+        #     input=str(p_in),
+        #     n_times=int(n_times),
+        #     n_channels=int(n_channels),
+        #     transposed_from_input=bool(transposed),
 
-        meta = dict(
-            input=str(p_in),
-            n_times=int(n_times),
-            n_channels=int(n_channels),
-            transposed_from_input=bool(transposed),
+        #     dct_type=int(dct_type),
+        #     norm=str(norm) if norm is not None else None,
+        #     axis_requested=int(axis),
+        #     axis_applied=int(axis_norm),
 
-            dct_type=int(dct_type),
-            norm=str(norm) if norm is not None else None,
-            axis_requested=int(axis),
-            axis_applied=int(axis_norm),
-
-            outputs=dict(
-                coeffs=str(p_coeffs),
-                coeffs_plot=str(p_coeffs_plot),
-            ),
-            description="coeffs shape = (n_channels, n_times); coeffs_plot = (n_times, n_channels)."
-        )
-        with open(p_meta, "w", encoding="utf-8") as f:
-            json.dump(meta, f, indent=2, ensure_ascii=False)
+        #     outputs=dict(
+        #         coeffs=str(p_coeffs),
+        #         coeffs_plot=str(p_coeffs_plot),
+        #     ),
+        #     description="coeffs shape = (n_channels, n_times); coeffs_plot = (n_times, n_channels)."
+        # )
+        # with open(p_meta, "w", encoding="utf-8") as f:
+        #     json.dump(meta, f, indent=2, ensure_ascii=False)
 
         print(f"[DCTTransform.apply] Coeficientes guardados en: {p_coeffs}")
         return {
-            "coeffs": str(p_coeffs),
-            "coeffs_plot": str(p_coeffs_plot),
-            "meta": str(p_meta),
+            #"coeffs": str(p_coeffs), # Only saving coeffs for now, becose we use channels x times
+            "coeffs": str(p_coeffs_plot),
+            #"meta": str(p_meta),
         }

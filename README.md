@@ -48,3 +48,5 @@ pip install -r requirements.txt
 
 # 5. Ejecutar la aplicación
 python3.12 main.py
+
+
