@@ -1,28 +1,21 @@
 from backend.classes.FeatureExtracture.FeatureExtracture import Transform
-from typing import Optional, Literal, Dict, Any
+from typing import Optional, Literal
 from pydantic import Field
 from pathlib import Path
 import numpy as np
-import json
-
 from backend.helpers.numeric_array import _load_numeric_array
+from scipy.fft import dct as sp_dct
 from backend.classes.Experiment import Experiment
-
-
-# ------------------- DCT Transform -------------------
 
 class DCTTransform(Transform):
     """
     Aplica la Transformada Discreta del Coseno (DCT) a un arreglo 1D o 2D.
-    - Acepta entrada (n_times,) o (n_channels, n_times) o (n_times, n_channels).
-    - Reordena internamente a (n_channels, n_times) para consistencia.
-    - Aplica DCT a lo largo del eje indicado por `axis` (por defecto el último).
-    - Guarda coeficientes en: Data/_aux/<lastExperiment>/.../_dct/
 
-    Salidas:
-      - <base>_dct_coeffs.npy      : coeficientes en forma (n_channels, n_times) tras normalizar forma
-      - <base>_dct_coeffs_plot.npy : (n_times, n_channels) (útil para plotters tiempo x canal)
-      - <base>_dct_meta.json       : metadatos de ejecución
+    Artefacto binario único:
+      <stem>_dct_<id>.npy    # coeficientes con forma (n_times, n_channels) (tiempo x canal)
+
+    El meta (bloque de *cambio de dimensionalidad*) se registra en el experimento activo
+    usando Experiment.add_transform_config y Experiment.set_last_transform_dimensionality_change.
     """
     type: Optional[Literal[1, 2, 3, 4]] = Field(
         2,
@@ -30,7 +23,7 @@ class DCTTransform(Transform):
     )
     norm: Optional[Literal["ortho", None]] = Field(
         None,
-        description="Tipo de normalización: 'ortho' o None"
+        description="Normalización: 'ortho' o None"
     )
     axis: Optional[int] = Field(
         -1,
@@ -40,46 +33,42 @@ class DCTTransform(Transform):
     )
 
     @classmethod
-    def apply(cls, instance: "DCTTransform", file_path: str) -> Dict[str, Any]:
+    def apply(cls, instance: "DCTTransform", file_path_in: str, directory_path_out: str) -> bool:
         """
-        Aplica la DCT y guarda coeficientes + metadatos.
+        - Entrada: 1D (n_times) o 2D (n_channels, n_times) o (n_times, n_channels)
+        - Salida: guarda un único .npy con coeficientes de forma (n_times, n_channels)
+        - Meta: inserta el bloque 'dimensionality_change' en el experimento activo
         """
         # ---------- resolver archivo de entrada ----------
-        p_in = Path(str(file_path)).expanduser()
+        p_in = Path(str(file_path_in)).expanduser()
         if not p_in.exists():
             raise FileNotFoundError(f"No existe el archivo: {p_in}")
-        print(f"[DCTTransform.apply] Archivo de entrada: {p_in}")
 
-        # ---------- cargar datos (robusto a pickle) ----------
+        # ---------- registrar la transform en el experimento (para obtener ID autoincremental) ----------
+        # Esto asignará instance.id si la propiedad existe en la clase base
+        Experiment.add_transform_config(instance)
+        uid = instance.get_id()
+
+        # ---------- cargar datos (robusto) ----------
         X = _load_numeric_array(str(p_in))
+        orig_was_1d = False
         if X.ndim == 1:
             X = X[np.newaxis, :]  # -> (1, n_times)
+            orig_was_1d = True
         elif X.ndim != 2:
             raise ValueError(f"Se esperaba 1D o 2D; recibido ndim={X.ndim}")
 
-        # Asegurar (n_channels, n_times)
+        input_shape = (int(X.shape[0]), int(X.shape[1]))
+
+        # Estandarizar a (n_channels, n_times)
+        transposed = False
         if X.shape[0] > X.shape[1]:
-            # típico input (n_times, n_channels) -> transponer
             X_raw = X.T
             transposed = True
         else:
             X_raw = X
-            transposed = False
 
-        n_channels, n_times = X_raw.shape
-
-        # ---------- importar DCT de SciPy ----------
-        try:
-            # SciPy moderno
-            from scipy.fft import dct as sp_dct
-        except Exception:
-            try:
-                # compatibilidad
-                from scipy.fftpack import dct as sp_dct
-            except Exception as e:
-                raise ImportError(
-                    "Se requiere SciPy para DCT (scipy.fft.dct o scipy.fftpack.dct)."
-                ) from e
+        n_channels, n_times = int(X_raw.shape[0]), int(X_raw.shape[1])
 
         # ---------- parámetros DCT ----------
         dct_type = int(instance.type if instance.type is not None else 2)
@@ -98,66 +87,31 @@ class DCTTransform(Transform):
             raise ValueError(f"Eje fuera de rango para datos 2D: axis={axis} -> {axis_norm}")
 
         # ---------- aplicar DCT ----------
-        # Nota: sp_dct aplica por eje especificado; no cambia la forma.
         coeffs = sp_dct(X_raw, type=dct_type, norm=norm, axis=axis_norm)
 
-        # Para conveniencia del pipeline/plotter, guardamos también transpuesto
-        # (tiempo x canal) si nuestros datos estándar son (canal x tiempo).
-        if coeffs.shape == (n_channels, n_times):
-            coeffs_plot = coeffs.T
-        else:
-            # En la práctica, para 2D y eje válido, la forma se mantiene igual.
-            coeffs_plot = coeffs.T
+        # Salida estándar para el pipeline/plot: (n_times, n_channels)
+        coeffs_out = coeffs.T  # partimos de (n_channels, n_times) -> (n_times, n_channels)
+        output_shape = (int(coeffs_out.shape[0]), int(coeffs_out.shape[1]))
 
-        # ---------- ruta de salida: Data/_aux/<lastExperiment>/.../_dct ----------
-        lastExperiment = Experiment._get_last_experiment_id()
+        # ---------- guardar: un .npy ----------
+        dir_out = Path(str(directory_path_out)).expanduser()
+        dir_out.mkdir(parents=True, exist_ok=True)
 
-        parts = list(Path(*Path(p_in).parts).parts)
-        try:
-            idx = parts.index("_aux")
-        except ValueError:
-            try:
-                idx = parts.index("Data")
-            except ValueError:
-                idx = 0
-        parts.insert(idx + 1, str(lastExperiment))
+        out_npy = dir_out / f"{p_in.stem}_dct_{uid}.npy"
+        np.save(str(out_npy), coeffs_out.astype(np.float32, copy=False))
 
-        base_dir = Path(*parts[:-1])
-        out_dir = base_dir / "_dct"
-        out_dir.mkdir(parents=True, exist_ok=True)
+        # ---------- registrar cambio de dimensionalidad en el experimento ----------
+        Experiment.set_last_transform_dimensionality_change(
+            input_shape=input_shape,                       # forma original
+            standardized_to="(n_channels, n_times)",       # estandarización interna usada aquí
+            transposed_from_input=bool(transposed),
+            orig_was_1d=bool(orig_was_1d),
+            output_shape=output_shape,                     # (n_times, n_channels)
+            output_axes_semantics={
+                "axis0": "time",
+                "axis1": "channels"
+            }
+        )
 
-        base = Path(parts[-1]).stem
-        p_coeffs      = out_dir / f"{base}_dct_coeffs.npy"
-        p_coeffs_plot = out_dir / f"{base}_dct_coeffs_plot.npy"
-        #p_meta        = out_dir / f"{base}_dct_meta.json"
-
-        # ---------- guardar ----------
-        np.save(str(p_coeffs), coeffs.astype(np.float32, copy=False))
-        np.save(str(p_coeffs_plot), coeffs_plot.astype(np.float32, copy=False))
-        ##--------------In this section, if we need it, we can save the metadata as Experiment.
-        # meta = dict(
-        #     input=str(p_in),
-        #     n_times=int(n_times),
-        #     n_channels=int(n_channels),
-        #     transposed_from_input=bool(transposed),
-
-        #     dct_type=int(dct_type),
-        #     norm=str(norm) if norm is not None else None,
-        #     axis_requested=int(axis),
-        #     axis_applied=int(axis_norm),
-
-        #     outputs=dict(
-        #         coeffs=str(p_coeffs),
-        #         coeffs_plot=str(p_coeffs_plot),
-        #     ),
-        #     description="coeffs shape = (n_channels, n_times); coeffs_plot = (n_times, n_channels)."
-        # )
-        # with open(p_meta, "w", encoding="utf-8") as f:
-        #     json.dump(meta, f, indent=2, ensure_ascii=False)
-
-        print(f"[DCTTransform.apply] Coeficientes guardados en: {p_coeffs}")
-        return {
-            #"coeffs": str(p_coeffs), # Only saving coeffs for now, becose we use channels x times
-            "coeffs": str(p_coeffs_plot),
-            #"meta": str(p_meta),
-        }
+        print(f"[DCTTransform.apply] Guardado único: {out_npy}")
+        return True

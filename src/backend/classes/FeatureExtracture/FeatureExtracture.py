@@ -4,6 +4,13 @@ from pydantic import BaseModel
 
 class Transform(BaseModel):
     sp: float  # puntos por segundo
+    id: str   # identificador único (dentro del experimento)
+
+
+    def get_sp(self) -> float:
+        return self.sp
+    def get_id(self) -> str:
+        return self.id
 
 
 

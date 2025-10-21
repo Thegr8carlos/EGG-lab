@@ -27,32 +27,22 @@ class Notch(Filter):
     )
 
     @classmethod
-    def apply(cls, instance: "Notch", file_path: str) -> str:
+    def apply(cls, instance: "Notch", file_path: str, directory_path_out: str) -> bool:
         """
-        Aplica un filtro notch (uno o varios) sobre un .npy de señal (mono o multicanal).
-        Guarda <nombre>_notch.npy y devuelve la ruta.
-        - Soporta rutas tipo 'Data/...', y mapeo a '_aux/<archivo>.npy' si procede.
-        - Infiera sfreq desde 'instance.sfreq' o 'instance.sp' (igual que en PassFilters).
-        - FIR: usa mne.filter.notch_filter con zero-phase; si hay Q, lo traduce a notch_widths.
-        - IIR: aplica un iirnotch por cada frecuencia con filtfilt (cero-fase).
+        Aplica uno o varios notch y guarda la señal en `directory_path_out` con el patrón:
+            <stem>_notch_<id>.npy
+        Devuelve True si se guardó correctamente. Lanza excepciones para entradas inválidas.
         """
-        
-        
-
-        # We normalize and resolve input path
+        # --- Resolver archivo de entrada ---
         p_in = Path(str(file_path)).expanduser()
-        
-
         if not p_in.exists():
             raise FileNotFoundError(f"Archivo no encontrado: {p_in}")
-        
-        
 
-        # First we load the data
-        data = np.load(str(p_in), mmap_mode=None)
+        # --- Cargar datos (robusto a .npy/.npz/pickle si tu helper lo permite) ---
+        data = _load_numeric_array(str(p_in))
         print(f"[Notch.apply] Señal cargada desde: {p_in}, shape={data.shape}, dtype={data.dtype}, ndim={data.ndim}")
-        # Then, we ensure data is 2D (n_channels, n_times)
-        # therefore, with data.shape = (nChannels, nTimes)
+
+        # --- Asegurar 2D (n_channels, n_times) ---
         orig_was_1d = False
         if data.ndim == 1:
             data = data[np.newaxis, :]
@@ -60,93 +50,69 @@ class Notch(Filter):
         elif data.ndim != 2:
             raise ValueError(f"Se esperaba 1D o 2D, pero data.ndim={data.ndim}")
 
-        # we ensure channels are rows (n_channels, n_times)
+        # Canales en filas
         transposed = False
         if data.shape[0] > data.shape[1]:
             data = data.T
             transposed = True
 
-        # we get sp (sampling period) from instance 
-        sp_attr = getattr(instance, "sp", None)
-        if sp_attr is None:
-            raise ValueError(
-                "No se pudo inferir 'sfreq': la instancia no tiene 'sfreq' ni 'sp'. "
-                "Define Filter.sp (periodo o frecuencia) o agrega sidecar .npz/.json."
-            )
-        sp_attr = float(sp_attr)
-        if sp_attr <= 0:
-            raise ValueError(f"Valor inválido de 'sp': {sp_attr}")
+        # --- Frecuencia de muestreo ---
+        sfreq = float(instance.get_sp())
+        if sfreq <= 0:
+            raise ValueError(f"sfreq debe ser > 0; recibido {sfreq}")
+        nyq = sfreq / 2.0
 
-        nyq = sp_attr / 2.0
-
-        # We ensure freqs is a list of valid frequencies with nyquist check
+        # --- Normalizar lista de frecuencias y validar Nyquist ---
         freqs = instance.freqs if isinstance(instance.freqs, (list, tuple, np.ndarray)) else [instance.freqs]
         freqs = [float(f) for f in freqs]
         for f0 in freqs:
             if not (0 < f0 < nyq):
                 raise ValueError(f"Frecuencia fuera de rango: {f0} Hz (Nyquist={nyq} Hz)")
 
-        # We prepare parameters for filtering
         method = instance.method.lower()
         Q = float(instance.quality) if instance.quality is not None else None
 
+        # --- Filtrado ---
         if method == "fir":
-            # Si hay Q, convertirlo a notch_widths (BW = f0/Q) en Hz; MNE acepta lista por-frecuencia
+            # Si hay Q, convertir a notch_widths en Hz: BW = f0 / Q
             notch_widths = None
             if Q is not None and Q > 0:
                 notch_widths = np.array([f0 / Q for f0 in freqs], dtype=float)
-            # MNE acepta múltiples bandas en FIR
+
             out = mne.filter.notch_filter(
                 x=data,
-                Fs=float(sp_attr),
+                Fs=sfreq,
                 freqs=np.array(freqs, dtype=float),
-                notch_widths=notch_widths,           # si None, MNE usa freqs/200 (≈Q=200)
+                notch_widths=notch_widths,  # si None, MNE usa freqs/200 (~Q≈200)
                 method="fir",
                 phase="zero",
                 fir_window="hamming",
                 verbose=False,
             )
         elif method == "iir":
-            # Aplicar un biquad notch por frecuencia en serie, por canal (cero-fase via filtfilt)
             if Q is None or Q <= 0:
-                Q = 30.0  # default razonable para red
+                Q = 30.0
             out = data.copy()
             for f0 in freqs:
-                b, a = iirnotch(w0=f0, Q=Q, fs=float(sp_attr))
-                # filtfilt opera sobre el último eje (tiempo). Procesamos cada canal.
+                b, a = iirnotch(w0=f0, Q=Q, fs=sfreq)
                 for ch in range(out.shape[0]):
                     out[ch, :] = filtfilt(b, a, out[ch, :])
         else:
             raise ValueError(f"method debe ser 'fir' o 'iir', recibido: {instance.method}")
 
-        # restaurar orientación
+        # --- Restaurar orientación original ---
         if transposed:
             out = out.T
         if orig_was_1d:
             out = np.squeeze(out)
 
-    
-        
-       # obtenemos el último experimento
-        lastExperiment = Experiment._get_last_experiment_id()
+        # --- Guardar en el directorio indicado con sufijo único ---
+        dir_out = Path(str(directory_path_out)).expanduser()
+        dir_out.mkdir(parents=True, exist_ok=True)
 
-        # descomponer p_in
-        parts = list(p_in.parts)
+        out_name = f"{p_in.stem}_notch_{instance.get_id()}.npy"
+        out_path = dir_out / out_name
 
-        # buscar "aux" e insertar la carpeta de experimento justo después
-        
-        idx = parts.index("_aux")
-        parts.insert(idx + 1, lastExperiment)
-        print(f"[Notch.apply] parts after inserting experiment: {parts}")
-
-        # reconstruir la ruta con la nueva carpeta
-        out_dir = Path(*parts[:-1])  # todo menos el archivo
-        out_dir.mkdir(parents=True, exist_ok=True)
-
-        # definir la ruta final (con sufijo _notch)
-        out_path = out_dir / (parts[-1] + "_notch" + p_in.suffix)
-
-        # guardar el archivo filtrado
         np.save(str(out_path), out)
         print(f"[Notch.apply] Señal (n={len(freqs)} notch) guardada en: {out_path}")
-        return str(out_path)
+        return True

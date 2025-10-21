@@ -31,7 +31,8 @@ class FilterSchemaFactory:
         schemas = {}
         for key, model in cls.available_filters.items():
             schema = model.model_json_schema()
-          
+            if key != "id":
+                schema.pop("id", None)
             schemas[key] = schema
         return schemas
 
@@ -116,18 +117,25 @@ def filterCallbackRegister(boton_id: str, inputs_map: dict):
 
         filtro_nombre = boton_id.replace("btn-aplicar-", "")
         clase_validadora = available_filters.get(filtro_nombre)
-
+        
         datos = {}
+        # 🧪 Simulación de aplicación del filtro
+        experiment = Experiment._load_latest_experiment()
+
+        # Autoincrement ID
+        prev_id = Experiment._extract_last_id_from_list(experiment.filters)
+        new_id = prev_id + 1  # if prev_id == -1 -> 0
         for input_id, value in zip(input_ids, values):
             _, field = input_id.split("-", 1)
             datos[field] = value
+        datos["id"] = new_id
 
         try:
             # ✅ Validación con pydantic
             instancia_valida = clase_validadora(**datos)
             print(f"✅ Datos válidos para {filtro_nombre}: {instancia_valida}")
 
-            # 🧪 Simulación de aplicación del filtro
+            
 
             ####################################------------------------------------------------}
             clase_validadora.apply(instancia_valida, file_path=selected_file_path)

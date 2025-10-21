@@ -24,13 +24,37 @@ class TransformSchemaFactory:
 
     @classmethod
     def get_all_transform_schemas(cls) -> Dict[str, Dict]:
-        schemas = {}
-        for key, model in cls.available_transforms.items():
-            schema = model.model_json_schema()
-            schemas[key] = schema
+        schemas: Dict[str, Dict] = {}
+        for name, model in cls.available_transforms.items():
+            # Pydantic v2
+            try:
+                schema = model.model_json_schema()
+            except AttributeError:
+                # Fallback Pydantic v1
+                schema = model.schema()
+
+            # Remover 'id' del schema publicado
+            props = schema.get("properties") or {}
+            if "id" in props:
+                props.pop("id", None)
+                if not props:
+                    schema.pop("properties", None)
+                else:
+                    schema["properties"] = props
+
+            req = schema.get("required")
+            if isinstance(req, list) and "id" in req:
+                new_req = [x for x in req if x != "id"]
+                if new_req:
+                    schema["required"] = new_req
+                else:
+                    schema.pop("required", None)
+
+            schemas[name] = schema
         return schemas
 
-    @classmethod###################------------------------------------------------------------------------------------------------------------------------------Change+--
+
+    @classmethod
     def add_transform_to_experiment(cls, directory: str, experiment_id: str, transform_name: str, transform_instance: BaseModel) -> str:
         """
         Agrega una instancia por defecto de la transformada al experimento indicado.
@@ -130,19 +154,21 @@ def TransformCallbackRegister(boton_id: str, inputs_map: dict):
         transform_class = available_transforms.get(transform_name)
 
         datos = {}
-        # We create a instance of the transform with the input values
+        experiment = Experiment._load_latest_experiment()
+        prev_id = Experiment._extract_last_id_from_list(experiment.filters)
+        new_id = prev_id + 1  # if prev_id == -1 -> 0
         for input_id, value in zip(input_ids, values):
             _, field = input_id.split("-", 1)
             datos[field] = value
-        #print(datos)
+        datos["id"] = new_id
 
         try:
             instancia_valida = transform_class(**datos)
             print(f"✅ Datos válidos para {transform_name}: {instancia_valida}")
-
+            Experiment.add_transform_config(instancia_valida)
             instancia_valida.apply(instancia_valida)
 
-            Experiment.add_transform_config(instancia_valida)
+            
 
             return no_update
         except ValidationError as e:
