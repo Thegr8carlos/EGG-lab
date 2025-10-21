@@ -1,14 +1,10 @@
-# backend/classes/Filter/WaveletsBase.py
 from backend.classes.Filter.Filter import Filter
 from pydantic import Field
 from typing import Optional, Tuple, Dict, Any
 from pathlib import Path
 import numpy as np
 import pywt
-import json
-import os
 from backend.helpers.numeric_array import _load_numeric_array
-from backend.classes.Experiment import Experiment
 
 class WaveletsBase(Filter):
     wavelet: str = Field(
@@ -32,10 +28,13 @@ class WaveletsBase(Filter):
     )
 
     @classmethod
-    def apply(cls, instance: "WaveletsBase", file_path: str) -> str:
+    def apply(cls, instance: "WaveletsBase", file_path: str, directory_path_out: str) -> bool:
         """
-        Aplica denoising por wavelets canal-por-canal sobre un .npy (1D o 2D).
-        Guarda <nombre>_wav.npy y <nombre>_wav_meta.json en Data/_aux/<lastExperiment>/...
+        Aplica denoising por wavelets canal-por-canal sobre un .npy (1D o 2D) y
+        guarda únicamente un archivo .npy en `directory_path_out` con el patrón:
+            <stem>_wav_<id>.npy
+
+        Devuelve True si se guardó correctamente.
         """
         # ---------- resolver archivo ----------
         p_in = Path(str(file_path)).expanduser()
@@ -54,7 +53,6 @@ class WaveletsBase(Filter):
         # Estándar: (n_channels, n_times)
         transposed = False
         if X.shape[0] > X.shape[1]:
-            # típico: (n_times, n_channels) -> transponer
             X = X.T
             transposed = True
 
@@ -88,7 +86,6 @@ class WaveletsBase(Filter):
 
         # ---------- denoising canal-por-canal ----------
         X_denoised = np.empty_like(X, dtype=float)
-        used_thresholds: Dict[int, float] = {}
 
         for ch in range(n_channels):
             sig = X[ch, :]
@@ -109,12 +106,10 @@ class WaveletsBase(Filter):
             else:
                 thr = float(instance.threshold)
 
-            used_thresholds[ch] = float(thr)
-
             new_details = [pywt.threshold(d, value=thr, mode="soft") for d in details]
             rec = pywt.waverec([cA] + new_details, wavelet=wavelet, mode=mode)
 
-            # recorte / pad
+            # recorte / pad para igualar longitud
             if rec.shape[0] < n_times:
                 pad = n_times - rec.shape[0]
                 rec = np.pad(rec, (0, pad), mode="edge")
@@ -130,41 +125,13 @@ class WaveletsBase(Filter):
         if orig_was_1d:
             Y = np.squeeze(Y)
 
-        # ---------- ruta de salida: insertar <lastExperiment> tras "_aux" ----------
-        lastExperiment = Experiment._get_last_experiment_id()
-        parts = list(p_in.parts)
-        try:
-            idx = parts.index("_aux")
-        except ValueError:
-            try:
-                idx = parts.index("Data")
-            except ValueError:
-                idx = 0
-        parts.insert(idx + 1, str(lastExperiment))
+        # ---------- guardar ÚNICAMENTE .npy en directorio indicado ----------
+        dir_out = Path(str(directory_path_out)).expanduser()
+        dir_out.mkdir(parents=True, exist_ok=True)
 
-        out_dir = Path(*parts[:-1])
-        out_dir.mkdir(parents=True, exist_ok=True)
+        out_name = f"{p_in.stem}_wav_{instance.get_id()}.npy"
+        out_path = dir_out / out_name
 
-        in_filename = Path(parts[-1])
-        out_base = in_filename.stem
-        out_path = out_dir / f"{out_base}_wav{in_filename.suffix}"
-        meta_path = out_dir / f"{out_base}_wav_meta.json"
-
-        # ---------- guardar ----------
         np.save(str(out_path), Y)
-        meta = {
-            "input": str(p_in),
-            "output": str(out_path),
-            "wavelet": instance.wavelet,
-            "level": int(level),
-            "mode": mode,
-            "threshold_input": (None if instance.threshold is None else float(instance.threshold)),
-            "thresholds_used_per_channel": used_thresholds,
-            "shape_input": [int(n_channels), int(n_times)],
-            "shape_output": list(Y.shape),
-        }
-        with open(meta_path, "w", encoding="utf-8") as f:
-            json.dump(meta, f, indent=2, ensure_ascii=False)
-
         print(f"[WaveletsBase.apply] Señal denoised guardada en: {out_path}")
-        return str(out_path)
+        return True
