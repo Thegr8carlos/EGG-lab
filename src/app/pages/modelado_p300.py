@@ -1,297 +1,196 @@
-# app/pages/p300.py
-from pathlib import Path
-import time
-import numpy as np
-
-from dash import html, dcc, register_page, callback
-from dash import Output, Input, State, clientside_callback, no_update
-
+# app/pages/modelado_p300.py
+import time, random, math
+from dash import html, dcc, register_page, callback, Output, Input, State, no_update
 from shared.fileUtils import get_dataset_metadata
-from app.components.PlayGroundP300 import get_playGroundP300
-from app.components.RigthComlumn import get_rightColumn
-from app.components.SideBar import get_sideBar  # si quieres barra lateral
 
-from backend.classes.dataset import Dataset
+register_page(__name__, path="/p300", name="Modelado P300")
 
-# Registrar ruta
-register_page(__name__, path="/p300", name="Modelado p300")
+# ---------- IDs ----------
+TRAIN_CONFIG_STORE_ID  = "train-config-p300"
+TRAIN_STATUS_STORE_ID  = "train-status-p300"
+TRAIN_METRICS_STORE_ID = "train-metrics-p300"
+TRAIN_INTERVAL_ID      = "train-interval-p300"
 
-# IDs únicos para ESTA PÁGINA
-GRAPH_ID        = "pg-main-plot-p300"
-EVENTS_STORE_ID = "events-store-p300"
-DATA_STORE_ID   = "signal-store-p300"
+BTN_TRAIN_ID     = "btn-train-p300"
+DD_CLASSES_ID    = "dd-classes-p300"
+DD_CHANNELS_ID   = "dd-channels-p300"
+IN_SPLIT_ID      = "in-split-p300"
+IN_KFOLDS_ID     = "in-kfolds-p300"
 
-# ----- Layout -----
-rigthColumn = get_rightColumn("clasificationModelsP300")
+STATUS_VIEW_ID   = "train-status-view-p300"
+METRICS_VIEW_ID  = "train-metrics-view-p300"
+DATASET_LABEL_ID = "ds-name-p300"
 
-layout = html.Div(
-    [
-        # (Opcional) Sidebar: descomenta si la quieres aquí también
-        # html.Div(
-        #     id="sidebar-wrapper",
-        #     children=[get_sideBar("Data")],
-        #     className="sideBar-container",
-        #     style={"width": "260px", "padding": "1rem"},
-        # ),
+# ---------- UI helpers ----------
+def _badge(text, kind="info"):
+    return html.Span(text, className=f"badge {kind}")
 
-        html.Div(
-            id="pg-wrapper-p300",
-            children=get_playGroundP300(
-                "Modelado P300",
-                "Aquí puedes visualizar la señal P300 y elegir el modelo a implementar.",
-                {}, {}, graph_id=GRAPH_ID, multi=True
-            ),
-            style={"flex": "1", "padding": "1rem"},
-        ),
+def _progress(percent: float):
+    pct = max(0, min(100, float(percent)))
+    return html.Div([html.Div(className="progress__fill", style={"width": f"{pct:.0f}%"} )], className="progress")
 
-        html.Div([rigthColumn], style={"width": "340px", "padding": "1rem"}),
+def _training_card():
+    return html.Div(
+        [
+            html.H2("Entrenamiento del modelo P300"),
+            html.Div(id=DATASET_LABEL_ID, className="train-meta"),
 
-        # Stores propios de la página
-        dcc.Store(id=EVENTS_STORE_ID),
-        dcc.Store(id=DATA_STORE_ID),
-    ],
-    style={"display": "flex"},
-)
+            html.Label("Clases a incluir", className="train-label"),
+            dcc.Dropdown(id=DD_CLASSES_ID, options=[], value=[], multi=True,
+                         placeholder="Selecciona clases…", className="train-input"),
+            html.Div(style={"height":".5rem"}),
 
-# =========================
-# Helpers de normalización
-# =========================
-def create_metadata_section(meta: dict):
-    if not isinstance(meta, dict):
-        return {}, {}
-    classes = meta.get("classes", []) or []
-    class_color_map = {}
-    for idx, label in enumerate(classes):
-        hue = (idx * 47) % 360
-        class_color_map[str(label)] = f"hsl({hue}, 70%, 50%)"
+            html.Label("Canales a incluir", className="train-label"),
+            dcc.Dropdown(id=DD_CHANNELS_ID, options=[], value=[], multi=True,
+                         placeholder="Selecciona canales…", className="train-input"),
+            html.Div(style={"height":".5rem"}),
 
-    sfreq = (
-        meta.get("sampling_frequency_hz")
-        or meta.get("sfreq")
-        or ((meta.get("unique_sfreqs") or [None])[0]
-            if isinstance(meta.get("unique_sfreqs"), (list, tuple)) else None)
-    )
-    if isinstance(sfreq, str):
-        try:
-            sfreq = float(sfreq)
-        except Exception:
-            sfreq = None
+            html.Label("Test split (%)", className="train-label"),
+            dcc.Input(id=IN_SPLIT_ID, type="number", min=5, max=50, step=1, value=20, className="train-input"),
+            html.Div(style={"height":".5rem"}),
 
-    n_channels = (
-        meta.get("n_channels")
-        or len(meta.get("channel_names") or [])
-        or len(meta.get("channel_name_union") or [])
-        or None
+            html.Label("K-Folds", className="train-label"),
+            dcc.Input(id=IN_KFOLDS_ID, type="number", min=2, max=10, step=1, value=5, className="train-input"),
+            html.Div(style={"height":".75rem"}),
+
+            html.Button("Entrenar", id=BTN_TRAIN_ID, n_clicks=0, className="btn-primary"),
+
+            html.Hr(className="hr-soft"),
+            html.Div(id=STATUS_VIEW_ID, style={"marginBottom":".5rem"}),
+            dcc.Loading(html.Div(id=METRICS_VIEW_ID)),
+
+            # Stores + Interval (mock)
+            dcc.Store(id=TRAIN_CONFIG_STORE_ID),
+            dcc.Store(id=TRAIN_STATUS_STORE_ID),
+            dcc.Store(id=TRAIN_METRICS_STORE_ID),
+            dcc.Interval(id=TRAIN_INTERVAL_ID, interval=1000, disabled=True),
+        ],
+        className="train-card"
     )
 
-    custom = {
-        "dataset_name": meta.get("dataset_name"),
-        "num_classes": meta.get("num_classes", len(classes)),
-        "sfreq": float(sfreq) if isinstance(sfreq, (int, float)) else None,
-        "n_channels": int(n_channels) if isinstance(n_channels, (int, float)) else None,
-        "eeg_unit": meta.get("eeg_unit", "V"),
-    }
-    return class_color_map, custom
+layout = html.Div([_training_card()], className="page-wrap")
 
-# ==========================================================
-# 1) Re-render PlayGround con metadata (server side)
-# ==========================================================
+# ---------- Callbacks ----------
+
 @callback(
-    Output("pg-wrapper-p300", "children"),
+    [Output(DD_CLASSES_ID, "options"),
+     Output(DD_CHANNELS_ID, "options"),
+     Output(DATASET_LABEL_ID, "children")],
     Input("selected-dataset", "data")
 )
-def update_playground_desc_p300(selected_dataset):
-    desc = selected_dataset or "Selecciona un dataset en 'Cargar Datos'"
+def fill_meta_options(selected_dataset):
     if not selected_dataset:
-        print("[p300] selected-dataset vacío -> render básico")
-        return get_playGroundP300("Modelado P300", desc, {}, {}, graph_id=GRAPH_ID, multi=True)
+        return [], [], "Dataset: —"
     try:
         meta = get_dataset_metadata(selected_dataset)
-        print(f"[p300] get_dataset_metadata OK: {selected_dataset}")
-    except Exception as e:
-        print(f"[p300] get_dataset_metadata ERROR: {e}")
-        return get_playGroundP300("Modelado P300", f"{desc} (sin metadata: {e})", {}, {}, graph_id=GRAPH_ID, multi=True)
+        classes = [{"label": str(c), "value": str(c)} for c in (meta.get("classes") or [])]
+        chans   = [{"label": ch, "value": ch} for ch in (meta.get("channel_names") or meta.get("channel_name_union") or [])]
+        return classes, chans, f"Dataset: {meta.get('dataset_name') or selected_dataset}"
+    except Exception:
+        return [], [], f"Dataset: {selected_dataset} (sin metadata)"
 
-    meta_dict, custom_dict = create_metadata_section(meta)
-    return get_playGroundP300("Modelado P300", desc, meta_dict, custom_dict, graph_id=GRAPH_ID, multi=True)
-
-# ==========================================================
-# 2) Backend: devolver (a) path+ts y (b) matriz del primer evento .npy
-# ==========================================================
 @callback(
-    [Output(EVENTS_STORE_ID, "data"),
-     Output(DATA_STORE_ID,   "data")],
-    Input("selected-file-path", "data"),
+    [Output(TRAIN_CONFIG_STORE_ID, "data"),
+     Output(TRAIN_STATUS_STORE_ID, "data"),
+     Output(TRAIN_INTERVAL_ID, "disabled")],
+    Input(BTN_TRAIN_ID, "n_clicks"),
+    [State(DD_CLASSES_ID, "value"),
+     State(DD_CHANNELS_ID, "value"),
+     State(IN_SPLIT_ID, "value"),
+     State(IN_KFOLDS_ID, "value")],
     prevent_initial_call=True
 )
-def pass_selected_path_p300(selected_file_path):
-    print(f"[p300] pass_selected_path: {selected_file_path!r}")
-
-    if selected_file_path is None:
-        return no_update, no_update
-
-    # Normaliza (acepta str o dict con 'path'/'file')
-    if isinstance(selected_file_path, dict):
-        candidate = selected_file_path.get("path") or selected_file_path.get("file") or ""
-    else:
-        candidate = str(selected_file_path)
-    candidate = candidate.strip()
-    if not candidate:
-        return no_update, no_update
-
-    payload = {"path": candidate, "ts": time.time()}
-
-    # Localizar Events y cargar primer .npy completo
-    data_payload = no_update
-    try:
-        res = Dataset.load_events(candidate)  # mismo helper que usas en filtros
-        print(f"[p300] load_events -> {res}")
-
-        first_evt = res.get("first_event_file") if isinstance(res, dict) else None
-        if first_evt:
-            arr = np.load(first_evt, allow_pickle=False)
-            data_payload = {
-                "source": first_evt,
-                "shape": list(arr.shape),
-                "dtype": str(arr.dtype),
-                "matrix": arr.tolist(),
-                "ts": time.time(),
-            }
-            print(f"[p300] DATA_STORE listo. shape={arr.shape}, dtype={arr.dtype}")
-        else:
-            print("[p300] No se encontró first_event_file; DATA_STORE omitido.")
-    except Exception as e:
-        print(f"[p300] ERROR cargando primer evento .npy: {e}")
-
-    return payload, data_payload
-
-# ==========================================================
-# 3) Frontend (clientside): plot único stacked (tu script)
-# ==========================================================
-clientside_callback(
-    """
-    function(storeData, selectedPathRaw, signalData, currentFigure) {
-      try {
-        // ====== ⚙️ CONFIG ======
-        const CHANNELS_START = 0;     // 0..total-1
-        const CHANNELS_COUNT = 32;    // 1..total
-        const PER_ROW_PX     = 220;   // 80..220
-        const GAP            = 0.10;  // 0..0.10
-
-        const USE_DOWNSAMPLING = true;
-        const DS_FACTOR        = 4;   // 1 = sin DS
-        const MAX_POINTS       = 6500;// 0 = sin límite
-
-        function downsampling(xArr, yArr, opts) {
-          if (!Array.isArray(yArr) || yArr.length === 0) return { x: xArr, y: yArr };
-          const factor = Math.max(1, (opts && opts.factor) ? opts.factor : 1);
-          const maxPts = Math.max(0, (opts && opts.maxPoints) ? opts.maxPoints : 0);
-          let eff = factor;
-          if (maxPts > 0 && yArr.length > maxPts) eff = Math.max(eff, Math.ceil(yArr.length / maxPts));
-          if (eff <= 1) return { x: xArr, y: yArr };
-          const xd = [], yd = [];
-          for (let i = 0; i < yArr.length; i += eff) { yd.push(yArr[i]); xd.push(xArr ? xArr[i] : i); }
-          return { x: xd, y: yd };
-        }
-
-        const pathFromStore = (storeData && typeof storeData.path !== "undefined") ? ("" + storeData.path) : "";
-        const pathFromInput = (selectedPathRaw && typeof selectedPathRaw === "object")
-                              ? (selectedPathRaw.path || selectedPathRaw.file || "")
-                              : ("" + (selectedPathRaw || ""));
-        const selectedPath  = (pathFromStore || pathFromInput).trim();
-
-        let fig = currentFigure || {};
-        fig = JSON.parse(JSON.stringify(fig || {}));
-        fig.data   = [];
-        fig.layout = fig.layout || {};
-        if (typeof fig.config !== "undefined") delete fig.config;
-
-        if (signalData && Array.isArray(signalData.matrix) && Array.isArray(signalData.matrix[0])) {
-          const total = signalData.matrix.length;
-          const cols  = signalData.matrix[0].length;
-          const xFull = Array.from({length: cols}, (_, i) => i);
-
-          const start = Math.max(0, Math.min(CHANNELS_START, total - 1));
-          const filas = Math.min(Math.max(1, CHANNELS_COUNT), total - start);
-
-          // limpia ejes previos
-          for (const k in fig.layout) {
-            if (/^yaxis\\d*$/.test(k) || /^xaxis\\d*$/.test(k)) delete fig.layout[k];
-          }
-
-          // eje X compartido
-          fig.layout.xaxis = { title: "muestras", showgrid: false, zeroline: false, fixedrange: true };
-
-          // dominios verticales (de ARRIBA hacia ABAJO)
-          const gap  = Math.min(Math.max(GAP, 0), 0.10);
-          const slot = (1 - gap * (filas - 1)) / filas;
-
-          for (let localIdx = 0; localIdx < filas; localIdx++) {
-            const ch   = start + localIdx;
-            const yRaw = signalData.matrix[ch];
-            if (!Array.isArray(yRaw)) continue;
-
-            const xy = USE_DOWNSAMPLING
-              ? downsampling(xFull, yRaw, { factor: DS_FACTOR, maxPoints: MAX_POINTS })
-              : { x: xFull, y: yRaw };
-
-            const bottom = 1 - (localIdx + 1) * slot - localIdx * gap;
-            const top    = bottom + slot;
-
-            const yaxisName = (localIdx === 0) ? "yaxis" : ("yaxis" + (localIdx + 1));
-            const yref      = (localIdx === 0) ? "y"     : ("y"     + (localIdx + 1));
-
-            fig.layout[yaxisName] = {
-              domain: [bottom, top],
-              title: "Ch " + ch,
-              titlefont: { size: 10 },
-              tickfont:  { size: 9 },
-              showgrid:  true,
-              gridcolor: "rgba(128,128,128,0.25)",
-              zeroline:  false,
-              fixedrange:true,
-              anchor:    "x"
-            };
-
-            fig.data.push({
-              type: "scattergl",
-              mode: "lines",
-              x: xy.x,
-              y: xy.y,
-              yaxis: yref,
-              name: "Ch " + ch,
-              line: { width: 1 },
-              hoverinfo: "skip"
-            });
-          }
-
-          fig.layout.height        = Math.max(400, PER_ROW_PX * filas);
-          fig.layout.margin        = { l: 60, r: 10, t: 28, b: 30 };
-          fig.layout.paper_bgcolor = "rgba(0,0,0,0)";
-          fig.layout.plot_bgcolor  = "rgba(0,0,0,0)";
-          fig.layout.showlegend    = false;
-
-          if (selectedPath) {
-            fig.layout.title = {
-              text: `Eventos — ${selectedPath}  |  Canales: ${start}…${start + filas - 1} (total ${total})`,
-              x: 0, xanchor: "left", font: { size: 14 }
-            };
-          }
-        } else {
-          if (selectedPath) fig.layout.title = { text: "Eventos — " + selectedPath, x: 0, xanchor: "left", font: { size: 14 } };
-        }
-
-        return fig;
-      } catch (e) {
-        console.error("[clientside:p300] ERROR:", e);
-        return window.dash_clientside.no_update;
-      }
+def start_training(n, classes, channels, split, kfolds):
+    cfg = {
+        "classes": classes or [],
+        "channels": channels or [],
+        "test_split": float(split or 20.0),
+        "kfolds": int(kfolds or 5),
+        "ts": time.time(),
+        "n_steps": 8
     }
-    """,
-    Output(GRAPH_ID, "figure"),
-    [Input(EVENTS_STORE_ID, "data"),
-     Input("selected-file-path", "data"),
-     Input(DATA_STORE_ID, "data")],
-    State(GRAPH_ID, "figure"),
+    status = {"status": "running", "step": 0, "t0": time.time()}
+    return cfg, status, False  # habilita Interval
+
+@callback(
+    [Output(TRAIN_STATUS_STORE_ID, "data", allow_duplicate=True),
+     Output(TRAIN_METRICS_STORE_ID, "data"),
+     Output(TRAIN_INTERVAL_ID, "disabled", allow_duplicate=True)],
+    Input(TRAIN_INTERVAL_ID, "n_intervals"),
+    [State(TRAIN_STATUS_STORE_ID, "data"),
+     State(TRAIN_CONFIG_STORE_ID, "data")],
     prevent_initial_call=True
 )
+def tick_training(n, status, cfg):
+    if not status or status.get("status") != "running":
+        return no_update, no_update, True
+
+    step = int(status.get("step", 0)) + 1
+    n_steps = int((cfg or {}).get("n_steps", 8))
+
+    if step < n_steps:
+        return {"status": "running", "step": step, "t0": status.get("t0")}, no_update, False
+
+    # terminar
+    if random.random() < 0.8:
+        acc = round(random.uniform(0.75, 0.94), 3)
+        f1  = round(random.uniform(0.70, 0.92), 3)
+        classes = (cfg or {}).get("classes") or ["target","non-target"]
+        per_class = [{"class": str(c),
+                      "precision": round(random.uniform(0.7,0.95),3),
+                      "recall":    round(random.uniform(0.7,0.95),3),
+                      "f1":        round(random.uniform(0.7,0.95),3)} for c in classes]
+        metrics = {"summary": {"accuracy": acc, "f1_macro": f1}, "per_class": per_class}
+        return {"status": "finished", "step": step, "t0": status.get("t0")}, metrics, True
+    else:
+        return {"status": "error", "step": step, "t0": status.get("t0"),
+                "message":"Fallo de entrenamiento simulado"}, no_update, True
+
+@callback(Output(STATUS_VIEW_ID, "children"),
+          Input(TRAIN_STATUS_STORE_ID, "data"),
+          State(TRAIN_CONFIG_STORE_ID, "data"))
+def render_status(status, cfg):
+    if not status:
+        return html.Div("Esperando a iniciar entrenamiento…", style={"opacity":0.7})
+
+    s = status.get("status")
+    step = int(status.get("step", 0))
+    n_steps = int((cfg or {}).get("n_steps", 8))
+    pct = (step / max(1, n_steps)) * 100.0
+
+    if s == "running":
+        return html.Div([
+            _badge("Entrenando… va bien", "info"),
+            _progress(pct)
+        ])
+    if s == "finished":
+        return html.Div([_badge("Entrenamiento terminado", "ok")])
+    if s == "error":
+        return html.Div([
+            _badge("Error", "error"),
+            html.Div(status.get("message") or "Ocurrió un error.", style={"marginTop":".25rem"})
+        ])
+    return html.Div("—")
+
+@callback(Output(METRICS_VIEW_ID, "children"),
+          Input(TRAIN_METRICS_STORE_ID, "data"))
+def render_metrics(m):
+    if not m:
+        return html.Div("Esperando resultados…", style={"opacity":0.7, "minHeight":"1rem"})
+    summary = m.get("summary", {})
+    per_class = m.get("per_class", [])
+    table = html.Table(
+        [
+            html.Thead(html.Tr([html.Th("Clase"), html.Th("Precisión"), html.Th("Recall"), html.Th("F1")])),
+            html.Tbody([
+                html.Tr([html.Td(r["class"]), html.Td(r["precision"]), html.Td(r["recall"]), html.Td(r["f1"])])
+                for r in per_class
+            ])
+        ],
+        style={"width":"100%","borderCollapse":"collapse"}
+    )
+    return html.Div([
+        html.Div(f"Accuracy: {summary.get('accuracy','—')}  |  F1-macro: {summary.get('f1_macro','—')}",
+                 style={"fontWeight":"700","margin":"0 0 .5rem 0"}),
+        table
+    ])
