@@ -67,8 +67,10 @@ def build_configuration_ui(schema: dict):
     type = schema.get("title", schema["type"])
 
     for field_name, field_info in properties.items():
-        
+
         showName = NOMBRE_CAMPOS_ES.get(field_name, field_info.get("title", field_name))
+        default_value = field_info.get("default")
+
         ## We process each field according to its type
         # Case "enum"
         if "enum" in field_info:
@@ -77,6 +79,7 @@ def build_configuration_ui(schema: dict):
                 dcc.Dropdown(
                     id=f"{type}-{field_name}",
                     options=[{"label": str(val), "value": val} for val in field_info["enum"]],
+                    value=default_value,
                     placeholder=f"Selecciona valor",
                     style={"flex": "1", "color": "black"}
                 )
@@ -85,7 +88,7 @@ def build_configuration_ui(schema: dict):
         # Case "anyOf"
         elif "anyOf" in field_info:
             posibles_tipos = {x.get("type") for x in field_info["anyOf"] if "type" in x}
-            
+
             inputType = "text"
             inputAtributes = {}
 
@@ -97,9 +100,9 @@ def build_configuration_ui(schema: dict):
                         inputAtributes["min"] = tipo_Field["minimum"]
                     if "maximum" in tipo_Field:
                         inputAtributes["max"] = tipo_Field["maximum"]
-                    if "default" in field_info:
-                        inputAtributes["value"] = field_info["default"]
-                    
+                    if default_value is not None:
+                        inputAtributes["value"] = default_value
+
 
             input_component = html.Div([
                 dbc.Label(showName, html_for=field_name, style={"minWidth": "140px", "color": "white"}),

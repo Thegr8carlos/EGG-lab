@@ -103,46 +103,88 @@ def filterCallbackRegister(boton_id: str, inputs_map: dict):
     input_ids = list(inputs_map.keys())
 
     @callback(
-        Output(boton_id, "children"),
-        Input("selected-file-path", "data"),
+        [
+            Output(boton_id, "children"),
+            Output("filtered-signal-store-filtros", "data", allow_duplicate=True)
+        ],
         Input(boton_id, "n_clicks"),
-        [State(input_id, "value") for input_id in input_ids]
+        [State(input_id, "value") for input_id in input_ids] + [State("signal-store-filtros", "data")],
+        prevent_initial_call=True
     )
-    def formManager(selected_file_path, n_clicks, *values, input_ids=input_ids, validadores=inputs_map):
-   
+    def formManager(n_clicks, *values, input_ids=input_ids, validadores=inputs_map):
+
 
         if not n_clicks:
-            return no_update
+            return no_update, no_update
 
         filtro_nombre = boton_id.replace("btn-aplicar-", "")
         clase_validadora = available_filters.get(filtro_nombre)
 
+        # El último valor es el signal_data store
+        signal_data = values[-1]
+        values = values[:-1]  # Los demás son los valores de los inputs
+
         datos = {}
         for input_id, value in zip(input_ids, values):
             _, field = input_id.split("-", 1)
-            datos[field] = value
+            # Solo agregar el campo si tiene un valor (no None ni vacío)
+            if value is not None and value != "":
+                datos[field] = value
+
+        print(f"[FilterCallback] 📋 Datos del formulario: {datos}")
+
+        # Obtener el path del evento actual desde el store
+        if not signal_data or not isinstance(signal_data, dict):
+            print(f"[FilterCallback] ❌ No hay datos de señal cargados")
+            return no_update, no_update
+
+        event_file_path = signal_data.get("source")
+        if not event_file_path:
+            print(f"[FilterCallback] ❌ No se encontró el path del evento en el store")
+            return no_update, no_update
+
+        print(f"[FilterCallback] 📂 Aplicando filtro {filtro_nombre} sobre: {event_file_path}")
 
         try:
             # ✅ Validación con pydantic
             instancia_valida = clase_validadora(**datos)
             print(f"✅ Datos válidos para {filtro_nombre}: {instancia_valida}")
 
-            # 🧪 Simulación de aplicación del filtro
+            # 🔧 Aplicación del filtro - devuelve ruta del archivo filtrado
+            filtered_file_path = clase_validadora.apply(instancia_valida, file_path=event_file_path)
 
-            ####################################------------------------------------------------}
-            clase_validadora.apply(instancia_valida, file_path=selected_file_path)
-            #clase_validadora.apply(instancia_valida)
+            # 📊 Cargar datos filtrados y actualizar store
+            import numpy as np
+            import time
 
-            
+            try:
+                arr = np.load(filtered_file_path, allow_pickle=False)
+                filtered_data_payload = {
+                    "source": filtered_file_path,
+                    "shape": list(arr.shape),
+                    "dtype": str(arr.dtype),
+                    "matrix": arr.tolist(),
+                    "ts": time.time(),
+                    "filter_applied": filtro_nombre
+                }
+                print(f"[FilterCallback] ✅ Datos filtrados cargados desde: {filtered_file_path}")
+            except Exception as e:
+                print(f"[FilterCallback] ❌ Error cargando datos filtrados: {e}")
+                filtered_data_payload = no_update
+
+            # 📝 Registrar filtro en experimento
             Experiment.add_filter_config(instancia_valida)
-            
 
-            return no_update
+            return no_update, filtered_data_payload
+        except ValueError as e:
+            # Error de valor (ej: wavelet inválido)
+            print(f"❌ Error de validación en {filtro_nombre}: {e}")
+            return no_update, no_update
         except ValidationError as e:
             print(f"❌ Errores en {filtro_nombre}: {e}")
             errores = e.errors()
             msg = "\n".join(f"{err['loc'][0]}: {err['msg']}" for err in errores)
-            return no_update
+            return no_update, no_update
 
 
 

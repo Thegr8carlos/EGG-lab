@@ -142,6 +142,8 @@ def get_playGround(title: str, description: str, metadata: dict, custom_metadata
     sfreq_s = f"{sfreq:.3f} Hz" if isinstance(sfreq, (int, float)) else "—"
     n_ch    = str((custom_metadata or {}).get("n_channels", "—"))
     unit    = (custom_metadata or {}).get("eeg_unit") or "—"
+    file_name = (custom_metadata or {}).get("file_name") or "—"
+    session = (custom_metadata or {}).get("session") or "—"
 
     # Grid unificado: clases arriba, datos abajo
     unified_metadata = html.Div(
@@ -176,6 +178,8 @@ def get_playGround(title: str, description: str, metadata: dict, custom_metadata
             html.Div(
                 [
                     meta_grid_item("Dataset", ds_name),
+                    meta_grid_item("Sesión", session),
+                    meta_grid_item("Archivo", file_name),
                     meta_grid_item("Número de clases", n_cls),
                     meta_grid_item("Frecuencia de muestreo", sfreq_s),
                     meta_grid_item("Canales", n_ch),

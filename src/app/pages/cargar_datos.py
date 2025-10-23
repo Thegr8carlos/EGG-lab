@@ -221,8 +221,15 @@ clientside_callback(
 
                 let uploaded = 0;
                 let failed = 0;
+                let foldername = null;
 
+                // Subir cada archivo individualmente
                 for (const file of input.files) {
+                    // Capturar el nombre de la carpeta del primer archivo
+                    if (!foldername) {
+                        foldername = file.webkitRelativePath.split("/")[0];
+                    }
+
                     const formData = new FormData();
                     formData.append("files", file);
                     formData.append("paths", file.webkitRelativePath);
@@ -246,7 +253,36 @@ clientside_callback(
                     }
                 }
 
-                alert(`Proceso completado!\\n✅ Exitosos: ${uploaded}\\n❌ Fallidos: ${failed}\\n\\nRevisa la consola para detalles.`);
+                // Registrar el dataset después de subir todos los archivos
+                if (foldername) {
+                    try {
+                        const datasetResp = await fetch(
+                            "https://l2c9dqkn.usw3.devtunnels.ms:8000/upload-dataset",
+                            {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({
+                                    foldername: foldername,
+                                    path: foldername,
+                                    desc: "Dataset cargado desde interfaz web"
+                                })
+                            }
+                        );
+
+                        if (!datasetResp.ok) {
+                            console.error("❌ Failed to register dataset");
+                            alert(`Archivos subidos pero no se pudo registrar el dataset.\\n✅ Exitosos: ${uploaded}\\n❌ Fallidos: ${failed}`);
+                        } else {
+                            console.log("✅ Dataset registered successfully");
+                            alert(`¡Proceso completado exitosamente!\\n✅ Archivos subidos: ${uploaded}\\n❌ Fallidos: ${failed}\\n📦 Dataset '${foldername}' registrado correctamente.`);
+                        }
+                    } catch (err) {
+                        console.error("❌ Error sending dataset registration:", err);
+                        alert(`Archivos subidos pero error al registrar dataset.\\n✅ Exitosos: ${uploaded}\\n❌ Fallidos: ${failed}`);
+                    }
+                } else {
+                    alert(`Proceso completado!\\n✅ Exitosos: ${uploaded}\\n❌ Fallidos: ${failed}\\n\\nRevisa la consola para detalles.`);
+                }
             });
 
             return true;
