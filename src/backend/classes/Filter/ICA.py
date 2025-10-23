@@ -74,7 +74,7 @@ class ICA(Filter):
         ica.fit(raw, verbose=False)
 
         # fuentes S: (n_components, n_times) -> guardar como (n_times, n_components)
-        S = ica.get_sources(raw, verbose=False).get_data()
+        S = ica.get_sources(raw).get_data()
         # A = ica.mixing_matrix_      # (n_channels, n_components)       # ← no se guarda
         # W = ica.unmixing_matrix_    # (n_components, n_channels)       # ← no se guarda
         S_plot = S.T

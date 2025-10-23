@@ -11,6 +11,9 @@ from backend.classes.Experiment import Experiment
 import os
 import json
 from pydantic import BaseModel
+from pathlib import Path
+import numpy as np
+import time
 
 # ---------------------------- FACTORY ----------------------------
 
@@ -101,23 +104,46 @@ def filterCallbackRegister(boton_id: str, inputs_map: dict):
         'BandPass': BandPass,
         'Notch': Notch
     }
+
+    # Map filter names to their file suffixes
+    filter_suffixes = {
+        'ICA': 'ica',
+        'WaveletsBase': 'wav',
+        'BandPass': 'bandpass',
+        'Notch': 'notch'
+    }
+
     input_ids = list(inputs_map.keys())
 
     @callback(
-        Output(boton_id, "children"),
-        Input("selected-file-path", "data"),
+        [
+            Output(boton_id, "children"),
+            Output("filtered-signal-store-filtros", "data", allow_duplicate=True)
+        ],
         Input(boton_id, "n_clicks"),
-        [State(input_id, "value") for input_id in input_ids]
+        [State(input_id, "value") for input_id in input_ids] + [State("signal-store-filtros", "data")],
+        prevent_initial_call=True
     )
-    def formManager(selected_file_path, n_clicks, *values, input_ids=input_ids, validadores=inputs_map):
-   
+    def formManager(n_clicks, *values, input_ids=input_ids, validadores=inputs_map):
+
 
         if not n_clicks:
-            return no_update
+            return no_update, no_update
 
         filtro_nombre = boton_id.replace("btn-aplicar-", "")
         clase_validadora = available_filters.get(filtro_nombre)
-        
+
+        # El último valor es el signal_data store
+        signal_data = values[-1]
+        values = values[:-1]
+
+        if not signal_data or "source" not in signal_data:
+            print(f"❌ No hay señal cargada en signal-store-filtros")
+            return no_update, no_update
+
+        # Obtener path del evento actual
+        event_file_path = signal_data.get("source")
+
         datos = {}
         # 🧪 Simulación de aplicación del filtro
         experiment = Experiment._load_latest_experiment()
@@ -125,32 +151,76 @@ def filterCallbackRegister(boton_id: str, inputs_map: dict):
         # Autoincrement ID
         prev_id = Experiment._extract_last_id_from_list(experiment.filters)
         new_id = prev_id + 1  # if prev_id == -1 -> 0
+
         for input_id, value in zip(input_ids, values):
             _, field = input_id.split("-", 1)
-            datos[field] = value
-        datos["id"] = new_id
+            # Solo agregar valores no vacíos
+            if value is not None and value != "":
+                datos[field] = value
+        datos["id"] = str(new_id)
 
         try:
             # ✅ Validación con pydantic
             instancia_valida = clase_validadora(**datos)
             print(f"✅ Datos válidos para {filtro_nombre}: {instancia_valida}")
 
-            
+            # Preparar directorio de salida
+            p_in = Path(event_file_path)
+            dir_out = p_in.parent / "filtered"
+            dir_out.mkdir(parents=True, exist_ok=True)
 
-            ####################################------------------------------------------------}
-            clase_validadora.apply(instancia_valida, file_path=selected_file_path)
-            #clase_validadora.apply(instancia_valida)
+            # Aplicar filtro con nueva API (devuelve bool)
+            success = clase_validadora.apply(instancia_valida, file_path=str(p_in), directory_path_out=str(dir_out))
 
-            
+            if not success:
+                print(f"❌ El filtro {filtro_nombre} no se aplicó correctamente")
+                return no_update, no_update
+
+            # Construir el path del archivo filtrado
+            suffix = filter_suffixes.get(filtro_nombre, 'filtered')
+            out_name = f"{p_in.stem}_{suffix}_{new_id}.npy"
+            out_path = dir_out / out_name
+
+            # Cargar datos filtrados
+            if not out_path.exists():
+                print(f"❌ No se encontró el archivo filtrado: {out_path}")
+                return no_update, no_update
+
+            arr = np.load(str(out_path), allow_pickle=False)
+
+            # Crear payload para el store
+            filtered_data_payload = {
+                "source": str(out_path),
+                "shape": list(arr.shape),
+                "dtype": str(arr.dtype),
+                "matrix": arr.tolist(),
+                "ts": time.time(),
+                "filter_applied": filtro_nombre,
+                "filter_id": new_id
+            }
+
+            print(f"✅ Filtro {filtro_nombre} aplicado exitosamente. Archivo: {out_path}")
+
+            # Guardar configuración del filtro en el experimento
             Experiment.add_filter_config(instancia_valida)
-            
 
-            return no_update
+
+            return no_update, filtered_data_payload
         except ValidationError as e:
-            print(f"❌ Errores en {filtro_nombre}: {e}")
+            print(f"❌ Errores de validación en {filtro_nombre}: {e}")
             errores = e.errors()
             msg = "\n".join(f"{err['loc'][0]}: {err['msg']}" for err in errores)
-            return no_update
+            print(f"❌ Mensaje de error: {msg}")
+            return no_update, no_update
+        except ValueError as e:
+            # Errores de validación específicos del backend (como sp inválido)
+            print(f"❌ Error de validación en {filtro_nombre}: {str(e)}")
+            return no_update, no_update
+        except Exception as e:
+            print(f"❌ Error al aplicar filtro {filtro_nombre}: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return no_update, no_update
 
 
 

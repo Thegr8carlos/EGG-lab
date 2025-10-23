@@ -28,13 +28,13 @@ class BandPass(Filter):
         'zero',
         description="Tipo de fase para el filtro FIR"
     )
-    fir_window: Optional[str] = Field(
+    fir_window: Literal['hamming', 'hann', 'blackman', 'bartlett', 'flattop'] = Field(
         'hamming',
-        description="Ventana para diseño FIR: hamming, hann, blackman, etc."
+        description="Ventana para diseño FIR"
     )
 
     @classmethod
-    def apply(cls, instance: "BandPass", file_path_in: str, directory_path_out: str) -> bool:
+    def apply(cls, instance: "BandPass", file_path: str, directory_path_out: str) -> bool:
         """
         Aplica el filtro (low/high/band-pass) sobre un archivo .npy y guarda el
         resultado en `directory_path_out` con el patrón:
@@ -42,7 +42,7 @@ class BandPass(Filter):
         Devuelve True si se guardó correctamente. Lanza excepciones para entradas inválidas.
         """
         # --- Normaliza y valida la ruta de entrada ---
-        p_in = Path(str(file_path_in)).expanduser()
+        p_in = Path(str(file_path)).expanduser()
         if not p_in.exists():
             raise FileNotFoundError(f"No existe el archivo de entrada: {p_in}")
         resolved = p_in
@@ -50,6 +50,12 @@ class BandPass(Filter):
 
         # --- Carga de datos ---
         data = np.load(str(resolved), mmap_mode=None)
+
+        # --- Convertir a float64 (MNE requiere double precision) ---
+        if data.dtype != np.float64:
+            data = data.astype(np.float64)
+            print(f"[BandPass.apply] Convertido a float64 para compatibilidad con MNE")
+
         orig_was_1d = False
         if data.ndim == 1:
             data = data[np.newaxis, :]
@@ -133,7 +139,7 @@ class BandPass(Filter):
         dir_out.mkdir(parents=True, exist_ok=True)
 
         # Usa tu get_id() existente para el sufijo único
-        out_name = f"{resolved.stem}_bandpass_{instance.get_id()}{resolved.suffix}"
+        out_name = f"{resolved.stem}_bandpass_{instance.get_id()}.npy"
         out_path = dir_out / out_name
 
         # --- Guardar y devolver bool ---
