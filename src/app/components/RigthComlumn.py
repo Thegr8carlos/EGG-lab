@@ -19,15 +19,15 @@ NOMBRE_CAMPOS_ES = {
     "method": "Método",
     "random_state": "Semilla aleatoria",
     "max_iter": "Iteraciones máximas",
-    "wavelet": "Wavelet",
-    "level": "Nivel",
-    "mode": "Modo",
+    "wavelet": "Tipo de Wavelet",
+    "level": "Nivel de descomposición",
+    "mode": "Modo de borde",
     "threshold": "Umbral",
     "filter_type": "Tipo de filtro",
-    "freq": "Frecuencia",
+    "freq": "Frecuencia de corte",
     "freqs": "Frecuencias",
     "order": "Orden del filtro",
-    "phase": "Fase",
+    "phase": "Tipo de fase",
     "fir_window": "Ventana FIR",
     "quality": "Calidad",
     "window": "Ventana de análisis",
@@ -67,18 +67,30 @@ def build_configuration_ui(schema: dict):
     type = schema.get("title", schema["type"])
 
     for field_name, field_info in properties.items():
-        
+
         showName = NOMBRE_CAMPOS_ES.get(field_name, field_info.get("title", field_name))
         ## We process each field according to its type
-        # Case "enum"
+
+        # Detectar enums (puede venir como "enum" directo o dentro de "anyOf" con "const")
+        enum_values = None
         if "enum" in field_info:
+            enum_values = field_info["enum"]
+        elif "anyOf" in field_info:
+            # Buscar si todos los anyOf son const (indica Literal de Pydantic)
+            consts = [x.get("const") for x in field_info["anyOf"] if "const" in x]
+            if consts and len(consts) == len([x for x in field_info["anyOf"] if "const" in x or x.get("type") == "null"]):
+                # Filtrar None/null de las opciones
+                enum_values = [c for c in consts if c is not None]
+
+        # Case "enum" (directo o detectado desde anyOf)
+        if enum_values:
             input_component = html.Div([
-                dbc.Label(showName, html_for=field_name, style={"minWidth": "140px", "color": "white"}),
+                dbc.Label(showName, html_for=field_name, style={"minWidth": "140px", "color": "white", "fontSize": "13px"}),
                 dcc.Dropdown(
                     id=f"{type}-{field_name}",
-                    options=[{"label": str(val), "value": val} for val in field_info["enum"]],
+                    options=[{"label": str(val), "value": val} for val in enum_values],
                     placeholder=f"Selecciona valor",
-                    style={"flex": "1", "color": "black"}
+                    style={"flex": "1", "color": "black", "fontSize": "14px"}
                 )
             ], className="input-field-group")
 
@@ -102,12 +114,12 @@ def build_configuration_ui(schema: dict):
                     
 
             input_component = html.Div([
-                dbc.Label(showName, html_for=field_name, style={"minWidth": "140px", "color": "white"}),
+                dbc.Label(showName, html_for=field_name, style={"minWidth": "140px", "color": "white", "fontSize": "13px"}),
                 dbc.Input(
                     type=inputType,
                     id=f"{type}-{field_name}",
                     placeholder=f"Ingresa {showName}",
-                    style={"flex": "1"},
+                    style={"flex": "1", "fontSize": "15px", "height": "42px", "padding": "8px 12px"},
                     **inputAtributes
                 )
             ], className="input-field-group")
@@ -116,12 +128,12 @@ def build_configuration_ui(schema: dict):
         # Case "array"
         elif field_info.get("type") == "array":
             input_component = html.Div([
-                dbc.Label(showName, html_for=field_name, style={"minWidth": "140px", "color": "white"}),
+                dbc.Label(showName, html_for=field_name, style={"minWidth": "140px", "color": "white", "fontSize": "13px"}),
                 dbc.Input(
                     type="text",  # se podría transformar a varios inputs si lo deseas
                     id=f"{type}-{field_name}",
                     placeholder=f"Ingresa lista separada por comas",
-                    style={"flex": "1"}
+                    style={"flex": "1", "fontSize": "15px", "height": "42px", "padding": "8px 12px"}
                 )
             ], className="input-field-group")
 
@@ -134,12 +146,12 @@ def build_configuration_ui(schema: dict):
             }.get(field_info.get("type", "string"), "text")
 
             input_component = html.Div([
-                dbc.Label(showName, html_for=field_name, style={"minWidth": "140px", "color": "white"}),
+                dbc.Label(showName, html_for=field_name, style={"minWidth": "140px", "color": "white", "fontSize": "13px"}),
                 dbc.Input(
                     type=tipo_dash,
                     id=f"{type}-{field_name}",
                     placeholder=f"Ingresa {showName}",
-                    style={"flex": "1"}
+                    style={"flex": "1", "fontSize": "15px", "height": "42px", "padding": "8px 12px"}
                 )
             ], className="input-field-group")
 
@@ -147,7 +159,7 @@ def build_configuration_ui(schema: dict):
 
     # Botón de aplicar
     components.append(
-        dbc.Button("Aplicar", color="primary", id=f"btn-aplicar-{type}", className="mt-2")
+        dbc.Button("Aplicar", color="primary", id=f"btn-aplicar-{type}", className="mt-2", style={"fontSize": "15px", "height": "42px", "fontWeight": "600"})
     )
 
     return dbc.Card([

@@ -42,6 +42,11 @@ class Notch(Filter):
         data = _load_numeric_array(str(p_in))
         print(f"[Notch.apply] Señal cargada desde: {p_in}, shape={data.shape}, dtype={data.dtype}, ndim={data.ndim}")
 
+        # --- Convertir a float64 (MNE requiere double precision) ---
+        if data.dtype != np.float64:
+            data = data.astype(np.float64)
+            print(f"[Notch.apply] Convertido a float64 para compatibilidad con MNE")
+
         # --- Asegurar 2D (n_channels, n_times) ---
         orig_was_1d = False
         if data.ndim == 1:

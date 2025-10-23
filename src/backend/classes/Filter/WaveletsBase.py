@@ -1,15 +1,15 @@
 from backend.classes.Filter.Filter import Filter
 from pydantic import Field
-from typing import Optional, Tuple, Dict, Any
+from typing import Optional, Literal, Tuple, Dict, Any
 from pathlib import Path
 import numpy as np
 import pywt
 from backend.helpers.numeric_array import _load_numeric_array
 
 class WaveletsBase(Filter):
-    wavelet: str = Field(
-        ...,
-        description="Nombre de la wavelet a usar (p. ej. db4, coif5, sym6, etc.)"
+    wavelet: Literal['db1', 'db2', 'db3', 'db4', 'db5', 'db6', 'db8', 'sym2', 'sym3', 'sym4', 'sym5', 'coif1', 'coif2', 'coif3', 'coif5', 'haar'] = Field(
+        'db4',
+        description="Nombre de la wavelet a usar"
     )
     level: Optional[int] = Field(
         None,
@@ -17,9 +17,9 @@ class WaveletsBase(Filter):
         le=10,
         description="Nivel de descomposición (opcional). Si es None, se calcula el máximo posible."
     )
-    mode: Optional[str] = Field(
+    mode: Literal['symmetric', 'periodic', 'constant', 'zero', 'smooth'] = Field(
         'symmetric',
-        description="Modo de extensión de bordes para PyWavelets (p. ej., symmetric, periodic, reflect...)."
+        description="Modo de extensión de bordes para PyWavelets"
     )
     threshold: Optional[float] = Field(
         None,

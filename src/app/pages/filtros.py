@@ -468,7 +468,7 @@ def enable_class_buttons(signal_data, selected_dataset):
 # CLIENTSIDE: Renderiza plots con WebGL + limpieza de contextos
 clientside_callback(
     """
-    function(storeData, selectedPathRaw, signalData, channelRange) {
+    function(storeData, selectedPathRaw, signalData, filteredData, channelRange) {
       try {
         // ===== ⚙️ CONFIGURACIÓN PRINCIPAL =====
         
@@ -623,14 +623,21 @@ clientside_callback(
             namespace: 'dash_core_components'
           });
 
-          // Plot filtrado (columna derecha) - por ahora con datos vacíos/placeholder
+          // Plot filtrado (columna derecha) - usar datos filtrados si existen
+          const hasFilteredData = filteredData && Array.isArray(filteredData.matrix) && Array.isArray(filteredData.matrix[ch]);
+          const yFiltered = hasFilteredData ? filteredData.matrix[ch] : xy.y.map(() => 0);
+
+          const xyFiltered = USE_DOWNSAMPLING && hasFilteredData
+            ? downsampling(xFull, yFiltered, { factor: DS_FACTOR, maxPoints: MAX_POINTS })
+            : { x: xFull, y: yFiltered };
+
           const figFiltered = {
             data: [{
               type: USE_WEBGL ? 'scattergl' : 'scatter',
               mode: 'lines',
-              x: xy.x,
-              y: xy.y.map(() => 0), // Placeholder: valores en cero
-              line: { width: 1, color: '#a855f7' },
+              x: xyFiltered.x,
+              y: xyFiltered.y,
+              line: { width: 1, color: hasFilteredData ? '#a855f7' : '#555' },
               hoverinfo: 'skip',
               name: 'Filtrado Ch ' + ch
             }],
@@ -650,7 +657,7 @@ clientside_callback(
               height: 320,
               autosize: true,
               uirevision: 'mp-const-filt-' + ch,
-              annotations: [{
+              annotations: hasFilteredData ? [] : [{
                 text: 'Sin filtro aplicado',
                 xref: 'paper',
                 yref: 'paper',
@@ -780,9 +787,10 @@ clientside_callback(
     """,
     Output('plots-container', 'children'),
     [
-        Input(EVENTS_STORE_ID, 'data'), 
-        Input('selected-file-path', 'data'), 
+        Input(EVENTS_STORE_ID, 'data'),
+        Input('selected-file-path', 'data'),
         Input(DATA_STORE_ID, 'data'),
+        Input(FILTERED_DATA_STORE_ID, 'data'),
         Input(CHANNEL_RANGE_STORE, 'data')
     ],
     prevent_initial_call=True
