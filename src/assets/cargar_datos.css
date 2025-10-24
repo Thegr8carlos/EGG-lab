@@ -1,0 +1,138 @@
+/* Animaciones para la página de Cargar Datos */
+
+/* Fade In - Para elementos que aparecen */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* Slide In - Para botones de datasets */
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Shake - Para mensajes de error */
+@keyframes shake {
+    0%, 100% {
+        transform: translateX(0);
+    }
+    10%, 30%, 50%, 70%, 90% {
+        transform: translateX(-5px);
+    }
+    20%, 40%, 60%, 80% {
+        transform: translateX(5px);
+    }
+}
+
+/* Success Pulse - Para mensajes de éxito */
+@keyframes successPulse {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.05);
+        opacity: 0.9;
+    }
+}
+
+/* Hover effect para botones de datasets */
+.dataset-btn-hover {
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.dataset-btn-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(168, 85, 247, 0.4);
+    border-color: var(--accent-2, #a855f7) !important;
+}
+
+.dataset-btn-hover:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 6px rgba(168, 85, 247, 0.3);
+}
+
+/* Loading states */
+.loading-overlay {
+    animation: fadeIn 0.3s ease-in;
+}
+
+/* Contenedor de botones de datasets con gap */
+.datasets-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px;
+}
+
+/* Estilo para mensajes de feedback */
+.feedback-message {
+    padding: 16px;
+    border-radius: 8px;
+    margin: 12px 0;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.feedback-success {
+    background-color: rgba(34, 197, 94, 0.1);
+    border: 1px solid rgba(34, 197, 94, 0.3);
+    color: #22c55e;
+    animation: fadeIn 0.5s ease-in, successPulse 0.6s ease-in-out;
+}
+
+.feedback-error {
+    background-color: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #ef4444;
+    animation: fadeIn 0.5s ease-in, shake 0.5s ease-in-out;
+}
+
+.feedback-warning {
+    background-color: rgba(251, 191, 36, 0.1);
+    border: 1px solid rgba(251, 191, 36, 0.3);
+    color: #fbbf24;
+    animation: fadeIn 0.5s ease-in;
+}
+
+.feedback-info {
+    background-color: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    color: #3b82f6;
+    animation: fadeIn 0.5s ease-in;
+}
+
+/* Iconos en feedback */
+.feedback-icon {
+    font-size: 20px;
+    margin-right: 8px;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+/* Spinner de carga personalizado */
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.custom-spinner {
+    animation: spin 1s linear infinite;
+    display: inline-block;
+}

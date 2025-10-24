@@ -113,7 +113,7 @@ if __name__ == "__main__":
     
     
     #app.run(debug=True) # comment this line if u want to test backend functionality 
-    app.run(debug=True, use_reloader=False, port=8080, host="127.0.0.1")
+    app.run(debug=True, use_reloader=False, port=8090, host="127.0.0.1")
     #print("🧐🔎🛠️💻  Backend Debug") # entry point to backend debug 
     #data = Dataset("path", "name")
     #response = data.upload_dataset("Data/nieto_inner_speech")
