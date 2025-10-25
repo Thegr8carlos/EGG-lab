@@ -260,9 +260,10 @@ def update_playground_desc(selected_dataset):
         Output(DATA_STORE_ID, "data"),
     ],
     Input("selected-file-path", "data"),
+    State("selected-dataset", "data"),
     prevent_initial_call=True
 )
-def pass_selected_path(selected_file_path):
+def pass_selected_path(selected_file_path, dataset_name):
     if selected_file_path is None:
         return no_update, no_update
 
@@ -283,12 +284,21 @@ def pass_selected_path(selected_file_path):
         first_evt = res.get("first_event_file") if isinstance(res, dict) else None
         if first_evt:
             arr = np.load(first_evt, allow_pickle=False)
+
+            # ✨ Obtener nombres de canales para mostrar en plots
+            try:
+                channel_names = Dataset.get_all_channel_names(dataset_name)
+                channel_names_for_plots = channel_names if channel_names else [f"Ch{i}" for i in range(arr.shape[0])]
+            except:
+                channel_names_for_plots = [f"Ch{i}" for i in range(arr.shape[0])]
+
             data_payload = {
                 "source": first_evt,
                 "shape": list(arr.shape),
                 "dtype": str(arr.dtype),
                 "matrix": arr.tolist(),
                 "ts": time.time(),
+                "channel_names": channel_names_for_plots  # ✨ Nombres de canales para plots
             }
     except Exception as e:
         print(f"[extractores] ERROR cargando primer evento .npy: {e}")
@@ -351,6 +361,10 @@ clientside_callback(
         const cols = signalData.matrix[0].length;
         const xFull = Array.from({length: cols}, (_, i) => i);
 
+        // ✨ Obtener nombres de canales
+        const channelNames = signalData.channel_names || [];
+        const hasChannelNames = channelNames.length > 0;
+
         // Obtener rango de canales a mostrar
         const channelStart = (channelRange && channelRange.start) || 0;
         const channelCount = Math.min(CHANNELS_PER_PAGE, total - channelStart);
@@ -363,6 +377,11 @@ clientside_callback(
           const ch = channelStart + i;
           const yRaw = signalData.matrix[ch];
           if (!Array.isArray(yRaw)) continue;
+
+          // ✨ Obtener nombre del canal (ej: "A1", "A2", "B5")
+          const channelLabel = hasChannelNames && ch < channelNames.length
+            ? channelNames[ch]
+            : 'Ch ' + ch;
 
           const xy = USE_DOWNSAMPLING
             ? downsampling(xFull, yRaw, { factor: DS_FACTOR, maxPoints: MAX_POINTS })
@@ -377,7 +396,7 @@ clientside_callback(
               y: xy.y,
               line: { width: 1, color: '#3b82f6' },
               hoverinfo: 'skip',
-              name: 'Ch ' + ch
+              name: channelLabel
             }],
             layout: {
               margin: { l: 50, r: 10, t: 24, b: 24 },
@@ -390,11 +409,29 @@ clientside_callback(
                 gridcolor: 'rgba(128,128,128,0.25)',
                 zeroline: false,
                 fixedrange: true,
-                title: 'Ch ' + ch
+                title: channelLabel,
+                titlefont: { size: 14, weight: 'bold' }
               },
               height: 320,
               autosize: true,
-              uirevision: 'mp-const-orig-ext-' + ch
+              uirevision: 'mp-const-orig-ext-' + ch,
+              annotations: [{
+                text: channelLabel,
+                xref: 'paper',
+                yref: 'paper',
+                x: 0.02,
+                y: 0.98,
+                xanchor: 'left',
+                yanchor: 'top',
+                showarrow: false,
+                font: {
+                  size: 18,
+                  color: '#3b82f6',
+                  weight: 'bold'
+                },
+                bgcolor: 'rgba(0,0,0,0.7)',
+                borderpad: 6
+              }]
             }
           };
 
@@ -427,7 +464,7 @@ clientside_callback(
               y: xy.y.map(() => 0), // Placeholder: valores en cero
               line: { width: 1, color: '#10b981' },
               hoverinfo: 'skip',
-              name: 'Transform Ch ' + ch
+              name: 'Transform ' + channelLabel
             }],
             layout: {
               margin: { l: 50, r: 10, t: 24, b: 24 },
@@ -440,20 +477,42 @@ clientside_callback(
                 gridcolor: 'rgba(128,128,128,0.25)',
                 zeroline: false,
                 fixedrange: true,
-                title: 'Trans Ch ' + ch
+                title: channelLabel,
+                titlefont: { size: 14, weight: 'bold' }
               },
               height: 320,
               autosize: true,
               uirevision: 'mp-const-trans-ext-' + ch,
-              annotations: [{
-                text: 'Sin transformada aplicada',
-                xref: 'paper',
-                yref: 'paper',
-                x: 0.5,
-                y: 0.5,
-                showarrow: false,
-                font: { size: 12, color: 'rgba(255,255,255,0.3)' }
-              }]
+              annotations: [
+                // Nombre del canal en esquina superior
+                {
+                  text: channelLabel,
+                  xref: 'paper',
+                  yref: 'paper',
+                  x: 0.02,
+                  y: 0.98,
+                  xanchor: 'left',
+                  yanchor: 'top',
+                  showarrow: false,
+                  font: {
+                    size: 18,
+                    color: '#10b981',
+                    weight: 'bold'
+                  },
+                  bgcolor: 'rgba(0,0,0,0.7)',
+                  borderpad: 6
+                },
+                // Mensaje "Sin transformada aplicada" en el centro
+                {
+                  text: 'Sin transformada aplicada',
+                  xref: 'paper',
+                  yref: 'paper',
+                  x: 0.5,
+                  y: 0.5,
+                  showarrow: false,
+                  font: { size: 12, color: 'rgba(255,255,255,0.3)' }
+                }
+              ]
             }
           };
 
