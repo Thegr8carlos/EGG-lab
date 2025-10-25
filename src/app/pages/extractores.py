@@ -292,13 +292,22 @@ def pass_selected_path(selected_file_path, dataset_name):
             except:
                 channel_names_for_plots = [f"Ch{i}" for i in range(arr.shape[0])]
 
+            # Extraer nombre del archivo y sesión
+            import os
+            import re
+            file_name = os.path.basename(first_evt)
+            session_match = re.search(r'(sub-\d+)/(ses-\d+)', first_evt)
+            session_info = f"{session_match.group(1)}/{session_match.group(2)}" if session_match else ""
+
             data_payload = {
                 "source": first_evt,
                 "shape": list(arr.shape),
                 "dtype": str(arr.dtype),
                 "matrix": arr.tolist(),
                 "ts": time.time(),
-                "channel_names": channel_names_for_plots  # ✨ Nombres de canales para plots
+                "channel_names": channel_names_for_plots,  # ✨ Nombres de canales para plots
+                "file_name": file_name.replace('.npy', ''),  # Sin extensión
+                "session": session_info  # ✨ Información de sesión
             }
     except Exception as e:
         print(f"[extractores] ERROR cargando primer evento .npy: {e}")
@@ -554,6 +563,91 @@ clientside_callback(
           setTimeout(() => { window.dispatchEvent(new Event('resize')); }, 0);
         }
 
+        // Crear títulos dinámicos con información del archivo
+        const fileName = signalData.file_name || 'Sin archivo';
+        const sessionInfo = signalData.session || '';
+
+        // Extraer solo la clase del nombre del archivo (antes del corchete)
+        const classNameMatch = fileName.match(/^([^\[]+)/);
+        const className = classNameMatch ? classNameMatch[1] : fileName;
+
+        // Función para crear título estilizado con elementos HTML
+        function createStyledTitle(session, eventClass, type, color) {
+          const parts = [];
+
+          if (session) {
+            parts.push({
+              props: {
+                children: session,
+                style: {
+                  fontSize: '11px',
+                  fontWeight: '500',
+                  color: 'rgba(255,255,255,0.6)',
+                  marginRight: '8px'
+                }
+              },
+              type: 'Span',
+              namespace: 'dash_html_components'
+            });
+            parts.push({
+              props: {
+                children: '•',
+                style: {
+                  fontSize: '11px',
+                  color: 'rgba(255,255,255,0.3)',
+                  marginRight: '8px'
+                }
+              },
+              type: 'Span',
+              namespace: 'dash_html_components'
+            });
+          }
+
+          parts.push({
+            props: {
+              children: eventClass,
+              style: {
+                fontSize: '13px',
+                fontWeight: '700',
+                color: color,
+                marginRight: '8px'
+              }
+            },
+            type: 'Span',
+            namespace: 'dash_html_components'
+          });
+
+          parts.push({
+            props: {
+              children: '•',
+              style: {
+                fontSize: '11px',
+                color: 'rgba(255,255,255,0.3)',
+                marginRight: '8px'
+              }
+            },
+            type: 'Span',
+            namespace: 'dash_html_components'
+          });
+
+          parts.push({
+            props: {
+              children: type,
+              style: {
+                fontSize: '11px',
+                fontWeight: '600',
+                color: 'rgba(255,255,255,0.8)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px'
+              }
+            },
+            type: 'Span',
+            namespace: 'dash_html_components'
+          });
+
+          return parts;
+        }
+
         // Retornar estructura de dos columnas
         return {
           props: {
@@ -563,14 +657,14 @@ clientside_callback(
                   children: [
                     {
                       props: {
-                        children: 'Señal Original',
+                        children: createStyledTitle(sessionInfo, className, 'Original', '#3b82f6'),
                         style: {
-                          fontSize: '14px',
-                          fontWeight: '600',
-                          color: 'var(--text)',
                           marginBottom: '12px',
                           paddingBottom: '8px',
-                          borderBottom: '2px solid #3b82f6'
+                          borderBottom: '2px solid #3b82f6',
+                          display: 'flex',
+                          alignItems: 'center',
+                          overflow: 'hidden'
                         }
                       },
                       type: 'Div',
@@ -592,14 +686,14 @@ clientside_callback(
                   children: [
                     {
                       props: {
-                        children: 'Transformada',
+                        children: createStyledTitle(sessionInfo, className, 'Transformada', '#10b981'),
                         style: {
-                          fontSize: '14px',
-                          fontWeight: '600',
-                          color: 'var(--text)',
                           marginBottom: '12px',
                           paddingBottom: '8px',
-                          borderBottom: '2px solid #10b981'
+                          borderBottom: '2px solid #10b981',
+                          display: 'flex',
+                          alignItems: 'center',
+                          overflow: 'hidden'
                         }
                       },
                       type: 'Div',

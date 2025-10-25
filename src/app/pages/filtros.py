@@ -948,6 +948,91 @@ clientside_callback(
           setTimeout(() => { window.dispatchEvent(new Event('resize')); }, 0);
         }
 
+        // Crear títulos dinámicos con información del archivo
+        const fileName = signalData.file_name || 'Sin archivo';
+        const sessionInfo = signalData.session || '';
+
+        // Extraer solo la clase del nombre del archivo (antes del corchete)
+        const classNameMatch = fileName.match(/^([^\[]+)/);
+        const className = classNameMatch ? classNameMatch[1] : fileName;
+
+        // Función para crear título estilizado con elementos HTML
+        function createStyledTitle(session, eventClass, type, color) {
+          const parts = [];
+
+          if (session) {
+            parts.push({
+              props: {
+                children: session,
+                style: {
+                  fontSize: '11px',
+                  fontWeight: '500',
+                  color: 'rgba(255,255,255,0.6)',
+                  marginRight: '8px'
+                }
+              },
+              type: 'Span',
+              namespace: 'dash_html_components'
+            });
+            parts.push({
+              props: {
+                children: '•',
+                style: {
+                  fontSize: '11px',
+                  color: 'rgba(255,255,255,0.3)',
+                  marginRight: '8px'
+                }
+              },
+              type: 'Span',
+              namespace: 'dash_html_components'
+            });
+          }
+
+          parts.push({
+            props: {
+              children: eventClass,
+              style: {
+                fontSize: '13px',
+                fontWeight: '700',
+                color: color,
+                marginRight: '8px'
+              }
+            },
+            type: 'Span',
+            namespace: 'dash_html_components'
+          });
+
+          parts.push({
+            props: {
+              children: '•',
+              style: {
+                fontSize: '11px',
+                color: 'rgba(255,255,255,0.3)',
+                marginRight: '8px'
+              }
+            },
+            type: 'Span',
+            namespace: 'dash_html_components'
+          });
+
+          parts.push({
+            props: {
+              children: type,
+              style: {
+                fontSize: '11px',
+                fontWeight: '600',
+                color: 'rgba(255,255,255,0.8)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px'
+              }
+            },
+            type: 'Span',
+            namespace: 'dash_html_components'
+          });
+
+          return parts;
+        }
+
         // Retornar estructura de dos columnas
         return {
           props: {
@@ -957,14 +1042,14 @@ clientside_callback(
                   children: [
                     {
                       props: {
-                        children: 'Señal Original',
+                        children: createStyledTitle(sessionInfo, className, 'Original', '#3b82f6'),
                         style: {
-                          fontSize: '14px',
-                          fontWeight: '600',
-                          color: 'var(--text)',
                           marginBottom: '12px',
                           paddingBottom: '8px',
-                          borderBottom: '2px solid #3b82f6'
+                          borderBottom: '2px solid #3b82f6',
+                          display: 'flex',
+                          alignItems: 'center',
+                          overflow: 'hidden'
                         }
                       },
                       type: 'Div',
@@ -986,14 +1071,14 @@ clientside_callback(
                   children: [
                     {
                       props: {
-                        children: 'Señal Filtrada',
+                        children: createStyledTitle(sessionInfo, className, 'Filtrada', '#a855f7'),
                         style: {
-                          fontSize: '14px',
-                          fontWeight: '600',
-                          color: 'var(--text)',
                           marginBottom: '12px',
                           paddingBottom: '8px',
-                          borderBottom: '2px solid #a855f7'
+                          borderBottom: '2px solid #a855f7',
+                          display: 'flex',
+                          alignItems: 'center',
+                          overflow: 'hidden'
                         }
                       },
                       type: 'Div',
