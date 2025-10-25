@@ -3,7 +3,7 @@ from pathlib import Path
 import time
 import numpy as np
 import dash
-from dash import html, dcc, register_page, callback, Output, Input, State, clientside_callback, no_update, ALL
+from dash import html, dcc, register_page, callback, Output, Input, State, clientside_callback, no_update, ALL, ctx
 from shared.fileUtils import get_dataset_metadata
 import dash_bootstrap_components as dbc
 
@@ -22,6 +22,7 @@ DATA_STORE_ID = "signal-store-filtros"
 FILTERED_DATA_STORE_ID = "filtered-signal-store-filtros"
 CHANNEL_RANGE_STORE = "channel-range-store"
 SELECTED_CLASS_STORE = "selected-class-store"
+SELECTED_CHANNELS_STORE = "selected-channels-store"  # Nuevo: canales específicos seleccionados
 
 layout = html.Div(
     [
@@ -45,6 +46,7 @@ layout = html.Div(
         dcc.Store(id=FILTERED_DATA_STORE_ID),
         dcc.Store(id=CHANNEL_RANGE_STORE, data={"start": 0, "count": 8}),
         dcc.Store(id=SELECTED_CLASS_STORE, data=None),
+        dcc.Store(id=SELECTED_CHANNELS_STORE, data=None),  # Nuevo: canales seleccionados
     ],
     style={"display": "flex"},
 )
@@ -208,31 +210,87 @@ def create_navigation_controls(meta: dict):
             "opacity": "0.4"
         }),
 
-        # Selector de canales específicos (dummy)
+        # Selector de canales específicos ✅ MEJORADO CON CHECKLIST
         html.Div([
-            html.Div("Canales específicos", style={
-                "fontSize": "10px",
-                "fontWeight": "500",
-                "color": "var(--text-muted)",
-                "marginBottom": "4px",
-                "opacity": "0.7"
-            }),
-            dcc.Input(
-                id='input-channel-selection',
-                type='text',
-                placeholder='ej: 0,5,10-15',
-                disabled=True,
-                style={
-                    "width": "100%",
-                    "padding": "4px 8px",
-                    "borderRadius": "var(--radius-sm)",
-                    "border": "1px solid var(--border-weak)",
-                    "background": "var(--card-bg)",
-                    "color": "var(--text-muted)",
+            # Header con título y botones de ayuda
+            html.Div([
+                html.Div("Canales específicos", style={
                     "fontSize": "10px",
-                    "opacity": "0.5"
-                }
-            )
+                    "fontWeight": "600",
+                    "color": "var(--text)",
+                    "flex": "1"
+                }),
+                html.Div([
+                    html.Button("Todos", id="btn-select-all-channels", n_clicks=0, style={
+                        "padding": "2px 6px",
+                        "fontSize": "8px",
+                        "borderRadius": "3px",
+                        "border": "1px solid var(--border-weak)",
+                        "background": "var(--card-bg)",
+                        "color": "var(--text)",
+                        "cursor": "pointer",
+                        "marginRight": "4px"
+                    }),
+                    html.Button("Limpiar", id="btn-clear-channels", n_clicks=0, style={
+                        "padding": "2px 6px",
+                        "fontSize": "8px",
+                        "borderRadius": "3px",
+                        "border": "1px solid var(--border-weak)",
+                        "background": "var(--card-bg)",
+                        "color": "var(--text)",
+                        "cursor": "pointer",
+                        "marginRight": "4px"
+                    }),
+                    html.Button("Solo EEG", id="btn-only-eeg-channels", n_clicks=0, style={
+                        "padding": "2px 6px",
+                        "fontSize": "8px",
+                        "borderRadius": "3px",
+                        "border": "1px solid var(--border-weak)",
+                        "background": "var(--card-bg)",
+                        "color": "var(--text)",
+                        "cursor": "pointer"
+                    })
+                ], style={"display": "flex"})
+            ], style={"display": "flex", "alignItems": "center", "marginBottom": "6px"}),
+
+            # Checklist scrollable
+            html.Div([
+                dcc.Checklist(
+                    id='checklist-channel-selection',
+                    options=[],  # Se llena dinámicamente
+                    value=[],
+                    labelStyle={
+                        "display": "block",
+                        "padding": "2px 4px",
+                        "fontSize": "9px",
+                        "cursor": "pointer"
+                    },
+                    inputStyle={
+                        "marginRight": "6px",
+                        "cursor": "pointer"
+                    },
+                    style={
+                        "color": "var(--text)",
+                        "lineHeight": "1.4"
+                    }
+                )
+            ], style={
+                "maxHeight": "150px",
+                "overflowY": "auto",
+                "overflowX": "hidden",
+                "padding": "4px",
+                "border": "1px solid var(--border-weak)",
+                "borderRadius": "var(--radius-sm)",
+                "background": "var(--card-bg)"
+            }),
+
+            # Contador de canales seleccionados
+            html.Div(id="channel-count-display", children="0 canales seleccionados", style={
+                "fontSize": "8px",
+                "color": "var(--text-muted)",
+                "marginTop": "4px",
+                "textAlign": "right"
+            })
         ])
     ])
 
@@ -256,16 +314,115 @@ def update_playground_desc(selected_dataset):
 
 
 @callback(
+    Output('checklist-channel-selection', 'options'),
+    Input('selected-dataset', 'data')
+)
+def populate_channel_checklist(selected_dataset):
+    """Llena el checklist de canales cuando se selecciona un dataset"""
+    if not selected_dataset:
+        return []
+
+    try:
+        # Obtener nombres de canales usando la nueva función
+        channel_names = Dataset.get_all_channel_names(selected_dataset)
+
+        if not channel_names:
+            print(f"[populate_channel_checklist] No se encontraron canales para {selected_dataset}")
+            return []
+
+        # Crear opciones para el checklist
+        options = [{"label": ch, "value": ch} for ch in channel_names]
+
+        print(f"[populate_channel_checklist] Cargados {len(options)} canales para {selected_dataset}")
+        return options
+
+    except Exception as e:
+        print(f"[populate_channel_checklist] ERROR: {e}")
+        return []
+
+
+@callback(
+    Output(SELECTED_CHANNELS_STORE, 'data'),
+    Input('checklist-channel-selection', 'value')
+)
+def save_selected_channels(selected_channels):
+    """Guarda los canales seleccionados en el store"""
+    if not selected_channels or len(selected_channels) == 0:
+        print("[save_selected_channels] Ningún canal seleccionado, mostrando todos")
+        return None  # None = mostrar todos los canales
+
+    print(f"[save_selected_channels] Canales seleccionados: {selected_channels}")
+    return selected_channels
+
+
+@callback(
+    Output('channel-count-display', 'children'),
+    Input('checklist-channel-selection', 'value')
+)
+def update_channel_count(selected_channels):
+    """Actualiza el contador de canales seleccionados"""
+    count = len(selected_channels) if selected_channels else 0
+    if count == 0:
+        return "Todos los canales"
+    elif count == 1:
+        return "1 canal seleccionado"
+    else:
+        return f"{count} canales seleccionados"
+
+
+@callback(
+    Output('checklist-channel-selection', 'value'),
+    [
+        Input('btn-select-all-channels', 'n_clicks'),
+        Input('btn-clear-channels', 'n_clicks'),
+        Input('btn-only-eeg-channels', 'n_clicks')
+    ],
+    [
+        State('checklist-channel-selection', 'options'),
+        State('checklist-channel-selection', 'value')
+    ],
+    prevent_initial_call=True
+)
+def handle_channel_buttons(n_all, n_clear, n_eeg, options, current_value):
+    """Maneja los botones de ayuda para selección de canales"""
+    if not ctx.triggered:
+        return no_update
+
+    button_id = ctx.triggered[0]['prop_id'].split('.')[0]
+
+    if button_id == 'btn-select-all-channels':
+        # Seleccionar todos los canales
+        all_channels = [opt['value'] for opt in options]
+        print(f"[handle_channel_buttons] Seleccionados todos ({len(all_channels)} canales)")
+        return all_channels
+
+    elif button_id == 'btn-clear-channels':
+        # Limpiar selección
+        print("[handle_channel_buttons] Limpiados todos los canales")
+        return []
+
+    elif button_id == 'btn-only-eeg-channels':
+        # Solo canales EEG (excluir Status y otros)
+        eeg_channels = [opt['value'] for opt in options if opt['value'] != 'Status' and not opt['value'].startswith('EXG')]
+        print(f"[handle_channel_buttons] Seleccionados solo EEG ({len(eeg_channels)} canales)")
+        return eeg_channels
+
+    return no_update
+
+
+@callback(
     [
         Output(EVENTS_STORE_ID, "data"),
         Output(DATA_STORE_ID, "data"),
     ],
     [
         Input("selected-file-path", "data"),
-        Input(SELECTED_CLASS_STORE, "data")
-    ]
+        Input(SELECTED_CLASS_STORE, "data"),
+        Input(SELECTED_CHANNELS_STORE, "data")  # ✨ Nuevo: canales seleccionados
+    ],
+    State("selected-dataset", "data")
 )
-def pass_selected_path(selected_file_path, selected_class):
+def pass_selected_path(selected_file_path, selected_class, selected_channels, dataset_name):
     if selected_file_path is None:
         return no_update, no_update
 
@@ -286,7 +443,15 @@ def pass_selected_path(selected_file_path, selected_class):
         res = Dataset.get_events_by_class(candidate, class_name=selected_class)
         first_evt = res.get("first_event_file") if isinstance(res, dict) else None
         if first_evt:
-            arr = np.load(first_evt, allow_pickle=False)
+            # ✨ NUEVO: Cargar con filtro de canales si hay selección
+            if selected_channels and len(selected_channels) > 0 and dataset_name:
+                print(f"[pass_selected_path] Cargando evento con {len(selected_channels)} canales específicos")
+                result = Dataset.load_event_with_channels(first_evt, selected_channels, dataset_name)
+                arr = result["data"]
+                print(f"[pass_selected_path] Evento filtrado shape: {arr.shape} (canales: {result['channel_names']})")
+            else:
+                print(f"[pass_selected_path] Cargando evento completo (todos los canales)")
+                arr = np.load(first_evt, allow_pickle=False)
 
             # Extraer nombre del archivo (ej: "abajo[439.357]{441.908}.npy")
             import os
@@ -309,6 +474,18 @@ def pass_selected_path(selected_file_path, selected_class):
             n_samples = arr.shape[1] if arr.ndim == 2 else arr.shape[0]
             duration_sec = n_samples / sfreq
 
+            # ✨ Obtener nombres de canales para mostrar en plots
+            if selected_channels and len(selected_channels) > 0:
+                # Usar los canales seleccionados por el usuario
+                channel_names_for_plots = selected_channels
+            else:
+                # Obtener todos los nombres de canales del dataset
+                try:
+                    all_channel_names = Dataset.get_all_channel_names(dataset_name)
+                    channel_names_for_plots = all_channel_names if all_channel_names else [f"Ch{i}" for i in range(arr.shape[0])]
+                except:
+                    channel_names_for_plots = [f"Ch{i}" for i in range(arr.shape[0])]
+
             data_payload = {
                 "source": first_evt,
                 "shape": list(arr.shape),
@@ -320,9 +497,18 @@ def pass_selected_path(selected_file_path, selected_class):
                 "file_name": file_name.replace('.npy', ''),  # Sin extensión
                 "session": session_info,
                 "duration_sec": round(duration_sec, 3),
-                "sfreq": sfreq
+                "sfreq": sfreq,
+                "selected_channels": selected_channels,  # ✨ Canales seleccionados
+                "n_channels_selected": len(selected_channels) if selected_channels else arr.shape[0],
+                "channel_names": channel_names_for_plots  # ✨ Nombres de canales para plots
             }
-            print(f"[filtros] ✅ Cargado evento de clase '{selected_class}': {first_evt}")
+
+            if selected_channels:
+                print(f"[filtros] ✅ Cargado evento de clase '{selected_class}' con {len(selected_channels)} canales: {first_evt}")
+                print(f"[filtros] 🔍 Canales: {selected_channels}")
+            else:
+                print(f"[filtros] ✅ Cargado evento de clase '{selected_class}': {first_evt}")
+
             print(f"[filtros] 📊 Sesión: {session_info}, Duración: {duration_sec:.3f}s, Muestras: {n_samples}")
     except Exception as e:
         print(f"[filtros] ERROR cargando evento .npy: {e}")
@@ -556,6 +742,10 @@ clientside_callback(
         const cols = signalData.matrix[0].length;
         const xFull = Array.from({length: cols}, (_, i) => i);
 
+        // ✨ Obtener nombres de canales
+        const channelNames = signalData.channel_names || [];
+        const hasChannelNames = channelNames.length > 0;
+
         // Obtener rango de canales a mostrar
         const channelStart = (channelRange && channelRange.start) || 0;
         const channelCount = Math.min(CHANNELS_PER_PAGE, total - channelStart);
@@ -568,6 +758,11 @@ clientside_callback(
           const ch = channelStart + i;
           const yRaw = signalData.matrix[ch];
           if (!Array.isArray(yRaw)) continue;
+
+          // ✨ Obtener nombre del canal (ej: "A1", "A2", "B5")
+          const channelLabel = hasChannelNames && ch < channelNames.length
+            ? channelNames[ch]
+            : 'Ch ' + ch;
 
           const xy = USE_DOWNSAMPLING
             ? downsampling(xFull, yRaw, { factor: DS_FACTOR, maxPoints: MAX_POINTS })
@@ -582,7 +777,7 @@ clientside_callback(
               y: xy.y,
               line: { width: 1, color: '#3b82f6' },
               hoverinfo: 'skip',
-              name: 'Ch ' + ch
+              name: channelLabel
             }],
             layout: {
               margin: { l: 50, r: 10, t: 24, b: 24 },
@@ -595,11 +790,29 @@ clientside_callback(
                 gridcolor: 'rgba(128,128,128,0.25)',
                 zeroline: false,
                 fixedrange: true,
-                title: 'Ch ' + ch
+                title: channelLabel,
+                titlefont: { size: 14, weight: 'bold' }
               },
               height: 320,
               autosize: true,
-              uirevision: 'mp-const-orig-' + ch
+              uirevision: 'mp-const-orig-' + ch,
+              annotations: [{
+                text: channelLabel,
+                xref: 'paper',
+                yref: 'paper',
+                x: 0.02,
+                y: 0.98,
+                xanchor: 'left',
+                yanchor: 'top',
+                showarrow: false,
+                font: {
+                  size: 18,
+                  color: '#3b82f6',
+                  weight: 'bold'
+                },
+                bgcolor: 'rgba(0,0,0,0.7)',
+                borderpad: 6
+              }]
             }
           };
 
@@ -631,6 +844,41 @@ clientside_callback(
             ? downsampling(xFull, yFiltered, { factor: DS_FACTOR, maxPoints: MAX_POINTS })
             : { x: xFull, y: yFiltered };
 
+          // Crear anotaciones para plot filtrado
+          const filteredAnnotations = [
+            // Siempre mostrar nombre del canal
+            {
+              text: channelLabel,
+              xref: 'paper',
+              yref: 'paper',
+              x: 0.02,
+              y: 0.98,
+              xanchor: 'left',
+              yanchor: 'top',
+              showarrow: false,
+              font: {
+                size: 18,
+                color: hasFilteredData ? '#a855f7' : '#888',
+                weight: 'bold'
+              },
+              bgcolor: 'rgba(0,0,0,0.7)',
+              borderpad: 6
+            }
+          ];
+
+          // Agregar mensaje "Sin filtro aplicado" si no hay datos filtrados
+          if (!hasFilteredData) {
+            filteredAnnotations.push({
+              text: 'Sin filtro aplicado',
+              xref: 'paper',
+              yref: 'paper',
+              x: 0.5,
+              y: 0.5,
+              showarrow: false,
+              font: { size: 12, color: 'rgba(255,255,255,0.3)' }
+            });
+          }
+
           const figFiltered = {
             data: [{
               type: USE_WEBGL ? 'scattergl' : 'scatter',
@@ -639,7 +887,7 @@ clientside_callback(
               y: xyFiltered.y,
               line: { width: 1, color: hasFilteredData ? '#a855f7' : '#555' },
               hoverinfo: 'skip',
-              name: 'Filtrado Ch ' + ch
+              name: 'Filtrado ' + channelLabel
             }],
             layout: {
               margin: { l: 50, r: 10, t: 24, b: 24 },
@@ -652,20 +900,13 @@ clientside_callback(
                 gridcolor: 'rgba(128,128,128,0.25)',
                 zeroline: false,
                 fixedrange: true,
-                title: 'Filt Ch ' + ch
+                title: channelLabel,
+                titlefont: { size: 14, weight: 'bold' }
               },
               height: 320,
               autosize: true,
               uirevision: 'mp-const-filt-' + ch,
-              annotations: hasFilteredData ? [] : [{
-                text: 'Sin filtro aplicado',
-                xref: 'paper',
-                yref: 'paper',
-                x: 0.5,
-                y: 0.5,
-                showarrow: false,
-                font: { size: 12, color: 'rgba(255,255,255,0.3)' }
-              }]
+              annotations: filteredAnnotations
             }
           };
 
