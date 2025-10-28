@@ -449,3 +449,7 @@ class GRUNet(BaseModel):
                 evaluation_time="",
             )
             return metrics
+
+
+# Alias for backward compatibility
+GRU = GRUNet

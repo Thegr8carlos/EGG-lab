@@ -1,8 +1,9 @@
 from __future__ import annotations
-from typing import List, Literal, Optional, Sequence, Tuple, Union
+from typing import Any, List, Literal, Optional, Sequence, Tuple, Union
 import math
 import numpy as np
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic.json_schema import SkipJsonSchema
 from backend.classes.Metrics import EvaluationMetrics
 
 from sklearn.metrics import (
@@ -21,10 +22,12 @@ PoolType = Literal["max", "avg"]
 ActName = Literal["relu", "tanh", "sigmoid", "gelu", "softmax", "linear"]
 
 # =========================================================
-# 1) Kernel: matriz 2D con validadores 
+# 1) Kernel: matriz 2D con validadores
 # =========================================================
 class Kernel(BaseModel):
-    weights: NDArray = Field(..., description="Matriz 2D (kh, kw) con el kernel/convolución.")
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    weights: SkipJsonSchema[NDArray] = Field(..., description="Matriz 2D (kh, kw) con el kernel/convolución.")
     name: Optional[str] = Field(default=None, description="Etiqueta opcional para el kernel (diagnóstico).")
 
     @field_validator("weights")

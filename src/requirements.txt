@@ -1,3 +1,7 @@
+# Índices (PyPI principal + PyTorch CPU como extra)
+--index-url https://pypi.org/simple
+--extra-index-url https://download.pytorch.org/whl/cpu
+
 annotated-types==0.7.0
 blinker==1.9.0
 certifi==2025.4.26
@@ -50,6 +54,8 @@ urllib3==2.4.0
 uv==0.7.2
 Werkzeug==3.0.6
 zipp==3.21.0
-torch==2.5.1
-torchaudio==2.5.1
-ipykernel==6.29.5  # opcional, solo si usas notebooks
+
+# PyTorch solo CPU (ligero, sin CUDA)
+torch==2.5.1+cpu
+torchaudio==2.5.1+cpu
+PyWavelets==1.6.0

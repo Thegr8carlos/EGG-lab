@@ -183,3 +183,4 @@ thingsToDo.txt
 src/backend/Experiments/*
 
 .claude
+node_modules/
