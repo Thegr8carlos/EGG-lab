@@ -3,8 +3,8 @@ import json
 from typing import Dict, Any, Type
 from pydantic import BaseModel
 from backend.classes.ClasificationModel.CNN import CNN
-from backend.classes.ClasificationModel.LSTM import LSTM
-from backend.classes.ClasificationModel.GRU import GRU
+from backend.classes.ClasificationModel.LSTM import LSTMNet as LSTM
+from backend.classes.ClasificationModel.GRU import GRUNet as GRU
 from backend.classes.ClasificationModel.SVM import SVM
 from backend.classes.ClasificationModel.SVNN import SVNN
 from backend.classes.ClasificationModel.RandomForest import RandomForest
@@ -37,8 +37,14 @@ class ClassifierSchemaFactory:
     def get_all_classifier_schemas(cls) -> Dict[str, Dict[str, Any]]:
         schemas = {}
         for key, model in cls.available_classifiers.items():
-            schema = model.model_json_schema()
-            schemas[key] = schema
+            try:
+                schema = model.model_json_schema()
+                schemas[key] = schema
+            except Exception as e:
+                # Temporalmente excluir modelos que no pueden generar JSON schema
+                # (CNN, LSTM, GRU, SVNN tienen campos np.ndarray no serializables)
+                print(f"⚠️ Skipping {key}: {e.__class__.__name__}")
+                continue
         return schemas
     @classmethod#######################------------------------------------------------------------------------------------------------------------------------------Chane+--
     def add_classifier_to_experiment(cls, directory: str, experiment_id: str, classifier_name: str, classifier_instance: BaseModel) -> str:
@@ -123,7 +129,19 @@ def ClassifierCallbackRegister(boton_id: str, inputs_map: dict):
                 field = input_id.split("-", 1)[1]
             except IndexError:
                 continue
-            data[field] = value
+
+            # Preprocesar campos que pueden ser arrays
+            # Si el valor es string con comas, convertir a lista de números
+            if isinstance(value, str) and "," in value:
+                try:
+                    # Intentar parsear como lista de números
+                    valores_separados = [float(v.strip()) for v in value.split(",")]
+                    data[field] = valores_separados
+                except (ValueError, AttributeError):
+                    # Si falla el parseo, dejar el valor original
+                    data[field] = value
+            else:
+                data[field] = value
 
         try:
             valid_instance = validatingClass(**data)

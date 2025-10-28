@@ -19,12 +19,19 @@ def generar_mapa_validacion_inputs(all_schemas: dict) -> list[dict]:
 
             if any_of:
                 tipos = [a.get("type") for a in any_of if a.get("type") and a["type"] != "null"]
-                if tipos:
+                # Si anyOf incluye tanto number como array, es un caso especial (ej: freq en BandPass)
+                tiene_number = "number" in tipos or "integer" in tipos
+                tiene_array = "array" in tipos
+                if tiene_number and tiene_array:
+                    tipo = "number_or_array"  # Tipo especial
+                elif tipos:
                     tipo = tipos[0]
 
             # Map de validación
             if enum:
                 evaluacion = f"validar_enum({enum})"
+            elif tipo == "number_or_array":
+                evaluacion = "validar_number_or_array(valor)"
             elif tipo == "number":
                 evaluacion = "validar_float(valor)"
             elif tipo == "integer":
