@@ -458,3 +458,6 @@ net = LSTMNet(
 print("Dim vector tras encoder+pooling:", net.flatten_dim())
 # acc = LSTMNet.train(net, xTest=[...], yTest=[...], xTrain=[...], yTrain=[...], epochs=5, batch_size=64)
 """
+
+# Alias for backward compatibility
+LSTM = LSTMNet
