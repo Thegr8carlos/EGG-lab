@@ -704,3 +704,36 @@ class Dataset:
         }
 
         return signal_dict, False  # Enable interval
+from __future__ import annotations
+
+import os
+from typing import List,  Sequence
+
+import numpy as np
+
+
+NDArray = np.ndarray
+# helperr to verify if exist the path
+def _assert_npy_path(p: str) -> None:
+    if not os.path.exists(p):
+        raise FileNotFoundError(f"Path not found: {p}")
+    if not p.lower().endswith(".npy"):
+        raise ValueError(f"Expected .npy file, got: {p}")
+
+
+def _load_and_concat(paths: Sequence[str]) -> NDArray:
+    """
+    Loads one or more .npy files and concatenates along axis=0.
+    Each file must have compatible first dimension.
+    """
+    if not paths:
+        raise ValueError("No paths provided.")
+    arrays: List[NDArray] = []
+    for p in paths:
+        _assert_npy_path(p)
+        arr = np.load(p, allow_pickle=False)
+        arrays.append(arr)
+    if len(arrays) == 1:
+        return arrays[0]
+    return np.concatenate(arrays, axis=0)
+
