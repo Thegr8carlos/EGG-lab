@@ -21,33 +21,13 @@ from sklearn.svm import SVC
 
 from backend.classes.ClasificationModel.ClsificationModels import Classifier
 from backend.classes.Metrics import EvaluationMetrics
+from backend.classes.dataset import _load_and_concat
 
 
 NDArray = np.ndarray
 
 
-def _assert_npy_path(p: str) -> None:
-    if not os.path.exists(p):
-        raise FileNotFoundError(f"Path not found: {p}")
-    if not p.lower().endswith(".npy"):
-        raise ValueError(f"Expected .npy file, got: {p}")
 
-
-def _load_and_concat(paths: Sequence[str]) -> NDArray:
-    """
-    Loads one or more .npy files and concatenates along axis=0.
-    Each file must have compatible first dimension.
-    """
-    if not paths:
-        raise ValueError("No paths provided.")
-    arrays: List[NDArray] = []
-    for p in paths:
-        _assert_npy_path(p)
-        arr = np.load(p, allow_pickle=False)
-        arrays.append(arr)
-    if len(arrays) == 1:
-        return arrays[0]
-    return np.concatenate(arrays, axis=0)
 
 
 
@@ -112,7 +92,7 @@ class SVM(Classifier):
         Trains an SVM using ONLY the file paths provided (ignores any Experiment.dataset).
         Each list must contain one or more .npy files. Multiple files will be concatenated.
 
-        - X files must be 2D: (n_samples, n_features)
+        - X files must be 2D: (n_samples, n_features): In this case, n_features, is the number of canals
         - y files must be 1D or (n_samples, 1)
         - Returns an EvaluationMetrics object with standard scores.
         """
