@@ -24,6 +24,8 @@ ActName = Literal["relu", "tanh", "sigmoid", "gelu", "softmax", "linear"]
 # 1) Kernel: matriz 2D con validadores 
 # =========================================================
 class Kernel(BaseModel):
+    model_config = {"arbitrary_types_allowed": True}
+
     weights: NDArray = Field(..., description="Matriz 2D (kh, kw) con el kernel/convolución.")
     name: Optional[str] = Field(default=None, description="Etiqueta opcional para el kernel (diagnóstico).")
 

@@ -55,10 +55,13 @@ def create_metadata_section(meta: dict):
     if not isinstance(meta, dict):
         return {}, {}
     classes = meta.get("classes", []) or []
+
+    # Usar sistema centralizado de colores para consistencia
+    from shared.class_colors import get_class_color
     class_color_map = {}
     for idx, label in enumerate(classes):
-        hue = (idx * 47) % 360
-        class_color_map[str(label)] = f"hsl({hue}, 70%, 50%)"
+        class_color_map[str(label)] = get_class_color(str(label), idx)
+
     sfreq = (
         meta.get("sampling_frequency_hz")
         or meta.get("sfreq")
@@ -463,13 +466,16 @@ def pass_selected_path(selected_file_path, selected_class, selected_channels, da
             session_info = f"{session_match.group(1)}/{session_match.group(2)}" if session_match else "Unknown"
 
             # Calcular duración (necesitamos la frecuencia de muestreo)
-            # Intentar obtener metadata para la frecuencia
+            # Intentar obtener metadata para la frecuencia y colores de clases
             try:
                 from shared.fileUtils import get_dataset_metadata
                 meta = get_dataset_metadata(candidate.split('/')[0])  # "nieto_inner_speech"
                 sfreq = meta.get("sampling_frequency_hz", 1024.0)
+                # Obtener mapa de colores de clases
+                class_color_map, _ = create_metadata_section(meta)
             except:
                 sfreq = 1024.0  # Default
+                class_color_map = {}
 
             n_samples = arr.shape[1] if arr.ndim == 2 else arr.shape[0]
             duration_sec = n_samples / sfreq
@@ -500,7 +506,8 @@ def pass_selected_path(selected_file_path, selected_class, selected_channels, da
                 "sfreq": sfreq,
                 "selected_channels": selected_channels,  # ✨ Canales seleccionados
                 "n_channels_selected": len(selected_channels) if selected_channels else arr.shape[0],
-                "channel_names": channel_names_for_plots  # ✨ Nombres de canales para plots
+                "channel_names": channel_names_for_plots,  # ✨ Nombres de canales para plots
+                "class_colors": class_color_map  # ✨ Mapa de colores por clase
             }
 
             if selected_channels:
@@ -719,6 +726,22 @@ clientside_callback(
           window.plotlyGraphRefs = [];
         }
 
+        // Función para oscurecer un color HSL reduciendo la luminosidad
+        function darkenHSL(hslColor, amount = 20) {
+          // Parsear HSL: "hsl(210, 75%, 55%)" -> [210, 75, 55]
+          const match = hslColor.match(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/);
+          if (!match) return hslColor; // Si no es HSL válido, devolver original
+
+          const h = parseInt(match[1]);
+          const s = parseInt(match[2]);
+          const l = parseInt(match[3]);
+
+          // Reducir luminosidad, asegurando que no baje de 0
+          const newL = Math.max(0, l - amount);
+
+          return `hsl(${h}, ${s}%, ${newL}%)`;
+        }
+
         function downsampling(xArr, yArr, opts) {
           if (!Array.isArray(yArr) || yArr.length === 0) return { x: xArr, y: yArr };
           const factor = Math.max(1, (opts && opts.factor) ? opts.factor : 1);
@@ -753,6 +776,18 @@ clientside_callback(
         const graphsOriginal = [];
         const graphsFiltered = [];
 
+        // Obtener información de archivo y clase para colores consistentes
+        const fileName = signalData.file_name || 'Sin archivo';
+        const sessionInfo = signalData.session || '';
+
+        // Extraer solo la clase del nombre del archivo (antes del corchete)
+        const classNameMatch = fileName.match(/^([^\[]+)/);
+        const className = classNameMatch ? classNameMatch[1] : fileName;
+
+        // Obtener color de la clase desde el mapa centralizado
+        const classColors = signalData.class_colors || {};
+        const classColor = classColors[className] || '#3b82f6';  // Fallback: azul
+
         // Renderizar plots para ambas columnas
         for (let i = 0; i < channelCount; i++) {
           const ch = channelStart + i;
@@ -775,7 +810,7 @@ clientside_callback(
               mode: 'lines',
               x: xy.x,
               y: xy.y,
-              line: { width: 1, color: '#3b82f6' },
+              line: { width: 1, color: classColor },
               hoverinfo: 'skip',
               name: channelLabel
             }],
@@ -807,7 +842,7 @@ clientside_callback(
                 showarrow: false,
                 font: {
                   size: 18,
-                  color: '#3b82f6',
+                  color: classColor,
                   weight: 'bold'
                 },
                 bgcolor: 'rgba(0,0,0,0.7)',
@@ -858,7 +893,7 @@ clientside_callback(
               showarrow: false,
               font: {
                 size: 18,
-                color: hasFilteredData ? '#a855f7' : '#888',
+                color: hasFilteredData ? darkenHSL(classColor, 20) : '#888',
                 weight: 'bold'
               },
               bgcolor: 'rgba(0,0,0,0.7)',
@@ -885,7 +920,7 @@ clientside_callback(
               mode: 'lines',
               x: xyFiltered.x,
               y: xyFiltered.y,
-              line: { width: 1, color: hasFilteredData ? '#a855f7' : '#555' },
+              line: { width: 1, color: hasFilteredData ? darkenHSL(classColor, 20) : '#555' },
               hoverinfo: 'skip',
               name: 'Filtrado ' + channelLabel
             }],
@@ -949,26 +984,20 @@ clientside_callback(
         }
 
         // Crear títulos dinámicos con información del archivo
-        const fileName = signalData.file_name || 'Sin archivo';
-        const sessionInfo = signalData.session || '';
-
-        // Extraer solo la clase del nombre del archivo (antes del corchete)
-        const classNameMatch = fileName.match(/^([^\[]+)/);
-        const className = classNameMatch ? classNameMatch[1] : fileName;
-
         // Función para crear título estilizado con elementos HTML
         function createStyledTitle(session, eventClass, type, color) {
           const parts = [];
 
+          // Sesión
           if (session) {
             parts.push({
               props: {
-                children: session,
+                children: 'Sesión: ',
                 style: {
                   fontSize: '11px',
-                  fontWeight: '500',
-                  color: 'rgba(255,255,255,0.6)',
-                  marginRight: '8px'
+                  fontWeight: '600',
+                  color: 'rgba(255,255,255,0.5)',
+                  marginRight: '4px'
                 }
               },
               type: 'Span',
@@ -976,11 +1005,12 @@ clientside_callback(
             });
             parts.push({
               props: {
-                children: '•',
+                children: session,
                 style: {
                   fontSize: '11px',
-                  color: 'rgba(255,255,255,0.3)',
-                  marginRight: '8px'
+                  fontWeight: '500',
+                  color: 'rgba(255,255,255,0.7)',
+                  marginRight: '12px'
                 }
               },
               type: 'Span',
@@ -988,6 +1018,20 @@ clientside_callback(
             });
           }
 
+          // Clase
+          parts.push({
+            props: {
+              children: 'Clase: ',
+              style: {
+                fontSize: '11px',
+                fontWeight: '600',
+                color: 'rgba(255,255,255,0.5)',
+                marginRight: '4px'
+              }
+            },
+            type: 'Span',
+            namespace: 'dash_html_components'
+          });
           parts.push({
             props: {
               children: eventClass,
@@ -995,26 +1039,27 @@ clientside_callback(
                 fontSize: '13px',
                 fontWeight: '700',
                 color: color,
-                marginRight: '8px'
+                marginRight: '12px'
               }
             },
             type: 'Span',
             namespace: 'dash_html_components'
           });
 
+          // Tipo
           parts.push({
             props: {
-              children: '•',
+              children: 'Tipo: ',
               style: {
                 fontSize: '11px',
-                color: 'rgba(255,255,255,0.3)',
-                marginRight: '8px'
+                fontWeight: '600',
+                color: 'rgba(255,255,255,0.5)',
+                marginRight: '4px'
               }
             },
             type: 'Span',
             namespace: 'dash_html_components'
           });
-
           parts.push({
             props: {
               children: type,
@@ -1042,11 +1087,11 @@ clientside_callback(
                   children: [
                     {
                       props: {
-                        children: createStyledTitle(sessionInfo, className, 'Original', '#3b82f6'),
+                        children: createStyledTitle(sessionInfo, className, 'Original', classColor),
                         style: {
                           marginBottom: '12px',
                           paddingBottom: '8px',
-                          borderBottom: '2px solid #3b82f6',
+                          borderBottom: '2px solid ' + classColor,
                           display: 'flex',
                           alignItems: 'center',
                           overflow: 'hidden'
@@ -1071,11 +1116,11 @@ clientside_callback(
                   children: [
                     {
                       props: {
-                        children: createStyledTitle(sessionInfo, className, 'Filtrada', '#a855f7'),
+                        children: createStyledTitle(sessionInfo, className, 'Filtrada', classColor),
                         style: {
                           marginBottom: '12px',
                           paddingBottom: '8px',
-                          borderBottom: '2px solid #a855f7',
+                          borderBottom: '2px solid ' + classColor,
                           display: 'flex',
                           alignItems: 'center',
                           overflow: 'hidden'

@@ -22,7 +22,9 @@ NOMBRE_CAMPOS_ES = {
     "wavelet": "Tipo de Wavelet",
     "level": "Nivel de descomposición",
     "mode": "Modo de borde",
-    "threshold": "Umbral",
+    "threshold": "Umbral (denoising)",
+    "frame_length": "Tamaño de ventana",
+    "hop_samples": "Salto entre ventanas",
     "filter_type": "Tipo de filtro",
     "freq": "Frecuencia de corte",
     "freqs": "Frecuencias",
@@ -97,28 +99,37 @@ def build_configuration_ui(schema: dict):
         # Case "anyOf"
         elif "anyOf" in field_info:
             posibles_tipos = {x.get("type") for x in field_info["anyOf"] if "type" in x}
-            
+
             inputType = "text"
             inputAtributes = {}
+            placeholder_text = f"Ingresa {showName}"
 
-            # if one of the possible types is number or integer, we use a number input
-            for tipo_Field in field_info["anyOf"]:
-                if tipo_Field.get("type") in ["number", "integer"]:
-                    inputType = "number"
-                    if "minimum" in tipo_Field:
-                        inputAtributes["min"] = tipo_Field["minimum"]
-                    if "maximum" in tipo_Field:
-                        inputAtributes["max"] = tipo_Field["maximum"]
-                    if "default" in field_info:
-                        inputAtributes["value"] = field_info["default"]
-                    
+            # Verificar si anyOf incluye tanto number como array
+            has_number = any(x.get("type") in ["number", "integer"] for x in field_info["anyOf"])
+            has_array = any(x.get("type") == "array" for x in field_info["anyOf"])
+
+            if has_number and has_array:
+                # Caso especial: puede ser número O array (ej: freq en BandPass)
+                inputType = "text"
+                placeholder_text = f"Ej: 30 (un valor) o 1,30 (dos valores separados por coma)"
+            elif has_number:
+                # Solo número
+                inputType = "number"
+                for tipo_Field in field_info["anyOf"]:
+                    if tipo_Field.get("type") in ["number", "integer"]:
+                        if "minimum" in tipo_Field:
+                            inputAtributes["min"] = tipo_Field["minimum"]
+                        if "maximum" in tipo_Field:
+                            inputAtributes["max"] = tipo_Field["maximum"]
+                        if "default" in field_info:
+                            inputAtributes["value"] = field_info["default"]
 
             input_component = html.Div([
                 dbc.Label(showName, html_for=field_name, style={"minWidth": "140px", "color": "white", "fontSize": "13px"}),
                 dbc.Input(
                     type=inputType,
                     id=f"{type}-{field_name}",
-                    placeholder=f"Ingresa {showName}",
+                    placeholder=placeholder_text,
                     style={"flex": "1", "fontSize": "15px", "height": "42px", "padding": "8px 12px"},
                     **inputAtributes
                 )
