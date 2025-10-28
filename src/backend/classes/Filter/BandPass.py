@@ -103,18 +103,47 @@ class BandPass(Filter):
 
         # --- Filtrado ---
         if instance.method == "fir":
-            filter_length = instance.order if instance.order is not None else "auto"
-            out = mne.filter.filter_data(
-                data=data,
-                sfreq=sfreq,
-                l_freq=l_freq,
-                h_freq=h_freq,
-                method="fir",
-                phase=instance.phase,
-                fir_window=instance.fir_window or "hamming",
-                filter_length=filter_length,
-                verbose=False,
-            )
+            # Para FIR, filter_length debe ser impar y suficientemente grande
+            if instance.order is not None:
+                filter_length = instance.order
+                # Asegurar que sea impar (requisito de MNE para FIR)
+                if filter_length % 2 == 0:
+                    filter_length += 1
+                    print(f"[BandPass] FIR filter_length ajustado a {filter_length} (debe ser impar)")
+            else:
+                filter_length = "auto"
+                print(f"[BandPass] Usando filter_length='auto' (MNE calculará automáticamente)")
+
+            try:
+                out = mne.filter.filter_data(
+                    data=data,
+                    sfreq=sfreq,
+                    l_freq=l_freq,
+                    h_freq=h_freq,
+                    method="fir",
+                    phase=instance.phase,
+                    fir_window=instance.fir_window or "hamming",
+                    filter_length=filter_length,
+                    verbose=False,
+                )
+            except ValueError as e:
+                # Si el filter_length es muy corto, intentar con "auto"
+                if "too short" in str(e) and filter_length != "auto":
+                    print(f"⚠️ [BandPass] {e}")
+                    print(f"[BandPass] Reintentando con filter_length='auto'...")
+                    out = mne.filter.filter_data(
+                        data=data,
+                        sfreq=sfreq,
+                        l_freq=l_freq,
+                        h_freq=h_freq,
+                        method="fir",
+                        phase=instance.phase,
+                        fir_window=instance.fir_window or "hamming",
+                        filter_length="auto",
+                        verbose=False,
+                    )
+                else:
+                    raise
         else:
             iir_order = instance.order if instance.order is not None else 4
             iir_params = dict(order=iir_order, ftype="butter")

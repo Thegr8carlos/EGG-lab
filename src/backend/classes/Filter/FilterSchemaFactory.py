@@ -156,7 +156,18 @@ def filterCallbackRegister(boton_id: str, inputs_map: dict):
             _, field = input_id.split("-", 1)
             # Solo agregar valores no vacíos
             if value is not None and value != "":
-                datos[field] = value
+                # Preprocesar campos que pueden ser arrays (ej: freq en BandPass)
+                # Si el valor es string con comas, convertir a lista de números
+                if isinstance(value, str) and "," in value:
+                    try:
+                        # Intentar parsear como lista de números
+                        valores_separados = [float(v.strip()) for v in value.split(",")]
+                        datos[field] = valores_separados
+                    except (ValueError, AttributeError):
+                        # Si falla el parseo, dejar el valor original
+                        datos[field] = value
+                else:
+                    datos[field] = value
         datos["id"] = str(new_id)
 
         try:

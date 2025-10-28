@@ -138,43 +138,163 @@ def TransformCallbackRegister(boton_id: str, inputs_map: dict):
     input_ids = list(inputs_map.keys())
 
     @callback(
-        Output(boton_id, "children"),
+        [
+            Output(boton_id, "children"),
+            Output("transformed-signal-store-extractores", "data", allow_duplicate=True)
+        ],
         Input(boton_id, "n_clicks"),
-        ##############################################----------------------------------------------------------------------------
-        #Input("selected-file-path", "data"),
-        [State(input_id, "value") for input_id in input_ids]
+        [
+            State(input_id, "value") for input_id in input_ids
+        ] + [
+            State("selected-file-path", "data"),
+            State("selected-dataset", "data")
+        ],
+        prevent_initial_call=True
     )
     def formManager(n_clicks, *values, input_ids=input_ids, validadores=inputs_map):
         if not n_clicks:
-            return no_update
-        # we extract the transform name from the button ID. 
+            return no_update, no_update
+
+        # Extraer selected_file_path y selected_dataset del final de values
+        *field_values, event_file_path, dataset_name = values
+
+        if not event_file_path:
+            print(f"❌ No hay archivo seleccionado para aplicar {transform_name}")
+            return no_update, no_update
+
+        # we extract the transform name from the button ID.
         # this is of the form: btn-aplicar-<transform_name>
         transform_name = boton_id.replace("btn-aplicar-", "")
         # we check if the transform is available
         transform_class = available_transforms.get(transform_name)
 
+        if transform_class is None:
+            print(f"❌ Transform '{transform_name}' no encontrada")
+            return no_update, no_update
+
         datos = {}
         experiment = Experiment._load_latest_experiment()
         prev_id = Experiment._extract_last_id_from_list(experiment.filters)
         new_id = prev_id + 1  # if prev_id == -1 -> 0
-        for input_id, value in zip(input_ids, values):
+
+        for input_id, value in zip(input_ids, field_values):
             _, field = input_id.split("-", 1)
-            datos[field] = value
-        datos["id"] = new_id
+            # Preprocesar campos que pueden ser arrays
+            # Si el valor es string con comas, convertir a lista de números
+            if isinstance(value, str) and "," in value:
+                try:
+                    # Intentar parsear como lista de números
+                    valores_separados = [float(v.strip()) for v in value.split(",")]
+                    datos[field] = valores_separados
+                except (ValueError, AttributeError):
+                    # Si falla el parseo, dejar el valor original
+                    datos[field] = value
+            else:
+                datos[field] = value
+        datos["id"] = str(new_id)  # ✅ Convertir a string
 
         try:
+            from pathlib import Path
+            import numpy as np
+            import time
+
             instancia_valida = transform_class(**datos)
             print(f"✅ Datos válidos para {transform_name}: {instancia_valida}")
             Experiment.add_transform_config(instancia_valida)
-            instancia_valida.apply(instancia_valida)
 
-            
+            # Preparar directorios
+            p_in = Path(event_file_path)
+            dir_out = p_in.parent / "transformed"
+            dir_labels_out = p_in.parent / "transformed_labels"
+            labels_dir = p_in.parent  # Las etiquetas originales están en el mismo directorio
 
-            return no_update
+            dir_out.mkdir(parents=True, exist_ok=True)
+            dir_labels_out.mkdir(parents=True, exist_ok=True)
+
+            # Aplicar transformada
+            success = transform_class.apply(
+                instancia_valida,
+                file_path_in=str(p_in),
+                directory_path_out=str(dir_out),
+                labels_directory=str(labels_dir),
+                labels_out_path=str(dir_labels_out)
+            )
+
+            if not success:
+                print(f"❌ La transformada {transform_name} no se aplicó correctamente")
+                return no_update, no_update
+
+            # Construir path del archivo transformado
+            transform_suffixes = {
+                "WaveletTransform": "wavelet",
+                "FFTTransform": "fft",
+                "DCTTransform": "dct"
+            }
+            suffix = transform_suffixes.get(transform_name, "transformed")
+            out_name = f"{p_in.stem}_{suffix}_{new_id}.npy"
+            out_path = dir_out / out_name
+
+            if not out_path.exists():
+                print(f"❌ No se encontró el archivo transformado: {out_path}")
+                return no_update, no_update
+
+            # Cargar datos transformados
+            arr = np.load(str(out_path), allow_pickle=False)
+
+            # Obtener nombres de canales
+            try:
+                from backend.classes.dataset import Dataset
+                channel_names = Dataset.get_all_channel_names(dataset_name)
+                channel_names_for_plots = channel_names if channel_names else [f"Ch{i}" for i in range(arr.shape[1] if arr.ndim == 2 else 1)]
+            except:
+                channel_names_for_plots = [f"Ch{i}" for i in range(arr.shape[1] if arr.ndim == 2 else 1)]
+
+            # Extraer información del archivo
+            import os
+            file_name = os.path.basename(event_file_path)
+            parts = file_name.split("[")
+            event_class = parts[0].strip() if len(parts) > 0 else "desconocida"
+            session = parts[1].split("]")[0] if len(parts) > 1 else ""
+
+            # Crear payload con datos transformados
+            if arr.ndim == 1:
+                arr = arr.reshape(1, -1)
+
+            # Asegurar forma (n_channels, n_times)
+            if arr.shape[0] > arr.shape[1]:
+                arr = arr.T
+
+            matrix_list = [row.tolist() for row in arr]
+
+            # Obtener colores de clase
+            from shared.class_colors import get_class_color
+            class_color = get_class_color(event_class)
+
+            transformed_payload = {
+                "matrix": matrix_list,
+                "channel_names": channel_names_for_plots,
+                "file_name": file_name,
+                "event_class": event_class,
+                "session": session,
+                "class_name": event_class,
+                "class_colors": {event_class: class_color},
+                "transformed_file_path": str(out_path),
+                "transform_type": transform_name,
+                "ts": time.time()
+            }
+
+            print(f"✅ Transformada aplicada: {out_path}")
+            print(f"✅ Shape transformado: {arr.shape}")
+
+            return no_update, transformed_payload
+
         except ValidationError as e:
             print(f"❌ Errores en {transform_name}: {e}")
-            errores = e.errors()
-            msg = "\n".join(f"{err['loc'][0]}: {err['msg']}" for err in errores)
-            return no_update
+            return no_update, no_update
+        except Exception as e:
+            print(f"❌ Error al aplicar {transform_name}: {e}")
+            import traceback
+            traceback.print_exc()
+            return no_update, no_update
 
 
