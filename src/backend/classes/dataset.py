@@ -704,6 +704,233 @@ class Dataset:
         }
 
         return signal_dict, False  # Enable interval
+
+
+
+    # =========================================================================
+    # Sistema de Mapeo de Canales
+    # =========================================================================
+
+    @staticmethod
+    def get_channel_mapping(dataset_name):
+        """
+        Obtiene el mapeo completo de nombres de canales → índices de fila.
+
+        Args:
+            dataset_name: Nombre del dataset (ej: "nieto_inner_speech")
+
+        Returns:
+            dict: Mapeo {channel_name: row_index}
+            Ejemplo: {"A1": 0, "A2": 1, ..., "Status": 136}
+        """
+        try:
+            # Construir ruta al metadata
+            aux_path = Path("Aux") / dataset_name / "dataset_metadata.json"
+
+            if not aux_path.exists():
+                print(f"[get_channel_mapping] ERROR: No se encontró {aux_path}")
+                return {}
+
+            # Leer metadata
+            with open(aux_path, 'r', encoding='utf-8') as f:
+                metadata = json.load(f)
+
+            channel_names = metadata.get("channel_names", [])
+
+            if not channel_names:
+                print(f"[get_channel_mapping] WARN: dataset_metadata.json no tiene channel_names")
+                return {}
+
+            # Crear mapeo: nombre → índice
+            mapping = {name: idx for idx, name in enumerate(channel_names)}
+
+            print(f"[get_channel_mapping] Mapeo creado: {len(mapping)} canales")
+            return mapping
+
+        except Exception as e:
+            print(f"[get_channel_mapping] ERROR: {e}")
+            return {}
+
+    @staticmethod
+    def get_channel_index(dataset_name, channel_name):
+        """
+        Obtiene el índice de fila de un canal específico.
+
+        Args:
+            dataset_name: Nombre del dataset
+            channel_name: Nombre del canal (ej: "A1", "B5")
+
+        Returns:
+            int o None: Índice de fila (0-indexed), o None si no existe
+
+        Ejemplo:
+            >>> Dataset.get_channel_index("nieto_inner_speech", "A1")
+            0
+            >>> Dataset.get_channel_index("nieto_inner_speech", "Status")
+            136
+        """
+        mapping = Dataset.get_channel_mapping(dataset_name)
+        return mapping.get(channel_name)
+
+    @staticmethod
+    def get_channels_indices(dataset_name, channel_names):
+        """
+        Obtiene los índices de fila de múltiples canales.
+
+        Args:
+            dataset_name: Nombre del dataset
+            channel_names: Lista de nombres de canales
+
+        Returns:
+            list[int]: Lista de índices válidos (omite canales no encontrados)
+
+        Ejemplo:
+            >>> Dataset.get_channels_indices("nieto_inner_speech", ["A1", "A2", "B5"])
+            [0, 1, 36]
+        """
+        mapping = Dataset.get_channel_mapping(dataset_name)
+        indices = []
+
+        for ch_name in channel_names:
+            idx = mapping.get(ch_name)
+            if idx is not None:
+                indices.append(idx)
+            else:
+                print(f"[get_channels_indices] WARN: Canal '{ch_name}' no encontrado en dataset '{dataset_name}'")
+
+        return indices
+
+    @staticmethod
+    def extract_channels(data_array, channel_names, dataset_name):
+        """
+        Extrae canales específicos de un array de datos.
+
+        Args:
+            data_array: Array NumPy con shape (n_channels, n_samples)
+            channel_names: Lista de nombres de canales a extraer
+            dataset_name: Nombre del dataset (para mapeo)
+
+        Returns:
+            np.ndarray: Array filtrado con shape (len(channel_names), n_samples)
+
+        Ejemplo:
+            >>> data = np.load("evento.npy")  # Shape: (137, 2612)
+            >>> filtered = Dataset.extract_channels(data, ["A1", "A2"], "nieto_inner_speech")
+            >>> filtered.shape
+            (2, 2612)
+        """
+        indices = Dataset.get_channels_indices(dataset_name, channel_names)
+
+        if not indices:
+            print(f"[extract_channels] ERROR: No se encontraron canales válidos")
+            return np.array([])
+
+        # Validar shape
+        if data_array.ndim != 2:
+            print(f"[extract_channels] ERROR: data_array debe ser 2D, recibido shape={data_array.shape}")
+            return np.array([])
+
+        # Extraer filas correspondientes
+        filtered = data_array[indices, :]
+
+        print(f"[extract_channels] Extraídos {len(indices)} canales: {channel_names}")
+        print(f"[extract_channels] Shape original: {data_array.shape} → Shape filtrado: {filtered.shape}")
+
+        return filtered
+
+    @staticmethod
+    def load_event_with_channels(event_path, channel_names, dataset_name):
+        """
+        Carga un archivo de evento (.npy) y extrae solo los canales especificados.
+
+        Args:
+            event_path: Ruta al archivo .npy del evento
+            channel_names: Lista de nombres de canales a cargar
+            dataset_name: Nombre del dataset
+
+        Returns:
+            dict: {
+                "data": np.ndarray con shape (len(channel_names), n_samples),
+                "channel_names": list[str] de canales cargados,
+                "channel_indices": list[int] de índices originales,
+                "original_shape": tuple del shape original,
+                "event_path": str ruta del archivo
+            }
+
+        Ejemplo:
+            >>> result = Dataset.load_event_with_channels(
+            ...     "Aux/.../Events/abajo[439.357]{441.908}.npy",
+            ...     ["A1", "A2", "B5"],
+            ...     "nieto_inner_speech"
+            ... )
+            >>> result["data"].shape
+            (3, 2612)
+        """
+        try:
+            # Cargar evento completo
+            event_full = np.load(event_path, allow_pickle=False)
+            original_shape = event_full.shape
+
+            print(f"[load_event_with_channels] Cargando: {event_path}")
+            print(f"[load_event_with_channels] Shape original: {original_shape}")
+
+            # Extraer canales
+            filtered_data = Dataset.extract_channels(event_full, channel_names, dataset_name)
+
+            # Obtener índices para referencia
+            indices = Dataset.get_channels_indices(dataset_name, channel_names)
+
+            return {
+                "data": filtered_data,
+                "channel_names": channel_names,
+                "channel_indices": indices,
+                "original_shape": original_shape,
+                "event_path": str(event_path)
+            }
+
+        except Exception as e:
+            print(f"[load_event_with_channels] ERROR: {e}")
+            import traceback
+            traceback.print_exc()
+            return {
+                "data": np.array([]),
+                "channel_names": [],
+                "channel_indices": [],
+                "original_shape": None,
+                "event_path": str(event_path)
+            }
+
+    @staticmethod
+    def get_all_channel_names(dataset_name):
+        """
+        Obtiene la lista completa de nombres de canales del dataset.
+
+        Args:
+            dataset_name: Nombre del dataset
+
+        Returns:
+            list[str]: Lista de nombres de canales en orden (índice = row)
+
+        Ejemplo:
+            >>> Dataset.get_all_channel_names("nieto_inner_speech")
+            ['A1', 'A2', ..., 'Status']
+        """
+        try:
+            aux_path = Path("Aux") / dataset_name / "dataset_metadata.json"
+
+            if not aux_path.exists():
+                return []
+
+            with open(aux_path, 'r', encoding='utf-8') as f:
+                metadata = json.load(f)
+
+            return metadata.get("channel_names", [])
+
+        except Exception as e:
+            print(f"[get_all_channel_names] ERROR: {e}")
+            return []
+        
+
 from __future__ import annotations
 
 import os
@@ -736,4 +963,3 @@ def _load_and_concat(paths: Sequence[str]) -> NDArray:
     if len(arrays) == 1:
         return arrays[0]
     return np.concatenate(arrays, axis=0)
-
