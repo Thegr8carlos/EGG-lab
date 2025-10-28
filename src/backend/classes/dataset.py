@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from pathlib import Path
 from shared.fileUtils import (
     get_file_extension,
@@ -14,6 +16,7 @@ import os, re
 import pandas as pd
 import json
 from collections import Counter
+from typing import List, Sequence
 
 
 LABELS = {31: "arriba", 32: "abajo", 33: "derecha", 34: "izquierda"}
@@ -670,11 +673,12 @@ class Dataset:
         labels = labels.astype(str)
         unique_labels = np.unique(labels)
 
+        # Usar sistema centralizado de colores para consistencia
+        from shared.class_colors import get_class_color
         label_color_map = {}
 
         for idx, label in enumerate(unique_labels):
-            hue = (idx * 47) % 360
-            label_color_map[str(label)] = f"hsl({hue}, 70%, 50%)"
+            label_color_map[str(label)] = get_class_color(str(label), idx)
 
         '''
             Change this later when optimizing right now it's as is because the file wont load in time and the server times out, we need to optimize to load in chunks
@@ -940,7 +944,8 @@ import numpy as np
 
 
 NDArray = np.ndarray
-# helperr to verify if exist the path
+
+# helper to verify if exist the path
 def _assert_npy_path(p: str) -> None:
     if not os.path.exists(p):
         raise FileNotFoundError(f"Path not found: {p}")
