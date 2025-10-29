@@ -184,3 +184,5 @@ src/backend/Experiments/*
 
 .claude
 node_modules/
+src/package.json
+src/package-lock.json
