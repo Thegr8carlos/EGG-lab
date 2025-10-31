@@ -13,9 +13,10 @@ from collections import Counter
 class WaveletTransform(Transform):
     """
     Descomposición Wavelet discreta por canal con opción de denoising (soft-threshold en detalles).
+    Ventanea la señal reconstruida según parámetros de frame_length y hop/overlap.
 
     Artefactos:
-      <stem>_wavelet_<id>.npy          # señal reconstruida (n_times, n_channels)
+      <stem>_wavelet_<id>.npy          # señal reconstruida ventaneada (n_frames, frame_length, n_channels)
       <stem>_wavelet_<id>_labels.npy   # etiquetas por frame (n_frames,)
     """
     wavelet: str = Field(
@@ -54,7 +55,7 @@ class WaveletTransform(Transform):
         """
         - Entrada: 1D (n_times) o 2D (n_channels, n_times) o (n_times, n_channels)
         - Salida:
-            * señal reconstruida (n_times, n_channels)
+            * señal reconstruida ventaneada (n_frames, frame_length, n_channels)
             * etiquetas por frame (n_frames,) por mayoría en cada ventana
         """
         # ---------- resolver archivo de entrada ----------
@@ -140,11 +141,10 @@ class WaveletTransform(Transform):
                     rec = np.pad(rec, (0, n_times - rec.shape[0]), mode="edge")
             Y_std[ch] = rec
 
-        # salida tiempo x canal
-        Y_out = Y_std.T.astype(np.float32, copy=False)
-        output_shape = (int(Y_out.shape[0]), int(Y_out.shape[1]))  # (n_times, n_channels)
+        # salida tiempo x canal (señal continua reconstruida)
+        Y_continuous = Y_std.T.astype(np.float32, copy=False)  # (n_times, n_channels)
 
-        # ---------- Parámetros de ventaneo (solo para etiquetas por frame) ----------
+        # ---------- Parámetros de ventaneo (para DATOS y etiquetas) ----------
         # frame_length
         if instance.frame_length is not None:
             frame_length = int(instance.frame_length)
@@ -183,6 +183,39 @@ class WaveletTransform(Transform):
         n_frames = 1 + (n_times_eff - frame_length) // hop
         if n_frames <= 0:
             n_frames = 1
+
+        # ---------- Ventaneo de DATOS: convertir (n_times, n_channels) → (n_frames, frame_length, n_channels) ----------
+        # Padding si n_times < frame_length
+        if n_times < frame_length:
+            pad_width = frame_length - n_times
+            Y_padded = np.pad(Y_continuous, ((0, pad_width), (0, 0)), mode='edge')
+        else:
+            Y_padded = Y_continuous
+
+        # Crear ventanas usando stride_tricks
+        Y_windowed = np.empty((n_frames, frame_length, n_channels), dtype=np.float32)
+        for i in range(n_frames):
+            start = i * hop
+            end = start + frame_length
+            if end <= Y_padded.shape[0]:
+                Y_windowed[i] = Y_padded[start:end]
+            else:
+                # Último frame con padding si es necesario
+                remaining = Y_padded.shape[0] - start
+                Y_windowed[i, :remaining] = Y_padded[start:]
+                Y_windowed[i, remaining:] = 0.0  # padding con ceros
+
+        Y_out = Y_windowed  # (n_frames, frame_length, n_channels)
+
+        # ESTANDARIZACIÓN: Asegurar que todas las ventanas tengan exactamente (frame_length, n_channels)
+        if Y_out.shape[1] != frame_length:
+            # Si por alguna razón la dimensión 1 no es frame_length, ajustar con padding de ceros
+            Y_fixed = np.zeros((Y_out.shape[0], frame_length, n_channels), dtype=np.float32)
+            min_len = min(Y_out.shape[1], frame_length)
+            Y_fixed[:, :min_len, :] = Y_out[:, :min_len, :]
+            Y_out = Y_fixed
+
+        output_shape = (int(Y_out.shape[0]), int(Y_out.shape[1]), int(Y_out.shape[2]))
 
         # ---------- Etiquetas por frame (mayoría) ----------
         frame_labels = None
@@ -252,8 +285,9 @@ class WaveletTransform(Transform):
             orig_was_1d=bool(orig_was_1d),
             output_shape=output_shape,
             output_axes_semantics={
-                "axis0": "time",
-                "axis1": "channels"
+                "axis0": "time_frames (start = i*hop, length = frame_length)",
+                "axis1": "time_in_frame",
+                "axis2": "channels"
             }
         )
 

@@ -5,6 +5,7 @@ from pydantic import BaseModel
 from backend.classes.FeatureExtracture.FFDT import FFTTransform
 from backend.classes.FeatureExtracture.HilbertsTransform import DCTTransform
 from backend.classes.FeatureExtracture.WaveletsTransform import WaveletTransform
+from backend.classes.FeatureExtracture.WindowingTransform import WindowingTransform
 from backend.classes.Experiment import Experiment
 from dash import callback, Input, Output, State, no_update
 from pydantic import ValidationError
@@ -19,7 +20,8 @@ class TransformSchemaFactory:
     available_transforms = {
         "WaveletTransform": WaveletTransform,
         "FFTTransform": FFTTransform,
-        "DCTTransform": DCTTransform
+        "DCTTransform": DCTTransform,
+        "WindowingTransform": WindowingTransform
     }
 
     @classmethod
@@ -132,7 +134,8 @@ def TransformCallbackRegister(boton_id: str, inputs_map: dict):
     available_transforms = {
         "WaveletTransform": WaveletTransform,
         "FFTTransform": FFTTransform,
-        "DCTTransform": DCTTransform
+        "DCTTransform": DCTTransform,
+        "WindowingTransform": WindowingTransform
     }
 
     input_ids = list(inputs_map.keys())
@@ -228,7 +231,8 @@ def TransformCallbackRegister(boton_id: str, inputs_map: dict):
             transform_suffixes = {
                 "WaveletTransform": "wavelet",
                 "FFTTransform": "fft",
-                "DCTTransform": "dct"
+                "DCTTransform": "dct",
+                "WindowingTransform": "window"
             }
             suffix = transform_suffixes.get(transform_name, "transformed")
             out_name = f"{p_in.stem}_{suffix}_{new_id}.npy"

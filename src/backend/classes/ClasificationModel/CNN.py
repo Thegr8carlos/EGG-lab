@@ -233,21 +233,52 @@ class CNN(BaseModel):
         H, W, C = self.infer_output_shape_after_fe(input_shape)
         return int(H * W * C)
 
-    # -------------------- Helpers de formato --------------------
+    # -------------------- Helpers de metadatos --------------------
     @staticmethod
-    def _detect_kind(x: NDArray) -> str:
+    def extract_metadata_from_experiment(experiment_dict: dict, transform_indices: Optional[List[int]] = None) -> List[dict]:
         """
-        Devuelve: 'spec_3d' (n_frames,n_freqs,n_channels) o 'signal_2d' (n_times,n_channels) o 'image_3d' (H,W,3).
-        """
-        if x.ndim == 3:
-            H, W, C = x.shape
-            if C == 3 and (H > 8 and W > 8):  # heurística
-                return "image_3d"
-            return "spec_3d"
-        if x.ndim == 2:
-            return "signal_2d"
-        raise ValueError(f"Entrada no soportada: ndim={x.ndim}")
+        Extrae metadatos de dimensionality_change desde un diccionario de Experiment.
 
+        Args:
+            experiment_dict: Diccionario con estructura de Experiment (output de experiment.dict())
+            transform_indices: Índices de las transformadas a extraer. Si None, extrae todas.
+
+        Returns:
+            Lista de diccionarios con metadatos de dimensionality_change
+
+        Ejemplo:
+            experiment = Experiment._load_latest_experiment()
+            metadata = CNN.extract_metadata_from_experiment(experiment.dict(), [0, 1])
+        """
+        transforms = experiment_dict.get("transform", [])
+        if not transforms:
+            return []
+
+        if transform_indices is None:
+            transform_indices = list(range(len(transforms)))
+
+        metadata_list = []
+        for idx in transform_indices:
+            if idx < 0 or idx >= len(transforms):
+                raise IndexError(f"Índice de transform fuera de rango: {idx}")
+
+            transform_entry = transforms[idx]
+            dim_change = transform_entry.get("dimensionality_change", {})
+
+            # Crear diccionario de metadatos con estructura estándar
+            metadata = {
+                "output_axes_semantics": dim_change.get("output_axes_semantics", {}),
+                "output_shape": dim_change.get("output_shape"),
+                "input_shape": dim_change.get("input_shape"),
+                "standardized_to": dim_change.get("standardized_to"),
+                "transposed_from_input": dim_change.get("transposed_from_input"),
+                "orig_was_1d": dim_change.get("orig_was_1d"),
+            }
+            metadata_list.append(metadata)
+
+        return metadata_list
+
+    # -------------------- Helpers de formato --------------------
     @staticmethod
     def _ensure_tc(x: NDArray) -> NDArray:
         """Normaliza a (n_times, n_channels)."""
@@ -341,52 +372,6 @@ class CNN(BaseModel):
         y = np.array(ys, dtype=np.int64)
         return X, y
 
-    @classmethod
-    def _images_from_signal_per_frame(
-        cls, x_tc: NDArray, frame_labels: NDArray, k_ctx: int, target_hw: Tuple[int,int]
-    ) -> Tuple[NDArray, NDArray]:
-        """
-        x_tc: (n_times, n_channels). Divide tiempo en n_frames=len(labels) ventanas iguales.
-        Para cada frame, saca espectro/dct simple y arma imagen con contexto (como spec).
-        """
-        x_tc = cls._ensure_tc(x_tc)
-        n_times, n_ch = x_tc.shape
-        F = int(frame_labels.size)
-        if F < 1:
-            raise ValueError("labels por frame vacías.")
-        # Partición equi-espaciada
-        L = int(math.ceil(n_times / F))
-        # Generamos cubo 'espectrograma denso' ad-hoc: (F, n_freqs, C=3)
-        nfft = min(256, 1 << int(np.ceil(np.log2(max(64, min(L, 256))))))
-        win = np.hanning(nfft).astype(np.float32)
-        n_freqs = nfft // 2 + 1
-        cube = np.empty((F, n_freqs, 3), dtype=np.float32)
-        for i in range(F):
-            s = i * L
-            e = min(s + L, n_times)
-            seg = x_tc[s:e].T  # (n_ch, seg_len)
-            if seg.shape[1] < nfft:
-                pad = np.pad(seg, ((0,0),(0, nfft - seg.shape[1])), mode="constant")
-            else:
-                pad = seg[:, :nfft]
-            # R: espectro promedio
-            frames = (pad * win).astype(np.float32)
-            S = np.fft.rfft(frames, n=nfft, axis=1)           # (n_ch, n_freqs)
-            P = (np.abs(S) ** 2).mean(axis=0)                  # (n_freqs,)
-            R = np.log1p(P)
-            # G: usa P directo (o DCT si quieres)
-            G = P.copy()
-            # B: energía por canal resumida a n_freqs (tile)
-            E = (pad**2).mean(axis=1, keepdims=True)           # (n_ch,1)
-            B = np.tile(E.mean(), n_freqs)
-            # normaliza por canal y apila
-            def _mm(a):
-                a = a - a.min(); return a / (a.max() + 1e-8)
-            cube[i,:,0] = _mm(R)
-            cube[i,:,1] = _mm(G)
-            cube[i,:,2] = _mm(B)
-        # Reutiliza el generador por contexto
-        return cls._images_from_spec_per_frame(cube, frame_labels, k_ctx, target_hw)
 
     # ----------------- CARGA X,y (siempre per-frame) -----------------
     @classmethod
@@ -396,34 +381,60 @@ class CNN(BaseModel):
         y_paths: Sequence[str],
         image_hw: Tuple[int, int],
         k_ctx: int,
+        metadata_list: Optional[Sequence[dict]] = None,
     ) -> Tuple[NDArray, NDArray]:
         """
-        Siempre per-frame:
-          - Si X es (F,Freqs,C): exige y con F etiquetas; genera (N=F, H,W,3).
-          - Si X es (n_times,n_channels): trocea en F=len(y) segmentos; genera (N=F, H,W,3).
-          - Si X es (H,W,3): NO se espera en este flujo, pero si aparece, lo tratamos como 'spec' con F=H y y.size==F.
+        REGLA DE NEGOCIO: Todas las señales DEBEN pasar por una transformada.
+        Por tanto, X SIEMPRE es 3D con formato: (n_frames, features, n_channels)
+        donde axis0 = ejemplos (ventanas/frames).
+
+        Genera imágenes RGB (H, W, 3) a partir de cada frame usando contexto temporal.
+
+        Args:
+            x_paths: Rutas a archivos .npy con datos post-transform 3D
+            y_paths: Rutas a archivos .npy con etiquetas (n_frames,)
+            image_hw: Tamaño destino de las imágenes (H, W)
+            k_ctx: Contexto de frames para ventanas (frames antes/después)
+            metadata_list: OPCIONAL - metadatos de transforms (ya no usado)
+
+        Returns:
+            Tupla (X, y) donde:
+                X: (n_total_frames, H, W, 3) - imágenes RGB
+                y: (n_total_frames,) - etiquetas
         """
         if len(x_paths) != len(y_paths):
-            raise ValueError("Se requiere correspondencia 1-1 entre x_paths e y_paths (per-frame).")
+            raise ValueError("Se requiere correspondencia 1-1 entre x_paths e y_paths.")
+
         X_all: List[NDArray] = []
         y_all: List[NDArray] = []
-        for xp, yp in zip(x_paths, y_paths):
-            X = np.load(xp, allow_pickle=True)
-            y = np.load(yp, allow_pickle=True).reshape(-1)
-            if y.size < 1:
-                raise ValueError(f"Labels vacías para {yp}")
-            kind = cls._detect_kind(X)
-            if kind == "spec_3d":
-                Xi, yi = cls._images_from_spec_per_frame(X.astype(np.float32), y.astype(np.int64), k_ctx, image_hw)
-            elif kind == "signal_2d":
-                Xi, yi = cls._images_from_signal_per_frame(X.astype(np.float32), y.astype(np.int64), k_ctx, image_hw)
-            else:  # image_3d (raro aquí); interpretamos H como frames y W como 'freqs'
-                H,W,_ = X.shape
-                if y.size != H:
-                    raise ValueError(f"Para image_3d, se espera y.size==H. Recibido {y.size} vs {H}")
-                # reconstruye pseudo-cubo (H,W,3) -> tratar como spec
-                Xi, yi = cls._images_from_spec_per_frame(X, y.astype(np.int64), k_ctx, image_hw)
-            X_all.append(Xi); y_all.append(yi)
+
+        for idx, (xp, yp) in enumerate(zip(x_paths, y_paths)):
+            X = np.load(xp, allow_pickle=False).astype(np.float32)
+            y = np.load(yp, allow_pickle=False).reshape(-1).astype(np.int64)
+
+            # Validar que X es 3D (regla de negocio)
+            if X.ndim != 3:
+                raise ValueError(
+                    f"Los datos deben ser 3D (n_frames, features, n_channels) después de aplicar transform. "
+                    f"Recibido shape={X.shape} en {xp}. "
+                    f"Asegúrate de aplicar WindowingTransform, FFTTransform, DCTTransform o WaveletTransform."
+                )
+
+            n_frames, features, n_channels = X.shape
+
+            if y.size != n_frames:
+                raise ValueError(
+                    f"Mismatch entre frames y etiquetas en {xp}: "
+                    f"X tiene {n_frames} frames pero y tiene {y.size} labels."
+                )
+
+            # Convertir a imágenes RGB usando el método existente
+            # X tiene formato (n_frames, features, n_channels) que es equivalente a "spec_3d"
+            Xi, yi = cls._images_from_spec_per_frame(X, y, k_ctx, image_hw)
+
+            X_all.append(Xi)
+            y_all.append(yi)
+
         X_out = np.concatenate(X_all, axis=0)
         y_out = np.concatenate(y_all, axis=0)
         return X_out.astype(np.float32), y_out.astype(np.int64)
@@ -439,14 +450,45 @@ class CNN(BaseModel):
         yTest: List[str],
         xTrain: List[str],
         yTrain: List[str],
+        metadata_train: Optional[List[dict]] = None,
+        metadata_test: Optional[List[dict]] = None,
     ):
         """
         1) Carga artefactos y genera imágenes per-frame (cada ventana = 1 imagen).
-        2) Si PyTorch está disponible, entrena una TinyCNN que respeta tu feature_extractor + FC + Softmax.
+        2) Entrena una CNN con TensorFlow que respeta tu feature_extractor + FC + Softmax.
+
+        Args:
+            instance: Instancia de CNN con la arquitectura configurada
+            xTest: Lista de rutas a archivos .npy de test
+            yTest: Lista de rutas a archivos .npy con etiquetas de test
+            xTrain: Lista de rutas a archivos .npy de entrenamiento
+            yTrain: Lista de rutas a archivos .npy con etiquetas de entrenamiento
+            metadata_train: Lista de diccionarios con metadatos de dimensionality_change para train.
+                           Cada diccionario debe contener:
+                           - 'output_axes_semantics': dict con semántica de ejes (e.g., {"axis0": "time", "axis1": "channels"})
+                           - 'output_shape': tuple/list con forma de salida (opcional si hay semantics)
+                           Ejemplos:
+                           [
+                               {"output_axes_semantics": {"axis0": "frequency", "axis1": "time", "axis2": "channels"},
+                                "output_shape": (128, 256, 3)},
+                               {"output_axes_semantics": {"axis0": "time", "axis1": "channels"},
+                                "output_shape": (1000, 64)}
+                           ]
+            metadata_test: Lista de diccionarios con metadatos para test (misma estructura)
         """
         try:
-            Xtr, ytr = cls._prepare_images_and_labels(xTrain, yTrain, image_hw=instance.image_hw, k_ctx=instance.frame_context)
-            Xte, yte = cls._prepare_images_and_labels(xTest, yTest, image_hw=instance.image_hw, k_ctx=instance.frame_context)
+            Xtr, ytr = cls._prepare_images_and_labels(
+                xTrain, yTrain,
+                image_hw=instance.image_hw,
+                k_ctx=instance.frame_context,
+                metadata_list=metadata_train
+            )
+            Xte, yte = cls._prepare_images_and_labels(
+                xTest, yTest,
+                image_hw=instance.image_hw,
+                k_ctx=instance.frame_context,
+                metadata_list=metadata_test
+            )
         except Exception as e:
             raise RuntimeError(f"Error preparando dataset per-frame: {e}") from e
 
@@ -455,123 +497,113 @@ class CNN(BaseModel):
         _ = instance.flatten_size((H_in, W_in, 3))
 
         try:
-            import torch
-            import torch.nn as nn
-            import torch.optim as optim
-            from torch.utils.data import TensorDataset, DataLoader
+            import tensorflow as tf
+            from tensorflow import keras
+            from tensorflow.keras import layers, models
 
-            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+            # Determinar dispositivo (GPU si está disponible)
+            gpus = tf.config.list_physical_devices('GPU')
+            if gpus:
+                try:
+                    for gpu in gpus:
+                        tf.config.experimental.set_memory_growth(gpu, True)
+                except RuntimeError as e:
+                    print(f"GPU config error: {e}")
 
-            class TinyCNN(nn.Module):
-                def __init__(self, spec: CNN, in_shape=(3, 64, 128)):
-                    super().__init__()
-                    layers = []
-                    # feature extractor
-                    for block in spec.feature_extractor:
-                        if isinstance(block, ConvolutionLayer):
-                            kh, kw = block.kernel_shape()
-                            conv = nn.Conv2d(
-                                in_channels=3, out_channels=block.num_filters(),
-                                kernel_size=(kh, kw),
-                                stride=block.stride,
-                                padding=0 if block.padding=="valid" else (kh//2, kw//2),
-                                bias=True
-                            )
-                            layers.append(conv)
-                            # activación
-                            act = block.activation.kind
-                            layers.append(
-                                nn.ReLU(inplace=True) if act=="relu" else
-                                nn.Tanh() if act=="tanh" else
-                                nn.GELU() if act=="gelu" else
-                                nn.Sigmoid() if act=="sigmoid" else nn.ReLU(inplace=True)
-                            )
-                        else:
-                            ph, pw = block.pool_size
-                            sh, sw = block.stride or block.pool_size
-                            pad = 0 if block.padding=="valid" else (ph//2, pw//2)
-                            pool = nn.MaxPool2d(kernel_size=(ph, pw), stride=(sh, sw), padding=pad) \
-                                   if block.kind=="max" else \
-                                   nn.AvgPool2d(kernel_size=(ph, pw), stride=(sh, sw), padding=pad)
-                            layers.append(pool)
+            def build_cnn_model(spec: CNN, in_shape=(64, 128, 3)):
+                """Construye modelo CNN usando Keras Sequential API"""
+                model_layers = []
 
-                    self.fe = nn.Sequential(*layers)
-                    # calcular flatten
-                    with torch.no_grad():
-                        dummy = torch.zeros(1, 3, in_shape[1], in_shape[2])
-                        z = self.fe(dummy)
-                        flat_dim = int(np.prod(list(z.shape[1:])))
-                    # FC
-                    fc_list = []
-                    in_units = flat_dim
-                    for d in spec.fc_layers:
-                        fc_list.append(nn.Linear(in_units, d.units))
-                        act = spec.fc_activation_common.kind
+                # Feature extractor
+                for block in spec.feature_extractor:
+                    if isinstance(block, ConvolutionLayer):
+                        kh, kw = block.kernel_shape()
+                        model_layers.append(layers.Conv2D(
+                            filters=block.num_filters(),
+                            kernel_size=(kh, kw),
+                            strides=block.stride,
+                            padding=block.padding,
+                            use_bias=True,
+                            input_shape=in_shape if len(model_layers) == 0 else None
+                        ))
+                        # Activación
+                        act = block.activation.kind
                         if act == "relu":
-                            fc_list.append(nn.ReLU(inplace=True))
+                            model_layers.append(layers.ReLU())
                         elif act == "tanh":
-                            fc_list.append(nn.Tanh())
+                            model_layers.append(layers.Activation('tanh'))
                         elif act == "gelu":
-                            fc_list.append(nn.GELU())
+                            model_layers.append(layers.Activation('gelu'))
                         elif act == "sigmoid":
-                            fc_list.append(nn.Sigmoid())
-                        in_units = d.units
-                    # salida
-                    fc_list.append(nn.Linear(in_units, spec.classification.units))
-                    self.head = nn.Sequential(*fc_list)
+                            model_layers.append(layers.Activation('sigmoid'))
+                        else:
+                            model_layers.append(layers.ReLU())
+                    else:  # PoolingLayer
+                        ph, pw = block.pool_size
+                        sh, sw = block.stride or block.pool_size
+                        if block.kind == "max":
+                            model_layers.append(layers.MaxPooling2D(
+                                pool_size=(ph, pw),
+                                strides=(sh, sw),
+                                padding=block.padding
+                            ))
+                        else:  # avg
+                            model_layers.append(layers.AveragePooling2D(
+                                pool_size=(ph, pw),
+                                strides=(sh, sw),
+                                padding=block.padding
+                            ))
 
-                def forward(self, x):
-                    z = self.fe(x)
-                    z = torch.flatten(z, 1)
-                    return self.head(z)
+                # Flatten
+                model_layers.append(layers.Flatten())
+
+                # FC layers
+                for d in spec.fc_layers:
+                    model_layers.append(layers.Dense(d.units))
+                    act = spec.fc_activation_common.kind
+                    if act == "relu":
+                        model_layers.append(layers.ReLU())
+                    elif act == "tanh":
+                        model_layers.append(layers.Activation('tanh'))
+                    elif act == "gelu":
+                        model_layers.append(layers.Activation('gelu'))
+                    elif act == "sigmoid":
+                        model_layers.append(layers.Activation('sigmoid'))
+
+                # Capa de salida (clasificación)
+                model_layers.append(layers.Dense(spec.classification.units, activation='softmax'))
+
+                return models.Sequential(model_layers)
 
             n_classes = int(max(int(ytr.max()), int(yte.max()))) + 1
             H_in, W_in = instance.image_hw
-            net = TinyCNN(instance, in_shape=(3, H_in, W_in)).to(device)
 
-            tr = TensorDataset(torch.tensor(np.transpose(Xtr, (0,3,1,2))), torch.tensor(ytr))
-            te = TensorDataset(torch.tensor(np.transpose(Xte, (0,3,1,2))), torch.tensor(yte))
-            dl_tr = DataLoader(tr, batch_size=64, shuffle=True)
-            dl_te = DataLoader(te, batch_size=128, shuffle=False)
+            # Construir modelo
+            model = build_cnn_model(instance, in_shape=(H_in, W_in, 3))
 
-            optim_ = optim.Adam(net.parameters(), lr=1e-3)
-            crit = nn.CrossEntropyLoss()
+            # Compilar modelo
+            model.compile(
+                optimizer=keras.optimizers.Adam(learning_rate=1e-3),
+                loss='sparse_categorical_crossentropy',
+                metrics=['accuracy']
+            )
 
-            train_losses: List[float] = []  # <- NUEVO
+            # Entrenar modelo
+            history = model.fit(
+                Xtr, ytr,
+                batch_size=64,
+                epochs=2,  # pocas épocas para demo; ajusta a tu gusto
+                verbose=1,
+                validation_data=(Xte, yte)
+            )
 
-            net.train()
-            for _ in range(2):  # pocas épocas para demo; ajusta a tu gusto
-                epoch_loss = 0.0
-                n_batches = 0
-                for xb, yb in dl_tr:
-                    xb, yb = xb.float().to(device), yb.long().to(device)
-                    optim_.zero_grad()
-                    logits = net(xb)
-                    loss = crit(logits, yb)
-                    loss.backward()
-                    optim_.step()
-                    epoch_loss += float(loss.item())
-                    n_batches += 1
-                train_losses.append(epoch_loss / max(1, n_batches))
-
+            train_losses: List[float] = history.history['loss']
 
             # --- Evaluación y métricas ---
-            net.eval()
-            all_logits = []
-            all_preds = []
-            all_targets = []
-            with torch.no_grad():
-                for xb, yb in dl_te:
-                    xb, yb = xb.float().to(device), yb.long().to(device)
-                    logits = net(xb)
-                    pred = torch.argmax(logits, dim=1)
-                    all_logits.append(logits.cpu().numpy())
-                    all_preds.append(pred.cpu().numpy())
-                    all_targets.append(yb.cpu().numpy())
-
-            import numpy as np
-            y_pred = np.concatenate(all_preds, axis=0)
-            y_true = np.concatenate(all_targets, axis=0)
+            # Predicciones
+            logits = model.predict(Xte, batch_size=128, verbose=0)
+            y_pred = np.argmax(logits, axis=1)
+            y_true = yte
 
             # Básicas
             acc  = float(accuracy_score(y_true, y_pred))
@@ -580,12 +612,10 @@ class CNN(BaseModel):
             f1   = float(f1_score(y_true, y_pred, average="weighted", zero_division=0))
             cm   = confusion_matrix(y_true, y_pred).tolist()
 
-            # AUC-ROC (multiclase One-vs-Rest con probabilidades softmax)
+            # AUC-ROC (multiclase One-vs-Rest con probabilidades)
             try:
-                logits = np.concatenate(all_logits, axis=0)
-                # softmax estable
-                exps = np.exp(logits - logits.max(axis=1, keepdims=True))
-                proba = exps / (exps.sum(axis=1, keepdims=True) + 1e-12)
+                # logits ya contiene las probabilidades de softmax
+                proba = logits
                 auc = float(roc_auc_score(y_true, proba, multi_class="ovr", average="weighted"))
             except Exception:
                 auc = 0.0
@@ -658,6 +688,7 @@ def _tile_and_normalize_temporal(x: NDArray, H: int, W: int) -> NDArray:
 
 # ======================= Ejemplo rápido =======================
 """
+# Construir arquitectura
 k3 = Kernel(weights=np.ones((3,3), dtype=np.float32)/9.0)
 conv1 = ConvolutionLayer(kernels=[(k3,k3,k3)]*16, stride=(1,1), padding="same", activation=ActivationFunction(kind="relu"))
 conv2 = ConvolutionLayer(kernels=[(k3,k3,k3)]*32, stride=(1,1), padding="same", activation=ActivationFunction(kind="relu"))
@@ -675,6 +706,46 @@ cnn = CNN(
 # Flatten para imágenes (64x128x3)
 print("Flatten size:", cnn.flatten_size((64,128,3)))
 
-# Entrenamiento per-frame (X_i.npy con (F,Freqs,C) ó (n_times,n_channels); y_i.npy con (F,))
-# acc = CNN.train(cnn, xTest=[...], yTest=[...], xTrain=[...], yTrain=[...])
+# Ejemplo 1: Metadatos manuales (si no usas Experiment)
+metadata_train = [
+    {"output_axes_semantics": {"axis0": "frequency", "axis1": "time", "axis2": "channels"},
+     "output_shape": (128, 256, 3)},
+    {"output_axes_semantics": {"axis0": "time", "axis1": "channels"},
+     "output_shape": (1000, 64)}
+]
+
+metadata_test = [
+    {"output_axes_semantics": {"axis0": "frequency", "axis1": "time", "axis2": "channels"},
+     "output_shape": (128, 256, 3)}
+]
+
+# metrics = CNN.train(
+#     cnn,
+#     xTest=["path/to/test1.npy"],
+#     yTest=["path/to/test1_labels.npy"],
+#     xTrain=["path/to/train1.npy", "path/to/train2.npy"],
+#     yTrain=["path/to/train1_labels.npy", "path/to/train2_labels.npy"],
+#     metadata_train=metadata_train,
+#     metadata_test=metadata_test
+# )
+
+# Ejemplo 2: Extraer metadatos desde Experiment (RECOMENDADO)
+# from backend.classes.Experiment import Experiment
+#
+# experiment = Experiment._load_latest_experiment()
+# metadata_train = CNN.extract_metadata_from_experiment(experiment.dict(), transform_indices=[0, 1])
+# metadata_test = CNN.extract_metadata_from_experiment(experiment.dict(), transform_indices=[0])
+#
+# metrics = CNN.train(
+#     cnn,
+#     xTest=["path/to/test1.npy"],
+#     yTest=["path/to/test1_labels.npy"],
+#     xTrain=["path/to/train1.npy", "path/to/train2.npy"],
+#     yTrain=["path/to/train1_labels.npy", "path/to/train2_labels.npy"],
+#     metadata_train=metadata_train,
+#     metadata_test=metadata_test
+# )
+
+# Ejemplo 3: Sin metadatos (fallback heurístico - menos robusto)
+# metrics = CNN.train(cnn, xTest=[...], yTest=[...], xTrain=[...], yTrain=[...])
 """
