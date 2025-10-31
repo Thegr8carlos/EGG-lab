@@ -41,7 +41,7 @@ cd src
 # 3. Crear y activar un entorno virtual
 python3.12 -m venv .venv        # crea la carpeta .venv
 source .venv/bin/activate       # Linux/macOS
-# .venv\Scripts\activate        # Windows PowerShell
+# .venv\Scripts\activate        # Windows PowerShellff
 
 # 4. Instalar dependencias
 pip install -r requirements.txt

@@ -45,8 +45,13 @@ class GRULayer(BaseModel):
     hidden_size: int = Field(..., ge=1, description="Dimensión oculta por dirección.")
     bidirectional: bool = Field(False, description="Usar bidireccional en esta capa.")
     dropout: float = Field(0.0, ge=0.0, le=1.0, description="Dropout entre capas (solo efectivo si num_layers>1).")
+    recurrent_dropout: float = Field(0.0, ge=0.0, le=1.0, description="Dropout en conexiones recurrentes.")
     num_layers: int = Field(1, ge=1, le=10, description="Pilas internas de GRU en esta capa lógica.")
     return_sequences: bool = Field(True, description="Si True, devolver secuencias (T,H); si False, solo el último paso.")
+    kernel_initializer: str = Field("glorot_uniform", description="Inicializador de pesos del kernel.")
+    recurrent_initializer: str = Field("orthogonal", description="Inicializador de pesos recurrentes.")
+    use_bias: bool = Field(True, description="Si True, usa bias en las capas GRU.")
+    reset_after: bool = Field(True, description="Aplicar reset gate después de multiplicación matricial (GRU moderno).")
 
     def output_dim(self, input_dim: int) -> Tuple[int, bool]:
         """
@@ -145,20 +150,141 @@ class GRUNet(BaseModel):
         return self.feature_dim_after_encoder()
 
     # =================================================================================
+    # Helpers de metadatos
+    # =================================================================================
+    @staticmethod
+    def extract_metadata_from_experiment(experiment_dict: dict, transform_indices: Optional[List[int]] = None) -> List[dict]:
+        """
+        Extrae metadatos de dimensionality_change desde un diccionario de Experiment.
+
+        Args:
+            experiment_dict: Diccionario con estructura de Experiment (output de experiment.dict())
+            transform_indices: Índices de las transformadas a extraer. Si None, extrae todas.
+
+        Returns:
+            Lista de diccionarios con metadatos de dimensionality_change
+
+        Ejemplo:
+            experiment = Experiment._load_latest_experiment()
+            metadata = GRUNet.extract_metadata_from_experiment(experiment.dict(), [0, 1])
+        """
+        transforms = experiment_dict.get("transform", [])
+        if not transforms:
+            return []
+
+        if transform_indices is None:
+            transform_indices = list(range(len(transforms)))
+
+        metadata_list = []
+        for idx in transform_indices:
+            if idx < 0 or idx >= len(transforms):
+                raise IndexError(f"Índice de transform fuera de rango: {idx}")
+
+            transform_entry = transforms[idx]
+            dim_change = transform_entry.get("dimensionality_change", {})
+
+            # Crear diccionario de metadatos con estructura estándar
+            metadata = {
+                "output_axes_semantics": dim_change.get("output_axes_semantics", {}),
+                "output_shape": dim_change.get("output_shape"),
+                "input_shape": dim_change.get("input_shape"),
+                "standardized_to": dim_change.get("standardized_to"),
+                "transposed_from_input": dim_change.get("transposed_from_input"),
+                "orig_was_1d": dim_change.get("orig_was_1d"),
+            }
+            metadata_list.append(metadata)
+
+        return metadata_list
+
+    @staticmethod
+    def _interpret_metadata(metadata: dict) -> Tuple[str, bool]:
+        """
+        Interpreta metadatos de dimensionality_change para determinar forma y orientación.
+
+        Args:
+            metadata: Diccionario con:
+                - output_axes_semantics: {"axis0": "time", "axis1": "channels"} o similar
+                - output_shape: (T, F) o (F, T)
+                - transposed_from_input: bool indicando si se transpuso
+
+        Returns:
+            Tupla (axis_order, needs_transpose):
+                - axis_order: "time_first" si (T,F) o "features_first" si (F,T)
+                - needs_transpose: True si necesita transposición para llegar a (T,F)
+        """
+        semantics = metadata.get("output_axes_semantics") or metadata.get("axes_semantics") or {}
+        output_shape = metadata.get("output_shape") or metadata.get("shape")
+        transposed_from_input = metadata.get("transposed_from_input")
+
+        if not semantics and not output_shape:
+            raise ValueError("metadata debe contener 'output_axes_semantics' o 'output_shape'")
+
+        # Extraer significado de ejes
+        axis_meanings = {}
+        for axis_key, meaning in semantics.items():
+            axis_idx = int(axis_key.replace("axis", "")) if "axis" in axis_key else -1
+            if axis_idx >= 0:
+                axis_meanings[axis_idx] = str(meaning).lower()
+
+        # Determinar orientación
+        if 0 in axis_meanings and 1 in axis_meanings:
+            axis0_meaning = axis_meanings[0]
+            axis1_meaning = axis_meanings[1]
+
+            if "time" in axis0_meaning or "sample" in axis0_meaning or "frame" in axis0_meaning:
+                # Eje 0 es tiempo -> (T, F) formato correcto
+                return "time_first", False
+            elif "channel" in axis1_meaning or "feature" in axis1_meaning or "freq" in axis1_meaning:
+                # Eje 1 es features, eje 0 debe ser tiempo -> (T, F) formato correcto
+                return "time_first", False
+            elif "channel" in axis0_meaning or "feature" in axis0_meaning or "freq" in axis0_meaning:
+                # Eje 0 es features -> (F, T) necesita transposición
+                return "features_first", True
+            elif "time" in axis1_meaning or "sample" in axis1_meaning or "frame" in axis1_meaning:
+                # Eje 1 es tiempo -> (F, T) necesita transposición
+                return "features_first", True
+
+        # Fallback: usar output_shape si existe
+        if output_shape and len(output_shape) == 2:
+            T_or_F, F_or_T = output_shape
+            # Heurística: si primera dim >> segunda, probablemente es (T, F)
+            if T_or_F > F_or_T:
+                return "time_first", False
+            else:
+                return "features_first", True
+
+        # Fallback final
+        return "time_first", False
+
+    # =================================================================================
     # Dataset helpers: esperamos clasificación por SECUENCIA (una etiqueta por archivo)
     # =================================================================================
     @staticmethod
-    def _load_sequence(path: str) -> NDArray:
+    def _load_sequence(path: str, metadata: Optional[dict] = None) -> NDArray:
         """
         Espera .npy de forma (T, F) o (F, T). Devuelve (T, F) float32.
+
+        Args:
+            path: Ruta al archivo .npy
+            metadata: Diccionario opcional con metadatos de dimensionality_change.
+                     Si se proporciona, usa la información semántica para determinar orientación.
+                     Si no, usa heurística (T < F => transpone).
         """
         X = np.load(path, allow_pickle=True)
         if X.ndim != 2:
             raise ValueError(f"Secuencia inválida: {path} con ndim={X.ndim}; se esperaba 2D.")
-        # normalizamos a (T,F)
-        T, F = X.shape
-        if T < F:  # suposición común cuando viene (F,T)
-            X = X.T
+
+        # Determinar si necesita transposición
+        if metadata and (metadata.get("output_axes_semantics") or metadata.get("output_shape")):
+            _, needs_transpose = GRUNet._interpret_metadata(metadata)
+            if needs_transpose:
+                X = X.T
+        else:
+            # Fallback: heurística tradicional
+            T, F = X.shape
+            if T < F:  # suposición común cuando viene (F,T)
+                X = X.T
+
         return X.astype(np.float32, copy=False)
 
     @staticmethod
@@ -178,21 +304,38 @@ class GRUNet(BaseModel):
         x_paths: Sequence[str],
         y_paths: Sequence[str],
         pad_value: float = 0.0,
+        metadata_list: Optional[Sequence[dict]] = None,
     ) -> Tuple[List[NDArray], NDArray, NDArray]:
         """
         Devuelve:
           - sequences: lista de arrays (Ti, F) con longitudes variables
           - lengths: longitudes Ti (int64)
           - y: etiquetas (N,) int64
+
+        Args:
+            x_paths: Rutas a archivos .npy con secuencias
+            y_paths: Rutas a archivos .npy con etiquetas
+            pad_value: Valor de padding para secuencias variables
+            metadata_list: Lista opcional de diccionarios con metadatos de dimensionality_change.
+                          Si se proporciona, debe tener la misma longitud que x_paths.
         """
         if len(x_paths) != len(y_paths):
             raise ValueError("x_paths y y_paths deben tener la misma longitud (clasificación por secuencia).")
+
+        # Si no hay metadatos, crear lista vacía
+        if metadata_list is None:
+            metadata_list = [{} for _ in x_paths]
+        elif len(metadata_list) != len(x_paths):
+            raise ValueError(f"metadata_list debe tener la misma longitud que x_paths. "
+                           f"Recibido {len(metadata_list)} vs {len(x_paths)}")
+
         sequences: List[NDArray] = []
         lengths: List[int] = []
         labels: List[int] = []
         F_ref: Optional[int] = None
-        for xp, yp in zip(x_paths, y_paths):
-            X = cls._load_sequence(xp)     # (T, F)
+
+        for xp, yp, meta in zip(x_paths, y_paths, metadata_list):
+            X = cls._load_sequence(xp, metadata=meta)     # (T, F)
             y = cls._load_label_scalar(yp) # escalar
             if F_ref is None:
                 F_ref = int(X.shape[1])
@@ -201,10 +344,11 @@ class GRUNet(BaseModel):
             sequences.append(X)
             lengths.append(int(X.shape[0]))
             labels.append(int(y))
+
         return sequences, np.array(lengths, dtype=np.int64), np.array(labels, dtype=np.int64)
 
     # =================================================================================
-    # Entrenamiento: PyTorch si disponible (con pack_padded_sequence), fallback si no
+    # Entrenamiento: TensorFlow/Keras con soporte de metadatos
     # =================================================================================
     @classmethod
     def train(
@@ -214,14 +358,45 @@ class GRUNet(BaseModel):
         yTest: List[str],
         xTrain: List[str],
         yTrain: List[str],
+        metadata_train: Optional[List[dict]] = None,
+        metadata_test: Optional[List[dict]] = None,
         epochs: int = 2,
         batch_size: int = 64,
         lr: float = 1e-3,
     ):
-        # 1) Prepara dataset
+        """
+        Entrena un modelo GRU usando TensorFlow/Keras.
+
+        Args:
+            instance: Instancia de GRUNet con arquitectura configurada
+            xTest: Lista de rutas a archivos .npy de test
+            yTest: Lista de rutas a archivos .npy con etiquetas de test
+            xTrain: Lista de rutas a archivos .npy de entrenamiento
+            yTrain: Lista de rutas a archivos .npy con etiquetas de entrenamiento
+            metadata_train: Lista de diccionarios con metadatos de dimensionality_change para train.
+                           Cada diccionario debe contener:
+                           - 'output_axes_semantics': dict con semántica de ejes
+                           - 'output_shape': tuple con forma de salida
+                           Ejemplo:
+                           [{"output_axes_semantics": {"axis0": "time", "axis1": "channels"},
+                             "output_shape": (1000, 64)}]
+            metadata_test: Lista de diccionarios con metadatos para test
+            epochs: Número de épocas de entrenamiento
+            batch_size: Tamaño de batch
+            lr: Learning rate
+        """
+        # 1) Prepara dataset con metadatos
         try:
-            seq_tr, len_tr, y_tr = cls._prepare_sequences_and_labels(xTrain, yTrain, pad_value=instance.encoder.pad_value)
-            seq_te, len_te, y_te = cls._prepare_sequences_and_labels(xTest, yTest, pad_value=instance.encoder.pad_value)
+            seq_tr, len_tr, y_tr = cls._prepare_sequences_and_labels(
+                xTrain, yTrain,
+                pad_value=instance.encoder.pad_value,
+                metadata_list=metadata_train
+            )
+            seq_te, len_te, y_te = cls._prepare_sequences_and_labels(
+                xTest, yTest,
+                pad_value=instance.encoder.pad_value,
+                metadata_list=metadata_test
+            )
         except Exception as e:
             raise RuntimeError(f"Error preparando dataset GRU: {e}") from e
 
@@ -233,175 +408,161 @@ class GRUNet(BaseModel):
         n_classes = int(max(int(y_tr.max()), int(y_te.max()))) + 1
 
         try:
-            import torch
-            import torch.nn as nn
-            import torch.optim as optim
-            from torch.nn.utils.rnn import pad_sequence, pack_padded_sequence, pad_packed_sequence
-            from torch.utils.data import Dataset, DataLoader
+            import tensorflow as tf
+            from tensorflow import keras
+            from tensorflow.keras import layers, models
 
-            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+            # Configurar GPU si está disponible
+            gpus = tf.config.list_physical_devices('GPU')
+            if gpus:
+                try:
+                    for gpu in gpus:
+                        tf.config.experimental.set_memory_growth(gpu, True)
+                except RuntimeError as e:
+                    print(f"GPU config error: {e}")
 
-            class SeqDataset(Dataset):
-                def __init__(self, seqs: List[NDArray], lengths: NDArray, labels: NDArray, pad_value: float):
-                    self.seqs = [torch.tensor(s) for s in seqs]  # cada s: (T,F)
-                    self.lengths = torch.tensor(lengths, dtype=torch.int64)
-                    self.labels = torch.tensor(labels, dtype=torch.int64)
-                    self.pad_value = float(pad_value)
+            # Padding de secuencias a longitud máxima
+            max_len_tr = int(len_tr.max())
+            max_len_te = int(len_te.max())
+            pad_value = instance.encoder.pad_value
 
-                def __len__(self): return len(self.labels)
+            def pad_sequences(seqs: List[NDArray], max_len: int, pad_val: float) -> NDArray:
+                """Pad secuencias a max_len. Retorna (N, T, F)"""
+                N = len(seqs)
+                F = seqs[0].shape[1]
+                padded = np.full((N, max_len, F), pad_val, dtype=np.float32)
+                for i, seq in enumerate(seqs):
+                    T = seq.shape[0]
+                    padded[i, :T, :] = seq
+                return padded
 
-                def __getitem__(self, idx: int):
-                    return self.seqs[idx], self.lengths[idx], self.labels[idx]
+            X_tr_padded = pad_sequences(seq_tr, max_len_tr, pad_value)  # (N_tr, T_tr, F)
+            X_te_padded = pad_sequences(seq_te, max_len_te, pad_value)  # (N_te, T_te, F)
 
-                def collate(self, batch):
-                    seqs, lens, labels = zip(*batch)
-                    # pad a (Tmax, B, F)
-                    padded = pad_sequence(seqs, batch_first=False, padding_value=self.pad_value)  # (Tmax,B,F)
-                    lengths = torch.stack(lens)
-                    labels = torch.stack(labels)
-                    return padded, lengths, labels
+            # ------- Construcción del modelo con TensorFlow/Keras -------
+            def build_gru_model(spec: GRUNet, input_shape: Tuple[int, int]) -> keras.Model:
+                """
+                Construye modelo GRU usando Keras.
 
-            ds_tr = SeqDataset(seq_tr, len_tr, y_tr, instance.encoder.pad_value)
-            ds_te = SeqDataset(seq_te, len_te, y_te, instance.encoder.pad_value)
-            dl_tr = DataLoader(ds_tr, batch_size=batch_size, shuffle=True, collate_fn=ds_tr.collate)
-            dl_te = DataLoader(ds_te, batch_size=batch_size, shuffle=False, collate_fn=ds_te.collate)
+                Args:
+                    spec: Especificación GRUNet
+                    input_shape: (max_seq_len, feature_dim)
+                """
+                model_layers = []
 
-            # ------- Construcción del modelo en PyTorch a partir de la especificación -------
-            class TinyGRU(nn.Module):
-                def __init__(self, spec: GRUNet):
-                    super().__init__()
-                    self.use_packed = bool(spec.encoder.use_packed_sequences)
-                    self.pad_value = float(spec.encoder.pad_value)
-                    # Construye pila GRU (una instancia pytorch por capa lógica)
-                    self.rnns = nn.ModuleList()
-                    in_f = int(spec.encoder.input_feature_dim)
-                    for layer in spec.encoder.layers:
-                        self.rnns.append(
-                            nn.GRU(
-                                input_size=in_f,
-                                hidden_size=layer.hidden_size,
-                                num_layers=layer.num_layers,
-                                bidirectional=layer.bidirectional,
-                                dropout=(layer.dropout if layer.num_layers > 1 else 0.0),
-                                batch_first=False,
-                            )
-                        )
-                        # salida de esta GRU
-                        out_f = layer.hidden_size * (2 if layer.bidirectional else 1)
-                        in_f = out_f
-                        # si esta capa no devuelve secuencia, “colapsa” aquí
-                        # pero para simplificar entrenamiento, devolvemos siempre secuencia
-                        # y aplicamos pooling al final (más flexible).
-                    self.out_feat = in_f
+                # Input con masking
+                inputs = layers.Input(shape=input_shape, name='input')
+                x = layers.Masking(mask_value=spec.encoder.pad_value)(inputs)
 
-                    # Pooling
-                    self.pool_kind = spec.pooling.kind
-                    if self.pool_kind == "attn":
-                        ah = int(spec.pooling.attn_hidden or 64)
-                        self.attn = nn.Sequential(
-                            nn.Linear(self.out_feat, ah),
-                            nn.Tanh(),
-                            nn.Linear(ah, 1)
-                        )
-                    # FC head
-                    fcs = []
-                    in_units = self.out_feat
-                    for d in spec.fc_layers:
-                        fcs.append(nn.Linear(in_units, d.units))
-                        ak = spec.fc_activation_common.kind
-                        if ak == "relu":   fcs.append(nn.ReLU(inplace=True))
-                        elif ak == "tanh": fcs.append(nn.Tanh())
-                        elif ak == "gelu": fcs.append(nn.GELU())
-                        elif ak == "sigmoid": fcs.append(nn.Sigmoid())
-                        in_units = d.units
-                    fcs.append(nn.Linear(in_units, spec.classification.units))
-                    self.head = nn.Sequential(*fcs)
+                # Encoder (GRU layers)
+                for i, gru_layer in enumerate(spec.encoder.layers):
+                    return_sequences = gru_layer.return_sequences or (i < len(spec.encoder.layers) - 1)
 
-                def forward(self, x_pad: torch.Tensor, lengths: torch.Tensor):
-                    """
-                    x_pad: (Tmax,B,F), lengths: (B,)
-                    Salida: logits (B, n_classes)
-                    """
-                    z = x_pad
-                    # pasar por GRUs
-                    for gru in self.rnns:
-                        if self.use_packed:
-                            packed = pack_padded_sequence(z, lengths.cpu(), enforce_sorted=False)
-                            packed_out, _ = gru(packed)         # (packed_T,B,D)
-                            z, _ = pad_packed_sequence(packed_out)  # → (Tmax,B,D)
-                        else:
-                            z, _ = gru(z)  # (Tmax,B,D)
-                    # Pooling temporal
-                    if self.pool_kind == "last":
-                        # tomar último válido para cada secuencia
-                        B = z.shape[1]
-                        idx = (lengths - 1).view(1, B, 1).expand(1, B, z.shape[2])
-                        out = z.gather(dim=0, index=idx).squeeze(0)  # (B,D)
-                    elif self.pool_kind == "mean":
-                        mask = torch.arange(z.shape[0], device=z.device).unsqueeze(1) < lengths.unsqueeze(0)
-                        z_masked = z * mask.unsqueeze(2)  # (T,B,D)
-                        out = z_masked.sum(dim=0) / lengths.clamp_min(1).unsqueeze(1)  # (B,D)
-                    elif self.pool_kind == "max":
-                        mask = torch.arange(z.shape[0], device=z.device).unsqueeze(1) < lengths.unsqueeze(0)
-                        z_masked = z.masked_fill(~mask.unsqueeze(2), float("-inf"))
-                        out, _ = z_masked.max(dim=0)  # (B,D)
-                    elif self.pool_kind == "attn":
-                        # scores por tiempo, softmax en T con máscara
-                        scores = self.attn(z)  # (T,B,1)
-                        mask = torch.arange(z.shape[0], device=z.device).unsqueeze(1) < lengths.unsqueeze(0)
-                        scores = scores.squeeze(-1)  # (T,B)
-                        scores = scores.masked_fill(~mask, float("-inf"))
-                        alpha = torch.softmax(scores, dim=0).unsqueeze(-1)  # (T,B,1)
-                        out = (z * alpha).sum(dim=0)  # (B,D)
+                    # Configurar GRU con todos los parámetros
+                    gru = layers.GRU(
+                        units=gru_layer.hidden_size,
+                        return_sequences=return_sequences,
+                        dropout=gru_layer.dropout if gru_layer.num_layers > 1 else 0.0,
+                        recurrent_dropout=gru_layer.recurrent_dropout,
+                        kernel_initializer=gru_layer.kernel_initializer,
+                        recurrent_initializer=gru_layer.recurrent_initializer,
+                        use_bias=gru_layer.use_bias,
+                        reset_after=gru_layer.reset_after,
+                        name=f'gru_{i}'
+                    )
+
+                    if gru_layer.bidirectional:
+                        x = layers.Bidirectional(gru, name=f'bidirectional_gru_{i}')(x)
                     else:
-                        out = z[-1]  # fallback
-                    return self.head(out)
+                        x = gru(x)
 
-            net = TinyGRU(instance).to(device)
-            opt = optim.Adam(net.parameters(), lr=lr)
-            crit = nn.CrossEntropyLoss()
+                    # Si hay múltiples num_layers, apilar más GRUs
+                    for j in range(1, gru_layer.num_layers):
+                        inner_return_seq = return_sequences if j == gru_layer.num_layers - 1 else True
+                        gru_inner = layers.GRU(
+                            units=gru_layer.hidden_size,
+                            return_sequences=inner_return_seq,
+                            dropout=gru_layer.dropout,
+                            recurrent_dropout=gru_layer.recurrent_dropout,
+                            kernel_initializer=gru_layer.kernel_initializer,
+                            recurrent_initializer=gru_layer.recurrent_initializer,
+                            use_bias=gru_layer.use_bias,
+                            reset_after=gru_layer.reset_after,
+                            name=f'gru_{i}_inner_{j}'
+                        )
+                        if gru_layer.bidirectional:
+                            x = layers.Bidirectional(gru_inner, name=f'bidirectional_gru_{i}_inner_{j}')(x)
+                        else:
+                            x = gru_inner(x)
 
-            # Entrenamiento
-            train_losses: List[float] = []  # NUEVO: almacenamos pérdida promedio por época
+                # Pooling temporal (si la última capa devuelve secuencias)
+                if is_seq or spec.encoder.layers[-1].return_sequences:
+                    pool_kind = spec.pooling.kind
+                    if pool_kind == "last":
+                        # Tomar último paso (ya manejado por return_sequences=False)
+                        x = layers.Lambda(lambda t: t[:, -1, :], name='last_pooling')(x)
+                    elif pool_kind == "mean":
+                        x = layers.GlobalAveragePooling1D(name='mean_pooling')(x)
+                    elif pool_kind == "max":
+                        x = layers.GlobalMaxPooling1D(name='max_pooling')(x)
+                    elif pool_kind == "attn":
+                        # Attention pooling simple
+                        attn_hidden = spec.pooling.attn_hidden or 64
+                        # Calcular scores de atención
+                        attn_scores = layers.Dense(attn_hidden, activation='tanh', name='attn_hidden')(x)
+                        attn_scores = layers.Dense(1, name='attn_scores')(attn_scores)
+                        attn_weights = layers.Softmax(axis=1, name='attn_weights')(attn_scores)
+                        # Weighted sum
+                        x = layers.Multiply(name='attn_multiply')([x, attn_weights])
+                        x = layers.Lambda(lambda t: tf.reduce_sum(t, axis=1), name='attn_sum')(x)
 
-            net.train()
-            for _ in range(epochs):
-                epoch_loss = 0.0
-                n_batches = 0
-                for x_pad, lengths, yb in dl_tr:
-                    x_pad, lengths, yb = x_pad.float().to(device), lengths.to(device), yb.long().to(device)
-                    opt.zero_grad()
-                    logits = net(x_pad, lengths)
-                    loss = crit(logits, yb)
-                    loss.backward()
-                    opt.step()
-                    epoch_loss += float(loss.item())
-                    n_batches += 1
-                train_losses.append(epoch_loss / max(1, n_batches))
+                # FC layers
+                for i, fc in enumerate(spec.fc_layers):
+                    x = layers.Dense(fc.units, name=f'fc_{i}')(x)
+                    act = spec.fc_activation_common.kind
+                    if act == "relu":
+                        x = layers.ReLU(name=f'fc_{i}_relu')(x)
+                    elif act == "tanh":
+                        x = layers.Activation('tanh', name=f'fc_{i}_tanh')(x)
+                    elif act == "gelu":
+                        x = layers.Activation('gelu', name=f'fc_{i}_gelu')(x)
+                    elif act == "sigmoid":
+                        x = layers.Activation('sigmoid', name=f'fc_{i}_sigmoid')(x)
 
+                # Classification layer
+                outputs = layers.Dense(spec.classification.units, activation='softmax', name='classification')(x)
+
+                return keras.Model(inputs=inputs, outputs=outputs, name='GRUNet')
+
+            # Construir modelo
+            model = build_gru_model(instance, input_shape=(X_tr_padded.shape[1], in_F))
+
+            # Compilar
+            model.compile(
+                optimizer=keras.optimizers.Adam(learning_rate=lr),
+                loss='sparse_categorical_crossentropy',
+                metrics=['accuracy']
+            )
+
+            # Entrenar
+            t0 = time.perf_counter()
+            history = model.fit(
+                X_tr_padded, y_tr,
+                batch_size=batch_size,
+                epochs=epochs,
+                verbose=1,
+                validation_data=(X_te_padded, y_te)
+            )
+            train_time = time.perf_counter() - t0
+
+            train_losses: List[float] = history.history['loss']
 
             # Evaluación
-            # Evaluación + métricas completas
             t0 = time.perf_counter()
-
-            net.eval()
-            all_logits = []
-            all_preds = []
-            all_targets = []
-            with torch.no_grad():
-                for x_pad, lengths, yb in dl_te:
-                    x_pad, lengths, yb = x_pad.float().to(device), lengths.to(device), yb.long().to(device)
-                    logits = net(x_pad, lengths)        # (B, n_classes)
-                    pred = torch.argmax(logits, dim=1)  # (B,)
-                    all_logits.append(logits.cpu().numpy())
-                    all_preds.append(pred.cpu().numpy())
-                    all_targets.append(yb.cpu().numpy())
-
+            logits = model.predict(X_te_padded, batch_size=batch_size, verbose=0)
+            y_pred = np.argmax(logits, axis=1)
+            y_true = y_te
             eval_seconds = time.perf_counter() - t0
-
-            import numpy as np
-            y_pred = np.concatenate(all_preds, axis=0)
-            y_true = np.concatenate(all_targets, axis=0)
 
             # Métricas básicas
             acc  = float(accuracy_score(y_true, y_pred))
@@ -410,13 +571,9 @@ class GRUNet(BaseModel):
             f1   = float(f1_score(y_true, y_pred, average="weighted", zero_division=0))
             cm   = confusion_matrix(y_true, y_pred).tolist()
 
-            # AUC-ROC (binario/multiclase con softmax OVR)
+            # AUC-ROC
             try:
-                logits = np.concatenate(all_logits, axis=0)             # (N, n_classes)
-                # softmax estable
-                exps = np.exp(logits - logits.max(axis=1, keepdims=True))
-                proba = exps / (exps.sum(axis=1, keepdims=True) + 1e-12)
-                auc = float(roc_auc_score(y_true, proba, multi_class="ovr", average="weighted"))
+                auc = float(roc_auc_score(y_true, logits, multi_class="ovr", average="weighted"))
             except Exception:
                 auc = 0.0
 
@@ -427,17 +584,18 @@ class GRUNet(BaseModel):
                 f1_score=f1,
                 confusion_matrix=cm,
                 auc_roc=auc,
-                loss=train_losses,                       # curva de pérdida por época
+                loss=train_losses,
                 evaluation_time=f"{eval_seconds:.4f}s",
             )
 
             print(f"[GRU] Acc={acc:.3f} F1={f1:.3f} AUC={auc:.3f}")
             return metrics
 
-
         except Exception as e:
             print("[GRU] Entrenamiento real no ejecutado (fallback).")
             print(f"Razón: {e}")
+            import traceback
+            traceback.print_exc()
             metrics = EvaluationMetrics(
                 accuracy=0.0,
                 precision=0.0,
@@ -453,3 +611,163 @@ class GRUNet(BaseModel):
 
 # Alias for backward compatibility
 GRU = GRUNet
+
+
+# ======================= Ejemplo de uso =======================
+"""
+# Ejemplo 1: Construcción básica de modelo GRU
+
+from backend.classes.ClasificationModel.GRU import GRUNet, GRULayer, SequenceEncoder, TemporalPooling, DenseLayer, ActivationFunction
+
+# Configurar capas GRU
+gru1 = GRULayer(
+    hidden_size=128,
+    bidirectional=True,
+    dropout=0.2,
+    recurrent_dropout=0.1,
+    num_layers=1,
+    return_sequences=True,
+    kernel_initializer="glorot_uniform",
+    recurrent_initializer="orthogonal"
+)
+
+gru2 = GRULayer(
+    hidden_size=64,
+    bidirectional=True,
+    dropout=0.2,
+    recurrent_dropout=0.1,
+    num_layers=1,
+    return_sequences=False
+)
+
+# Configurar encoder
+encoder = SequenceEncoder(
+    input_feature_dim=64,  # número de canales/features
+    layers=[gru1, gru2],
+    use_packed_sequences=True,  # no se usa en TF, solo para compatibilidad
+    pad_value=0.0
+)
+
+# Configurar pooling
+pooling = TemporalPooling(
+    kind="last",  # opciones: "last", "mean", "max", "attn"
+    attn_hidden=64
+)
+
+# Configurar capas densas finales
+fc_layers = [
+    DenseLayer(units=128),
+    DenseLayer(units=64)
+]
+
+# Capa de clasificación (n_classes=5)
+classification = DenseLayer(
+    units=5,
+    activation=ActivationFunction(kind="softmax")
+)
+
+# Construir modelo completo
+gru_net = GRUNet(
+    encoder=encoder,
+    pooling=pooling,
+    fc_layers=fc_layers,
+    fc_activation_common=ActivationFunction(kind="relu"),
+    classification=classification
+)
+
+# Ejemplo 2: Entrenamiento con metadatos (RECOMENDADO)
+from backend.classes.Experiment import Experiment
+
+# Extraer metadatos desde Experiment
+experiment = Experiment._load_latest_experiment()
+metadata_train = GRUNet.extract_metadata_from_experiment(experiment.dict(), transform_indices=[0, 1])
+metadata_test = GRUNet.extract_metadata_from_experiment(experiment.dict(), transform_indices=[0])
+
+# Entrenar modelo
+metrics = GRUNet.train(
+    gru_net,
+    xTest=["path/to/test1.npy"],
+    yTest=["path/to/test1_label.npy"],
+    xTrain=["path/to/train1.npy", "path/to/train2.npy"],
+    yTrain=["path/to/train1_label.npy", "path/to/train2_label.npy"],
+    metadata_train=metadata_train,
+    metadata_test=metadata_test,
+    epochs=10,
+    batch_size=32,
+    lr=1e-3
+)
+
+# Ejemplo 3: Metadatos manuales
+metadata_train = [
+    {
+        "output_axes_semantics": {"axis0": "time", "axis1": "channels"},
+        "output_shape": (1000, 64),
+        "transposed_from_input": False
+    },
+    {
+        "output_axes_semantics": {"axis0": "time", "axis1": "channels"},
+        "output_shape": (1500, 64),
+        "transposed_from_input": False
+    }
+]
+
+metadata_test = [
+    {
+        "output_axes_semantics": {"axis0": "time", "axis1": "channels"},
+        "output_shape": (1200, 64)
+    }
+]
+
+metrics = GRUNet.train(
+    gru_net,
+    xTest=["path/to/test1.npy"],
+    yTest=["path/to/test1_label.npy"],
+    xTrain=["path/to/train1.npy", "path/to/train2.npy"],
+    yTrain=["path/to/train1_label.npy", "path/to/train2_label.npy"],
+    metadata_train=metadata_train,
+    metadata_test=metadata_test,
+    epochs=10,
+    batch_size=32,
+    lr=1e-3
+)
+
+# Ejemplo 4: Sin metadatos (fallback heurístico)
+metrics = GRUNet.train(
+    gru_net,
+    xTest=["path/to/test1.npy"],
+    yTest=["path/to/test1_label.npy"],
+    xTrain=["path/to/train1.npy", "path/to/train2.npy"],
+    yTrain=["path/to/train1_label.npy", "path/to/train2_label.npy"],
+    epochs=10,
+    batch_size=32,
+    lr=1e-3
+)
+
+# Ejemplo 5: Configuración con diferentes tipos de pooling
+
+# Pooling con atención
+pooling_attn = TemporalPooling(kind="attn", attn_hidden=128)
+
+# Pooling promedio
+pooling_mean = TemporalPooling(kind="mean")
+
+# Pooling máximo
+pooling_max = TemporalPooling(kind="max")
+
+# Último paso (más común)
+pooling_last = TemporalPooling(kind="last")
+
+# Ejemplo 6: Configuración avanzada de GRU
+gru_advanced = GRULayer(
+    hidden_size=256,
+    bidirectional=True,
+    dropout=0.3,
+    recurrent_dropout=0.2,
+    num_layers=2,  # Apilar 2 GRUs internas
+    return_sequences=True,
+    kernel_initializer="he_normal",
+    recurrent_initializer="orthogonal",
+    use_bias=True,
+    reset_after=True
+)
+"""

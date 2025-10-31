@@ -229,6 +229,15 @@ class FFTTransform(Transform):
             pxx = (np.abs(spec) ** 2) / (win_norm ** 2 + 1e-12)   # potencia
             power[:, :, ch] = pxx.astype(np.float32, copy=False)
 
+        # ESTANDARIZACIÓN: Asegurar que todas las salidas tengan exactamente (n_frames, n_freqs, n_channels)
+        # Si por alguna razón n_freqs difiere, ajustar con padding de ceros
+        expected_n_freqs = n_freqs
+        if power.shape[1] != expected_n_freqs:
+            power_fixed = np.zeros((power.shape[0], expected_n_freqs, power.shape[2]), dtype=np.float32)
+            min_freqs = min(power.shape[1], expected_n_freqs)
+            power_fixed[:, :min_freqs, :] = power[:, :min_freqs, :]
+            power = power_fixed
+
         output_shape = (int(power.shape[0]), int(power.shape[1]), int(power.shape[2]))  # (n_frames, n_freqs, n_channels)
 
         # ---------- guardar salidas ----------

@@ -35,15 +35,17 @@ class ClassifierSchemaFactory:
 
     @classmethod
     def get_all_classifier_schemas(cls) -> Dict[str, Dict[str, Any]]:
+        """
+        Genera esquemas JSON para cada clasificador disponible.
+        Retorna un diccionario con el schema JSON de cada modelo.
+        """
         schemas = {}
         for key, model in cls.available_classifiers.items():
             try:
                 schema = model.model_json_schema()
                 schemas[key] = schema
             except Exception as e:
-                # Temporalmente excluir modelos que no pueden generar JSON schema
-                # (CNN, LSTM, GRU, SVNN tienen campos np.ndarray no serializables)
-                print(f"⚠️ Skipping {key}: {e.__class__.__name__}")
+                print(f"⚠️ Skipping {key}: {e.__class__.__name__}: {str(e)}")
                 continue
         return schemas
     @classmethod#######################------------------------------------------------------------------------------------------------------------------------------Chane+--

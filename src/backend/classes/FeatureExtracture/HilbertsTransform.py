@@ -204,6 +204,15 @@ class DCTTransform(Transform):
             dct_frames = sp_dct(frames, type=dct_type, norm=norm, axis=1)  # (n_frames, n_coeffs)
             coeffs_cube[:, :, ch] = dct_frames.astype(np.float32, copy=False)
 
+        # ESTANDARIZACIÓN: Asegurar que todas las salidas tengan exactamente (n_frames, n_coeffs, n_channels)
+        # Si por alguna razón n_coeffs difiere, ajustar con padding de ceros
+        expected_n_coeffs = n_coeffs
+        if coeffs_cube.shape[1] != expected_n_coeffs:
+            coeffs_fixed = np.zeros((coeffs_cube.shape[0], expected_n_coeffs, coeffs_cube.shape[2]), dtype=np.float32)
+            min_coeffs = min(coeffs_cube.shape[1], expected_n_coeffs)
+            coeffs_fixed[:, :min_coeffs, :] = coeffs_cube[:, :min_coeffs, :]
+            coeffs_cube = coeffs_fixed
+
         output_shape = (int(coeffs_cube.shape[0]), int(coeffs_cube.shape[1]), int(coeffs_cube.shape[2]))  # (n_frames, n_coeffs, n_channels)
 
         # ---------- guardar artefactos ----------

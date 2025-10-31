@@ -35,6 +35,10 @@ class DenseLayer(BaseModel):
     activation: ActivationFunction = Field(default_factory=lambda: ActivationFunction(kind="relu"))
     dropout: float = Field(0.0, ge=0.0, le=1.0, description="Dropout posterior a la capa.")
     batchnorm: bool = Field(False, description="Aplicar BatchNorm antes de la activación.")
+    kernel_initializer: str = Field("glorot_uniform", description="Inicializador de pesos.")
+    bias_initializer: str = Field("zeros", description="Inicializador de bias.")
+    kernel_regularizer: Optional[str] = Field(None, description="Regularizador L1/L2 (e.g., 'l2', 'l1').")
+    regularizer_value: float = Field(0.01, gt=0.0, description="Valor del regularizador si se usa.")
 
     @field_validator("units")
     @classmethod
@@ -168,6 +172,51 @@ class SVNN(Classifier):
             layers[i].activation = common
         return layers
 
+    # ----------------------------- Helpers de metadatos -----------------------------
+    @staticmethod
+    def extract_metadata_from_experiment(experiment_dict: dict, transform_indices: Optional[List[int]] = None) -> List[dict]:
+        """
+        Extrae metadatos de dimensionality_change desde un diccionario de Experiment.
+
+        Args:
+            experiment_dict: Diccionario con estructura de Experiment (output de experiment.dict())
+            transform_indices: Índices de las transformadas a extraer. Si None, extrae todas.
+
+        Returns:
+            Lista de diccionarios con metadatos de dimensionality_change
+
+        Ejemplo:
+            experiment = Experiment._load_latest_experiment()
+            metadata = SVNN.extract_metadata_from_experiment(experiment.dict(), [0, 1])
+        """
+        transforms = experiment_dict.get("transform", [])
+        if not transforms:
+            return []
+
+        if transform_indices is None:
+            transform_indices = list(range(len(transforms)))
+
+        metadata_list = []
+        for idx in transform_indices:
+            if idx < 0 or idx >= len(transforms):
+                raise IndexError(f"Índice de transform fuera de rango: {idx}")
+
+            transform_entry = transforms[idx]
+            dim_change = transform_entry.get("dimensionality_change", {})
+
+            # Crear diccionario de metadatos con estructura estándar
+            metadata = {
+                "output_axes_semantics": dim_change.get("output_axes_semantics", {}),
+                "output_shape": dim_change.get("output_shape"),
+                "input_shape": dim_change.get("input_shape"),
+                "standardized_to": dim_change.get("standardized_to"),
+                "transposed_from_input": dim_change.get("transposed_from_input"),
+                "orig_was_1d": dim_change.get("orig_was_1d"),
+            }
+            metadata_list.append(metadata)
+
+        return metadata_list
+
     # ----------------------------- I/O Helpers -----------------------------
     @staticmethod
     def _load_labels_scalar(paths: Sequence[str]) -> NDArray:
@@ -191,10 +240,21 @@ class SVNN(Classifier):
         instance: "SVNN",
         x_paths: Sequence[str],
         y_paths: Sequence[str],
+        metadata_list: Optional[Sequence[dict]] = None,
     ) -> Tuple[NDArray, NDArray]:
         """
         - X: cada .npy -> vector 1D según input_adapter.
         - y: un escalar por archivo (.npy).
+
+        Args:
+            instance: Instancia de SVNN con configuración
+            x_paths: Rutas a archivos .npy con features
+            y_paths: Rutas a archivos .npy con etiquetas
+            metadata_list: Lista opcional de metadatos (actualmente no se usa, el InputAdapter maneja todo)
+
+        Note:
+            El InputAdapter ya maneja la transformación de datos arbitrarios a vectores 1D,
+            por lo que los metadatos son opcionales y solo informativos.
         """
         if len(x_paths) != len(y_paths):
             raise ValueError("x_paths y y_paths deben tener la misma longitud.")
@@ -213,183 +273,499 @@ class SVNN(Classifier):
         yTest: List[str],
         xTrain: List[str],
         yTrain: List[str],
+        metadata_train: Optional[Sequence[dict]] = None,
+        metadata_test: Optional[Sequence[dict]] = None,
     ):
         """
-        Entrenamiento real con PyTorch si está disponible; de lo contrario, imprime simulación.
-        - Infiero input_dim del primer batch de X.
-        - Si las clases reales difieren de 'classification_units', ajusto a max(y)+1.
+        Entrenamiento con TensorFlow/Keras.
+        - Infiere input_dim del primer batch de X.
+        - Si las clases reales difieren de 'classification_units', ajusta a max(y)+1.
+
+        Args:
+            instance: Instancia de SVNN con configuración
+            xTest: Rutas a archivos .npy de test
+            yTest: Rutas a etiquetas de test
+            xTrain: Rutas a archivos .npy de entrenamiento
+            yTrain: Rutas a etiquetas de entrenamiento
+            metadata_train: Metadatos opcionales para datos de entrenamiento
+            metadata_test: Metadatos opcionales para datos de test
+
+        Returns:
+            EvaluationMetrics con todas las métricas computadas
+
+        Ejemplo:
+            # Con metadatos
+            experiment = Experiment._load_latest_experiment()
+            metadata = SVNN.extract_metadata_from_experiment(experiment.dict())
+            metrics = SVNN.train(model, xTest, yTest, xTrain, yTrain,
+                               metadata_train=metadata, metadata_test=metadata)
         """
-        # 1) Datos
-        Xtr, ytr = cls._prepare_xy(instance, xTrain, yTrain)
-        Xte, yte = cls._prepare_xy(instance, xTest, yTest)
+        import tensorflow as tf
+        from tensorflow import keras
+        from tensorflow.keras import layers, regularizers
+
+        # 1) Preparar datos
+        Xtr, ytr = cls._prepare_xy(instance, xTrain, yTrain, metadata_train)
+        Xte, yte = cls._prepare_xy(instance, xTest, yTest, metadata_test)
 
         in_dim = int(Xtr.shape[1])
         n_classes = int(max(int(ytr.max()), int(yte.max()))) + 1
         out_dim = max(n_classes, int(instance.classification_units))
 
-        # 2) Construcción del modelo
+        # 2) Construcción del modelo con TensorFlow/Keras
+        model_layers = []
+        d_in = in_dim
+
+        # Capas ocultas según instance.layers
+        for i, lyr in enumerate(instance.layers):
+            # Configurar regularizador si se especifica
+            reg = None
+            if lyr.kernel_regularizer:
+                if lyr.kernel_regularizer.lower() == "l2":
+                    reg = regularizers.l2(lyr.regularizer_value)
+                elif lyr.kernel_regularizer.lower() == "l1":
+                    reg = regularizers.l1(lyr.regularizer_value)
+                elif lyr.kernel_regularizer.lower() == "l1_l2":
+                    reg = regularizers.l1_l2(l1=lyr.regularizer_value, l2=lyr.regularizer_value)
+
+            # Capa Dense
+            model_layers.append(
+                layers.Dense(
+                    units=lyr.units,
+                    use_bias=True,
+                    kernel_initializer=lyr.kernel_initializer,
+                    bias_initializer=lyr.bias_initializer,
+                    kernel_regularizer=reg,
+                    name=f"dense_{i}"
+                )
+            )
+            d_in = lyr.units
+
+            # BatchNormalization si se solicita
+            if lyr.batchnorm:
+                model_layers.append(layers.BatchNormalization(name=f"bn_{i}"))
+
+            # Activación
+            a = lyr.activation.kind
+            if a == "relu":
+                model_layers.append(layers.ReLU(name=f"relu_{i}"))
+            elif a == "tanh":
+                model_layers.append(layers.Activation("tanh", name=f"tanh_{i}"))
+            elif a == "gelu":
+                model_layers.append(layers.Activation("gelu", name=f"gelu_{i}"))
+            elif a == "sigmoid":
+                model_layers.append(layers.Activation("sigmoid", name=f"sigmoid_{i}"))
+            elif a == "linear":
+                pass  # Sin activación
+            elif a == "softmax":
+                # No aplicar softmax en capas intermedias
+                pass
+
+            # Dropout si se solicita
+            if lyr.dropout > 0:
+                model_layers.append(layers.Dropout(rate=float(lyr.dropout), name=f"dropout_{i}"))
+
+        # Capa de salida
+        model_layers.append(
+            layers.Dense(
+                units=out_dim,
+                activation="softmax",
+                kernel_initializer="glorot_uniform",
+                name="output"
+            )
+        )
+
+        # Construir modelo secuencial
+        model = keras.Sequential(model_layers, name="SVNN_MLP")
+
+        # 3) Compilar modelo
+        model.compile(
+            optimizer=keras.optimizers.Adam(learning_rate=float(instance.learning_rate)),
+            loss="sparse_categorical_crossentropy",
+            metrics=["accuracy"]
+        )
+
+        # 4) Entrenamiento
+        history = model.fit(
+            Xtr, ytr,
+            batch_size=int(instance.batch_size),
+            epochs=int(instance.epochs),
+            validation_data=(Xte, yte),
+            verbose=0
+        )
+
+        # Extraer pérdidas de entrenamiento por época
+        train_losses = [float(loss) for loss in history.history["loss"]]
+
+        # 5) Evaluación + métricas completas
+        t0 = time.perf_counter()
+
+        # Predicciones y probabilidades
+        y_proba = model.predict(Xte, batch_size=max(64, int(instance.batch_size)), verbose=0)
+        y_pred = np.argmax(y_proba, axis=1)
+        y_true = yte
+
+        eval_seconds = time.perf_counter() - t0
+
+        # Métricas básicas
+        acc = float(accuracy_score(y_true, y_pred))
+        prec = float(precision_score(y_true, y_pred, average="weighted", zero_division=0))
+        rec = float(recall_score(y_true, y_pred, average="weighted", zero_division=0))
+        f1 = float(f1_score(y_true, y_pred, average="weighted", zero_division=0))
+        cm = confusion_matrix(y_true, y_pred).tolist()
+
+        # AUC-ROC (binario/multiclase usando softmax y OVR)
         try:
-            import torch
-            import torch.nn as nn
-            import torch.optim as optim
-            from torch.utils.data import TensorDataset, DataLoader
+            auc = float(roc_auc_score(y_true, y_proba, multi_class="ovr", average="weighted"))
+        except Exception:
+            auc = 0.0
 
-            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        metrics = EvaluationMetrics(
+            accuracy=acc,
+            precision=prec,
+            recall=rec,
+            f1_score=f1,
+            confusion_matrix=cm,
+            auc_roc=auc,
+            loss=train_losses,
+            evaluation_time=f"{eval_seconds:.4f}s",
+        )
 
-            class MLP(nn.Module):
-                def __init__(self):
-                    super().__init__()
-                    seq = []
-                    d_in = in_dim
-                    # Capas ocultas declarativas
-                    for lyr in instance.layers:
-                        seq.append(nn.Linear(d_in, lyr.units, bias=True))
-                        if lyr.batchnorm:
-                            seq.append(nn.BatchNorm1d(lyr.units))
-                        # activación
-                        a = lyr.activation.kind
-                        if a == "relu":
-                            seq.append(nn.ReLU(inplace=True))
-                        elif a == "tanh":
-                            seq.append(nn.Tanh())
-                        elif a == "gelu":
-                            seq.append(nn.GELU())
-                        elif a == "sigmoid":
-                            seq.append(nn.Sigmoid())
-                        elif a == "linear":
-                            pass
-                        elif a == "softmax":
-                            # no aplicar softmax en intermedia; lo añadiremos al final con CE loss
-                            pass
-                        if lyr.dropout > 0:
-                            seq.append(nn.Dropout(p=float(lyr.dropout)))
-                        d_in = lyr.units
-                    # Capa de salida
-                    seq.append(nn.Linear(d_in, out_dim, bias=True))
-                    self.net = nn.Sequential(*seq)
-
-                def forward(self, x):
-                    return self.net(x)
-
-            net = MLP().to(device)
-            opt = optim.Adam(net.parameters(), lr=float(instance.learning_rate))
-            crit = torch.nn.CrossEntropyLoss()
-
-            # DataLoaders
-            tr = TensorDataset(
-                torch.tensor(Xtr, dtype=torch.float32),
-                torch.tensor(ytr, dtype=torch.long),
-            )
-            te = TensorDataset(
-                torch.tensor(Xte, dtype=torch.float32),
-                torch.tensor(yte, dtype=torch.long),
-            )
-            dl_tr = DataLoader(tr, batch_size=int(instance.batch_size), shuffle=True)
-            dl_te = DataLoader(te, batch_size=max(64, int(instance.batch_size)), shuffle=False)
-
-            # 3) Entrenamiento
-           # 3) Entrenamiento (registrar pérdida por época)
-            train_losses: List[float] = []
-
-            net.train()
-            for _ in range(int(instance.epochs)):
-                epoch_loss = 0.0
-                n_batches = 0
-                for xb, yb in dl_tr:
-                    xb, yb = xb.to(device), yb.to(device)
-                    opt.zero_grad()
-                    logits = net(xb)
-                    loss = crit(logits, yb)
-                    loss.backward()
-                    opt.step()
-                    epoch_loss += float(loss.item())
-                    n_batches += 1
-                train_losses.append(epoch_loss / max(1, n_batches))
+        print(f"[SVNN] Acc={acc:.3f} F1={f1:.3f} AUC={auc:.3f}")
+        return metrics
 
 
-           # 4) Evaluación + métricas completas
-            t0 = time.perf_counter()
-
-            net.eval()
-            all_logits = []
-            all_preds = []
-            all_targets = []
-            with torch.no_grad():
-                for xb, yb in dl_te:
-                    xb, yb = xb.to(device), yb.to(device)
-                    logits = net(xb)                         # (B, out_dim)
-                    pred = torch.argmax(logits, dim=1)       # (B,)
-                    all_logits.append(logits.cpu().numpy())
-                    all_preds.append(pred.cpu().numpy())
-                    all_targets.append(yb.cpu().numpy())
-
-            eval_seconds = time.perf_counter() - t0
-
-            import numpy as np
-            y_pred = np.concatenate(all_preds, axis=0)
-            y_true = np.concatenate(all_targets, axis=0)
-
-            # Métricas básicas
-            acc  = float(accuracy_score(y_true, y_pred))
-            prec = float(precision_score(y_true, y_pred, average="weighted", zero_division=0))
-            rec  = float(recall_score(y_true, y_pred, average="weighted", zero_division=0))
-            f1   = float(f1_score(y_true, y_pred, average="weighted", zero_division=0))
-            cm   = confusion_matrix(y_true, y_pred).tolist()
-
-            # AUC-ROC (binario/multiclase usando softmax y OVR)
-            try:
-                logits = np.concatenate(all_logits, axis=0)               # (N, out_dim)
-                exps   = np.exp(logits - logits.max(axis=1, keepdims=True))
-                proba  = exps / (exps.sum(axis=1, keepdims=True) + 1e-12) # (N, out_dim)
-                auc = float(roc_auc_score(y_true, proba, multi_class="ovr", average="weighted"))
-            except Exception:
-                auc = 0.0
-
-            metrics = EvaluationMetrics(
-                accuracy=acc,
-                precision=prec,
-                recall=rec,
-                f1_score=f1,
-                confusion_matrix=cm,
-                auc_roc=auc,
-                loss=train_losses,                                 # curva de pérdida por época
-                evaluation_time=f"{eval_seconds:.4f}s",
-            )
-
-            print(f"[SVNN] Acc={acc:.3f} F1={f1:.3f} AUC={auc:.3f}")
-            return metrics
-
-
-        except Exception as e:
-            print(f"[SVNN] PyTorch no disponible o error: {e}")
-
-            metrics = EvaluationMetrics(
-                accuracy=0.0,
-                precision=0.0,
-                recall=0.0,
-                f1_score=0.0,
-                confusion_matrix=[],
-                auc_roc=0.0,
-                loss=[],
-                evaluation_time="",
-            )
-            return metrics
-
-
-# ========= Ejemplo de uso =========
+# ========================================
+# EJEMPLOS COMPREHENSIVOS DE USO
+# ========================================
 """
-model = SVNN(
+La clase SVNN (Shallow Vector Neural Network) implementa una red neuronal totalmente
+conectada (MLP) para clasificación de EEG. Soporta arquitecturas personalizables con
+múltiples capas Dense, regularización, BatchNorm y diferentes activaciones.
+
+NUEVO: Soporta metadatos de dimensionality_change para interpretación flexible de datos.
+
+# ------------------------------------------------------------------------------
+# Ejemplo 1: Configuración básica con capas por defecto
+# ------------------------------------------------------------------------------
+model_basic = SVNN(
+    learning_rate=0.001,
+    epochs=50,
+    batch_size=32,
+    classification_units=2,
+    input_adapter=InputAdapter(reduce_3d="flatten", scale="standard")
+)
+# Usa 2 capas con hidden_size=64 por defecto
+
+metrics = SVNN.train(
+    model_basic,
+    xTest=['test1.npy', 'test2.npy'],
+    yTest=['label1.npy', 'label2.npy'],
+    xTrain=['train1.npy', 'train2.npy'],
+    yTrain=['label_train1.npy', 'label_train2.npy']
+)
+
+# ------------------------------------------------------------------------------
+# Ejemplo 2: Arquitectura personalizada con regularización L2
+# ------------------------------------------------------------------------------
+model_regularized = SVNN(
     learning_rate=5e-4,
     epochs=80,
     batch_size=64,
     layers=[
-        DenseLayer(units=256, activation=ActivationFunction(kind="relu"), dropout=0.3, batchnorm=True),
-        DenseLayer(units=128, activation=ActivationFunction(kind="gelu"), dropout=0.2, batchnorm=False),
-        DenseLayer(units=64,  activation=ActivationFunction(kind="tanh"), dropout=0.0, batchnorm=False),
+        DenseLayer(
+            units=256,
+            activation=ActivationFunction(kind="relu"),
+            dropout=0.3,
+            batchnorm=True,
+            kernel_initializer="glorot_uniform",
+            bias_initializer="zeros",
+            kernel_regularizer="l2",
+            regularizer_value=0.01
+        ),
+        DenseLayer(
+            units=128,
+            activation=ActivationFunction(kind="relu"),
+            dropout=0.2,
+            batchnorm=True,
+            kernel_regularizer="l2",
+            regularizer_value=0.01
+        ),
+        DenseLayer(
+            units=64,
+            activation=ActivationFunction(kind="relu"),
+            dropout=0.1,
+            kernel_regularizer="l2",
+            regularizer_value=0.005
+        ),
     ],
-    fc_activation_common=ActivationFunction(kind="relu"),   # se impone a las capas que no pidan algo especial
-    classification_units=7,
-    input_adapter=InputAdapter(reduce_3d="mean_time_flat", scale="standard", allow_mixed_dims=True),
+    classification_units=4,
+    input_adapter=InputAdapter(reduce_3d="flatten", scale="standard")
 )
-# acc = SVNN.train(model, xTest=[...], yTest=[...], xTrain=[...], yTrain=[...])
+
+# ------------------------------------------------------------------------------
+# Ejemplo 3: Arquitectura profunda con GELU y BatchNorm
+# ------------------------------------------------------------------------------
+model_deep = SVNN(
+    learning_rate=1e-3,
+    epochs=100,
+    batch_size=32,
+    layers=[
+        DenseLayer(units=512, activation=ActivationFunction(kind="gelu"),
+                   dropout=0.4, batchnorm=True, kernel_regularizer="l2", regularizer_value=0.02),
+        DenseLayer(units=256, activation=ActivationFunction(kind="gelu"),
+                   dropout=0.3, batchnorm=True, kernel_regularizer="l2", regularizer_value=0.02),
+        DenseLayer(units=128, activation=ActivationFunction(kind="gelu"),
+                   dropout=0.2, batchnorm=True, kernel_regularizer="l2", regularizer_value=0.01),
+        DenseLayer(units=64, activation=ActivationFunction(kind="relu"),
+                   dropout=0.1, batchnorm=False),
+        DenseLayer(units=32, activation=ActivationFunction(kind="relu"),
+                   dropout=0.0, batchnorm=False),
+    ],
+    classification_units=7,
+    input_adapter=InputAdapter(reduce_3d="flatten", scale="standard", allow_mixed_dims=True)
+)
+
+# ------------------------------------------------------------------------------
+# Ejemplo 4: Uso con metadatos de Experiment (recomendado)
+# ------------------------------------------------------------------------------
+from backend.classes.Experiment import Experiment
+
+# Cargar experimento y extraer metadatos
+experiment = Experiment._load_latest_experiment()
+metadata = SVNN.extract_metadata_from_experiment(experiment.dict())
+
+model_metadata = SVNN(
+    learning_rate=0.001,
+    epochs=60,
+    batch_size=64,
+    layers=[
+        DenseLayer(units=256, activation=ActivationFunction(kind="relu"),
+                   dropout=0.3, batchnorm=True),
+        DenseLayer(units=128, activation=ActivationFunction(kind="relu"),
+                   dropout=0.2, batchnorm=True),
+        DenseLayer(units=64, activation=ActivationFunction(kind="tanh"),
+                   dropout=0.1),
+    ],
+    classification_units=5,
+    input_adapter=InputAdapter(reduce_3d="mean_time_flat", scale="standard")
+)
+
+# Entrenar con metadatos (input_adapter maneja la transformación)
+metrics = SVNN.train(
+    model_metadata,
+    xTest=['test1.npy', 'test2.npy'],
+    yTest=['label1.npy', 'label2.npy'],
+    xTrain=['train1.npy', 'train2.npy'],
+    yTrain=['label_train1.npy', 'label_train2.npy'],
+    metadata_train=metadata,
+    metadata_test=metadata
+)
+
+# ------------------------------------------------------------------------------
+# Ejemplo 5: Reducción mean_time_flat para espectrogramas
+# ------------------------------------------------------------------------------
+model_spectrogram = SVNN(
+    learning_rate=0.001,
+    epochs=70,
+    batch_size=32,
+    layers=[
+        DenseLayer(units=512, activation=ActivationFunction(kind="relu"),
+                   dropout=0.4, batchnorm=True, kernel_initializer="he_normal"),
+        DenseLayer(units=256, activation=ActivationFunction(kind="relu"),
+                   dropout=0.3, batchnorm=True, kernel_initializer="he_normal"),
+        DenseLayer(units=128, activation=ActivationFunction(kind="relu"),
+                   dropout=0.2),
+    ],
+    classification_units=3,
+    input_adapter=InputAdapter(
+        reduce_3d="mean_time_flat",  # Promedio sobre tiempo, luego flatten
+        scale="standard",
+        allow_mixed_dims=False
+    )
+)
+
+# ------------------------------------------------------------------------------
+# Ejemplo 6: Regularización L1 para selección de features
+# ------------------------------------------------------------------------------
+model_l1 = SVNN(
+    learning_rate=0.001,
+    epochs=80,
+    batch_size=64,
+    layers=[
+        DenseLayer(
+            units=256,
+            activation=ActivationFunction(kind="relu"),
+            dropout=0.3,
+            batchnorm=True,
+            kernel_regularizer="l1",  # L1 para sparsity
+            regularizer_value=0.01
+        ),
+        DenseLayer(
+            units=128,
+            activation=ActivationFunction(kind="relu"),
+            dropout=0.2,
+            kernel_regularizer="l1",
+            regularizer_value=0.005
+        ),
+        DenseLayer(
+            units=64,
+            activation=ActivationFunction(kind="relu"),
+            dropout=0.1
+        ),
+    ],
+    classification_units=4,
+    input_adapter=InputAdapter(reduce_3d="flatten", scale="standard")
+)
+
+# ------------------------------------------------------------------------------
+# Ejemplo 7: Combinación L1+L2 (ElasticNet)
+# ------------------------------------------------------------------------------
+model_elastic = SVNN(
+    learning_rate=5e-4,
+    epochs=100,
+    batch_size=32,
+    layers=[
+        DenseLayer(
+            units=512,
+            activation=ActivationFunction(kind="relu"),
+            dropout=0.4,
+            batchnorm=True,
+            kernel_regularizer="l1_l2",  # Combinación L1 y L2
+            regularizer_value=0.01
+        ),
+        DenseLayer(
+            units=256,
+            activation=ActivationFunction(kind="relu"),
+            dropout=0.3,
+            batchnorm=True,
+            kernel_regularizer="l1_l2",
+            regularizer_value=0.01
+        ),
+        DenseLayer(
+            units=128,
+            activation=ActivationFunction(kind="relu"),
+            dropout=0.2,
+            batchnorm=False
+        ),
+    ],
+    classification_units=6,
+    input_adapter=InputAdapter(reduce_3d="flatten", scale="standard")
+)
+
+# ------------------------------------------------------------------------------
+# Ejemplo 8: Modelo pequeño y rápido con Tanh
+# ------------------------------------------------------------------------------
+model_small = SVNN(
+    learning_rate=0.01,  # Learning rate más alto para convergencia rápida
+    epochs=30,
+    batch_size=128,
+    layers=[
+        DenseLayer(units=128, activation=ActivationFunction(kind="tanh"),
+                   dropout=0.2, batchnorm=True),
+        DenseLayer(units=64, activation=ActivationFunction(kind="tanh"),
+                   dropout=0.1),
+    ],
+    classification_units=2,
+    input_adapter=InputAdapter(reduce_3d="flatten", scale="standard")
+)
+
+# ------------------------------------------------------------------------------
+# Ejemplo 9: Arquitectura con activaciones mixtas
+# ------------------------------------------------------------------------------
+model_mixed = SVNN(
+    learning_rate=0.001,
+    epochs=60,
+    batch_size=64,
+    layers=[
+        DenseLayer(units=256, activation=ActivationFunction(kind="gelu"),
+                   dropout=0.3, batchnorm=True, kernel_initializer="he_normal"),
+        DenseLayer(units=128, activation=ActivationFunction(kind="relu"),
+                   dropout=0.2, batchnorm=True, kernel_initializer="glorot_uniform"),
+        DenseLayer(units=64, activation=ActivationFunction(kind="tanh"),
+                   dropout=0.1, kernel_initializer="glorot_uniform"),
+        DenseLayer(units=32, activation=ActivationFunction(kind="sigmoid"),
+                   dropout=0.0),
+    ],
+    classification_units=5,
+    input_adapter=InputAdapter(reduce_3d="mean_time_flat", scale="standard")
+)
+
+# ------------------------------------------------------------------------------
+# Ejemplo 10: Reducción mean_all para feature escalar por muestra
+# ------------------------------------------------------------------------------
+model_scalar = SVNN(
+    learning_rate=0.01,
+    epochs=50,
+    batch_size=64,
+    layers=[
+        DenseLayer(units=64, activation=ActivationFunction(kind="relu"),
+                   dropout=0.2, batchnorm=True),
+        DenseLayer(units=32, activation=ActivationFunction(kind="relu"),
+                   dropout=0.1),
+    ],
+    classification_units=3,
+    input_adapter=InputAdapter(
+        reduce_3d="mean_all",  # Promedia todo a un escalar
+        scale="standard",
+        allow_mixed_dims=False
+    )
+)
+
+# ------------------------------------------------------------------------------
+# Ejemplo 11: Modelo sin regularización para datasets pequeños
+# ------------------------------------------------------------------------------
+model_no_reg = SVNN(
+    learning_rate=0.001,
+    epochs=100,
+    batch_size=16,  # Batch pequeño para datasets limitados
+    layers=[
+        DenseLayer(units=128, activation=ActivationFunction(kind="relu"),
+                   dropout=0.0, batchnorm=False),  # Sin dropout ni batchnorm
+        DenseLayer(units=64, activation=ActivationFunction(kind="relu"),
+                   dropout=0.0, batchnorm=False),
+        DenseLayer(units=32, activation=ActivationFunction(kind="relu"),
+                   dropout=0.0, batchnorm=False),
+    ],
+    classification_units=2,
+    input_adapter=InputAdapter(reduce_3d="flatten", scale="standard")
+)
+
+# ------------------------------------------------------------------------------
+# Ejemplo 12: Configuración para datos de dimensiones mixtas
+# ------------------------------------------------------------------------------
+model_mixed_dims = SVNN(
+    learning_rate=0.001,
+    epochs=60,
+    batch_size=32,
+    layers=[
+        DenseLayer(units=256, activation=ActivationFunction(kind="relu"),
+                   dropout=0.3, batchnorm=True),
+        DenseLayer(units=128, activation=ActivationFunction(kind="relu"),
+                   dropout=0.2, batchnorm=True),
+        DenseLayer(units=64, activation=ActivationFunction(kind="relu"),
+                   dropout=0.1),
+    ],
+    classification_units=4,
+    input_adapter=InputAdapter(
+        reduce_3d="flatten",
+        scale="standard",
+        allow_mixed_dims=True  # Permite muestras de diferentes tamaños (padding automático)
+    )
+)
+
+# ------------------------------------------------------------------------------
+# NOTAS IMPORTANTES
+# ------------------------------------------------------------------------------
+# 1. InputAdapter maneja la transformación de datos arbitrarios (1D, 2D, 3D) a vectores 1D
+# 2. reduce_3d controla cómo se reduce un tensor 3D:
+#    - "flatten": Aplana todo (N, H, W) -> (N, H*W)
+#    - "mean_time_flat": Promedio sobre eje 0 (tiempo), luego flatten
+#    - "mean_all": Reduce todo a un escalar por muestra
+# 3. Los metadatos son opcionales; InputAdapter usa heurísticas internas
+# 4. kernel_regularizer soporta: "l1", "l2", "l1_l2" (ElasticNet)
+# 5. kernel_initializer soporta: "glorot_uniform", "he_normal", "glorot_normal", etc.
+# 6. SVNN ahora usa TensorFlow/Keras en lugar de PyTorch
+# 7. BatchNormalization se aplica antes de la activación si batchnorm=True
+# 8. Dropout se aplica después de la activación
 """
