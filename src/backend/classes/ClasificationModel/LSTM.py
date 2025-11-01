@@ -10,6 +10,7 @@ PoolName = Literal["last", "mean", "max", "attn"]
 import time
 
 from backend.classes.Metrics import EvaluationMetrics
+from backend.classes.ClasificationModel.utils.RecurrentModelDataUtils import RecurrentModelDataUtils
 
 from sklearn.metrics import (
     accuracy_score,
@@ -258,38 +259,40 @@ class LSTMNet(BaseModel):
     @staticmethod
     def _load_sequence(path: str, metadata: Optional[dict] = None) -> NDArray:
         """
-        Espera .npy (T,F) o (F,T). Devuelve (T,F) float32.
+        Carga secuencia desde archivo .npy usando RecurrentModelDataUtils.
+
+        Wrapper que agrega interpretación de metadatos específica de LSTM.
 
         Args:
             path: Ruta al archivo .npy
-            metadata: Diccionario opcional con metadatos de dimensionality_change.
-                     Si se proporciona, usa la información semántica para determinar orientación.
-                     Si no, usa heurística (T < F => transpone).
-        """
-        X = np.load(path, allow_pickle=True)
-        if X.ndim != 2:
-            raise ValueError(f"Secuencia inválida en {path}: se esperaba 2D.")
+            metadata: Diccionario opcional con metadatos de dimensionality_change
 
-        # Determinar si necesita transposición
-        if metadata and (metadata.get("output_axes_semantics") or metadata.get("output_shape")):
+        Returns:
+            Array 2D de forma (T, F)
+        """
+        # Cargar usando utilidades compartidas
+        X = RecurrentModelDataUtils.load_sequence(path, metadata, model_name="LSTM")
+
+        # Si hay metadatos 2D, aplicar interpretación específica de LSTM
+        if X.ndim == 2 and metadata and (metadata.get("output_axes_semantics") or metadata.get("output_shape")):
             _, needs_transpose = LSTMNet._interpret_metadata(metadata)
             if needs_transpose:
                 X = X.T
-        else:
-            # Fallback: heurística tradicional
-            T, F = X.shape
-            if T < F:  # si viene (F,T), trasponemos para (T,F)
-                X = X.T
 
-        return X.astype(np.float32, copy=False)
+        return X
 
     @staticmethod
     def _load_label_scalar(path: str) -> int:
-        y = np.load(path, allow_pickle=True)
-        y = np.array(y).reshape(-1)
-        if y.size != 1:
-            raise ValueError(f"Etiqueta inválida en {path}: se esperaba escalar.")
-        return int(y[0])
+        """
+        Carga etiqueta escalar usando RecurrentModelDataUtils.
+
+        Args:
+            path: Ruta al archivo .npy con etiquetas
+
+        Returns:
+            Etiqueta más frecuente (moda) como entero
+        """
+        return RecurrentModelDataUtils.load_label_scalar(path)
 
     @classmethod
     def _prepare_sequences_and_labels(
@@ -300,6 +303,8 @@ class LSTMNet(BaseModel):
         metadata_list: Optional[Sequence[dict]] = None,
     ):
         """
+        Prepara secuencias y etiquetas usando RecurrentModelDataUtils.
+
         Devuelve:
           - sequences: lista de arrays (Ti, F)
           - lengths: (N,) int64
@@ -310,36 +315,14 @@ class LSTMNet(BaseModel):
             y_paths: Rutas a archivos .npy con etiquetas
             pad_value: Valor de padding para secuencias variables
             metadata_list: Lista opcional de diccionarios con metadatos de dimensionality_change.
-                          Si se proporciona, debe tener la misma longitud que x_paths.
         """
-        if len(x_paths) != len(y_paths):
-            raise ValueError("x_paths y y_paths deben tener la misma longitud.")
-
-        # Si no hay metadatos, crear lista vacía
-        if metadata_list is None:
-            metadata_list = [{} for _ in x_paths]
-        elif len(metadata_list) != len(x_paths):
-            raise ValueError(f"metadata_list debe tener la misma longitud que x_paths. "
-                           f"Recibido {len(metadata_list)} vs {len(x_paths)}")
-
-        sequences: List[NDArray] = []
-        lengths: List[int] = []
-        labels: List[int] = []
-        F_ref: Optional[int] = None
-
-        for xp, yp, meta in zip(x_paths, y_paths, metadata_list):
-            X = cls._load_sequence(xp, metadata=meta)     # (T, F)
-            y = cls._load_label_scalar(yp) # escalar
-            if F_ref is None:
-                F_ref = int(X.shape[1])
-            elif int(X.shape[1]) != F_ref:
-                raise ValueError(f"Dim de características inconsistente: {xp} F={X.shape[1]} vs F_ref={F_ref}")
-            sequences.append(X)
-            lengths.append(int(X.shape[0]))
-            labels.append(int(y))
-
-        import numpy as _np
-        return sequences, _np.array(lengths, dtype=_np.int64), _np.array(labels, dtype=_np.int64)
+        return RecurrentModelDataUtils.prepare_sequences_and_labels(
+            x_paths=x_paths,
+            y_paths=y_paths,
+            pad_value=pad_value,
+            metadata_list=metadata_list,
+            load_sequence_func=cls._load_sequence  # Usa la versión LSTM con interpretación de metadatos
+        )
 
     # =================================================================================
     # Entrenamiento: TensorFlow/Keras con soporte de metadatos

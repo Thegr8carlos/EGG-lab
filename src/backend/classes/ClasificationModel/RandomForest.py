@@ -53,17 +53,90 @@ class RandomForest(Classifier):
         y_paths: Sequence[str],
     ) -> Tuple[NDArray, NDArray]:
         """
-        Carga y concatena X e y desde listas de rutas .npy.
-        - X: (n_samples, n_features)
-        - y: 1D o (n_samples, 1) -> se aplana a 1D.
+        Carga y prepara datos para RandomForest.
+
+        Regla de negocio estándar:
+        - Las transformadas generan datos 3D: (n_samples, time_steps, features, channels)
+          o más comúnmente por muestra individual: (time_steps, features, channels)
+        - Las etiquetas son por frame: (n_samples, n_frames) o por muestra: (n_frames,)
+
+        Procesamiento:
+        1. Datos 3D → Aplanar a 2D (n_samples, time_steps * features * channels)
+        2. Etiquetas por frame → Moda por muestra
+
+        Returns:
+            X: (n_samples, n_features_totales)
+            y: (n_samples,) con etiqueta por muestra (moda de frames)
         """
-        X = _load_and_concat(x_paths)
-        y = _load_and_concat(y_paths)
-        y = np.ravel(y)
+        from collections import Counter
+
+        # Cargar y procesar datos X
+        X_list = []
+        for x_path in x_paths:
+            X_sample = np.load(x_path, allow_pickle=False)
+
+            # Caso 3D: (time_steps, features_per_step, channels)
+            # Aplanar a 1D: time_steps * features_per_step * channels
+            if X_sample.ndim == 3:
+                X_sample = X_sample.reshape(-1)  # Aplanar completamente
+
+            # Caso 2D: (time_steps, features)
+            # Aplanar a 1D
+            elif X_sample.ndim == 2:
+                X_sample = X_sample.reshape(-1)
+
+            # Caso 1D: ya está aplanado
+            elif X_sample.ndim == 1:
+                pass
+
+            else:
+                raise ValueError(f"Datos con dimensionalidad no soportada: {X_sample.ndim}D en {x_path}")
+
+            X_list.append(X_sample)
+
+        # Concatenar todas las muestras
+        X = np.vstack(X_list) if len(X_list) > 1 else X_list[0].reshape(1, -1)
+
+        # Cargar y procesar etiquetas y
+        y_list = []
+        for y_path in y_paths:
+            y_sample = np.load(y_path, allow_pickle=True)
+            y_sample = np.array(y_sample).reshape(-1)
+
+            if y_sample.size == 0:
+                raise ValueError(f"Etiqueta vacía en {y_path}")
+
+            # Caso 1: Etiqueta escalar
+            if y_sample.size == 1:
+                y_list.append(int(y_sample[0]))
+
+            # Caso 2: Array de etiquetas por frame (estándar)
+            # Calcular moda
+            else:
+                # Convertir a int si es posible
+                y_clean = []
+                for val in y_sample:
+                    try:
+                        y_clean.append(int(val))
+                    except (ValueError, TypeError):
+                        y_clean.append(str(val))
+
+                # Calcular moda
+                counts = Counter(y_clean)
+                most_common_label = counts.most_common(1)[0][0]
+
+                try:
+                    y_list.append(int(most_common_label))
+                except (ValueError, TypeError):
+                    raise ValueError(f"La moda de las etiquetas en {y_path} no es un entero válido: {most_common_label}")
+
+        y = np.array(y_list, dtype=np.int64)
+
         if X.shape[0] != y.shape[0]:
             raise ValueError(
                 f"X and y length mismatch: X={X.shape[0]} vs y={y.shape[0]}"
             )
+
         return X, y
 
     @classmethod
