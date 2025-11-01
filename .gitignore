@@ -191,7 +191,6 @@ src/package-lock.json
 src/backend/classes/ClasificationModel/Test/
 
 
-src/backend/classes/FeatureExtracture/WindowingTransform.py
 src/test_classifier_instances.py
 src/test_classifier_instances_complete.json
 src/test_instances_results.json
@@ -200,3 +199,4 @@ src/test_schemas.py
 src/test_schemas_results.json
 test_classifier_instances_complete.json
 test_instances_results.json
+DOCUMENTACION_TESTS.md

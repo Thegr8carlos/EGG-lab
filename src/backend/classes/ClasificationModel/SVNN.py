@@ -221,18 +221,47 @@ class SVNN(Classifier):
     @staticmethod
     def _load_labels_scalar(paths: Sequence[str]) -> NDArray:
         """
-        Carga y valida etiquetas escalares (1 por archivo). Devuelve (N,) int64.
+        Carga etiquetas para clasificación por archivo.
+        Acepta:
+        - escalar ((), (1,)) -> se usa directo
+        - vector (n_frames,) -> se usa la MODA (etiqueta más frecuente)
+        Devuelve (N,) int64
         """
+        from collections import Counter
         ys: List[int] = []
+
         for p in paths:
             if (not os.path.exists(p)) or (not p.endswith(".npy")):
                 raise FileNotFoundError(f"Archivo de etiqueta inválido: {p}")
+
             y = np.load(p, allow_pickle=True)
             y = np.array(y).reshape(-1)
-            if y.size != 1:
-                raise ValueError(f"Etiqueta inválida en {p}: se esperaba escalar.")
-            ys.append(int(y[0]))
+
+            if y.size == 0:
+                raise ValueError(f"Etiqueta inválida en {p}: array vacío.")
+
+            if y.size == 1:
+                ys.append(int(y[0]))
+                continue
+
+            # Vector por frame -> moda
+            cleaned = []
+            for val in y:
+                try:
+                    cleaned.append(int(val))
+                except (ValueError, TypeError):
+                    cleaned.append(str(val))
+
+            most_common_label = Counter(cleaned).most_common(1)[0][0]
+            try:
+                ys.append(int(most_common_label))
+            except (ValueError, TypeError):
+                raise ValueError(
+                    f"La moda de las etiquetas en {p} no es un entero válido: {most_common_label}"
+                )
+
         return np.array(ys, dtype=np.int64)
+
 
     @classmethod
     def _prepare_xy(

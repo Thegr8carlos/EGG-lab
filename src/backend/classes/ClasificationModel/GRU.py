@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field, field_validator
 import time
 
 from backend.classes.Metrics import EvaluationMetrics
+from backend.classes.ClasificationModel.utils.RecurrentModelDataUtils import RecurrentModelDataUtils
 
 from sklearn.metrics import (
     accuracy_score,
@@ -256,96 +257,7 @@ class GRUNet(BaseModel):
         # Fallback final
         return "time_first", False
 
-    # =================================================================================
-    # Dataset helpers: esperamos clasificación por SECUENCIA (una etiqueta por archivo)
-    # =================================================================================
-    @staticmethod
-    def _load_sequence(path: str, metadata: Optional[dict] = None) -> NDArray:
-        """
-        Espera .npy de forma (T, F) o (F, T). Devuelve (T, F) float32.
-
-        Args:
-            path: Ruta al archivo .npy
-            metadata: Diccionario opcional con metadatos de dimensionality_change.
-                     Si se proporciona, usa la información semántica para determinar orientación.
-                     Si no, usa heurística (T < F => transpone).
-        """
-        X = np.load(path, allow_pickle=True)
-        if X.ndim != 2:
-            raise ValueError(f"Secuencia inválida: {path} con ndim={X.ndim}; se esperaba 2D.")
-
-        # Determinar si necesita transposición
-        if metadata and (metadata.get("output_axes_semantics") or metadata.get("output_shape")):
-            _, needs_transpose = GRUNet._interpret_metadata(metadata)
-            if needs_transpose:
-                X = X.T
-        else:
-            # Fallback: heurística tradicional
-            T, F = X.shape
-            if T < F:  # suposición común cuando viene (F,T)
-                X = X.T
-
-        return X.astype(np.float32, copy=False)
-
-    @staticmethod
-    def _load_label_scalar(path: str) -> int:
-        """
-        Carga etiqueta escalar (int) desde .npy. Acepta (1,), (), o (n,) con n=1.
-        """
-        y = np.load(path, allow_pickle=True)
-        y = np.array(y).reshape(-1)
-        if y.size != 1:
-            raise ValueError(f"Etiqueta inválida en {path}: se esperaba escalar; recibido shape={y.shape}")
-        return int(y[0])
-
-    @classmethod
-    def _prepare_sequences_and_labels(
-        cls,
-        x_paths: Sequence[str],
-        y_paths: Sequence[str],
-        pad_value: float = 0.0,
-        metadata_list: Optional[Sequence[dict]] = None,
-    ) -> Tuple[List[NDArray], NDArray, NDArray]:
-        """
-        Devuelve:
-          - sequences: lista de arrays (Ti, F) con longitudes variables
-          - lengths: longitudes Ti (int64)
-          - y: etiquetas (N,) int64
-
-        Args:
-            x_paths: Rutas a archivos .npy con secuencias
-            y_paths: Rutas a archivos .npy con etiquetas
-            pad_value: Valor de padding para secuencias variables
-            metadata_list: Lista opcional de diccionarios con metadatos de dimensionality_change.
-                          Si se proporciona, debe tener la misma longitud que x_paths.
-        """
-        if len(x_paths) != len(y_paths):
-            raise ValueError("x_paths y y_paths deben tener la misma longitud (clasificación por secuencia).")
-
-        # Si no hay metadatos, crear lista vacía
-        if metadata_list is None:
-            metadata_list = [{} for _ in x_paths]
-        elif len(metadata_list) != len(x_paths):
-            raise ValueError(f"metadata_list debe tener la misma longitud que x_paths. "
-                           f"Recibido {len(metadata_list)} vs {len(x_paths)}")
-
-        sequences: List[NDArray] = []
-        lengths: List[int] = []
-        labels: List[int] = []
-        F_ref: Optional[int] = None
-
-        for xp, yp, meta in zip(x_paths, y_paths, metadata_list):
-            X = cls._load_sequence(xp, metadata=meta)     # (T, F)
-            y = cls._load_label_scalar(yp) # escalar
-            if F_ref is None:
-                F_ref = int(X.shape[1])
-            elif int(X.shape[1]) != F_ref:
-                raise ValueError(f"Dimensión de características inconsistente: {xp} tiene F={X.shape[1]} vs F_ref={F_ref}")
-            sequences.append(X)
-            lengths.append(int(X.shape[0]))
-            labels.append(int(y))
-
-        return sequences, np.array(lengths, dtype=np.int64), np.array(labels, dtype=np.int64)
+   
 
     # =================================================================================
     # Entrenamiento: TensorFlow/Keras con soporte de metadatos
@@ -387,12 +299,14 @@ class GRUNet(BaseModel):
         """
         # 1) Prepara dataset con metadatos
         try:
-            seq_tr, len_tr, y_tr = cls._prepare_sequences_and_labels(
+            
+
+            seq_tr, len_tr, y_tr = RecurrentModelDataUtils.prepare_sequences_and_labels(
                 xTrain, yTrain,
                 pad_value=instance.encoder.pad_value,
                 metadata_list=metadata_train
             )
-            seq_te, len_te, y_te = cls._prepare_sequences_and_labels(
+            seq_te, len_te, y_te = RecurrentModelDataUtils.prepare_sequences_and_labels(
                 xTest, yTest,
                 pad_value=instance.encoder.pad_value,
                 metadata_list=metadata_test
