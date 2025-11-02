@@ -109,9 +109,24 @@ def build_configuration_ui(schema: dict):
                 # Continuar con lógica normal si falla
 
         # ✅ Caso especial: campo "window" (para FFT/DCT/etc.) - generar dropdown
-        if field_name == "window" and field_info.get("type") == "string":
-            window_options = ["hann", "hamming", "blackman", "rectangular", "bartlett", "kaiser"]
-            default_window = field_info.get("default", "hann")
+        # Detecta tanto type=string como anyOf con string (Optional[Literal[...]])
+        is_window_field = (field_name == "window" and
+                          (field_info.get("type") == "string" or
+                           ("anyOf" in field_info and any(x.get("type") == "string" for x in field_info.get("anyOf", [])))))
+
+        if is_window_field:
+            # Intentar obtener opciones desde anyOf primero
+            window_options = []
+            if "anyOf" in field_info:
+                for item in field_info["anyOf"]:
+                    if "const" in item and item["const"] is not None:
+                        window_options.append(item["const"])
+
+            # Si no se encontraron opciones, usar las por defecto
+            if not window_options:
+                window_options = ["hann", "hamming", "blackman", "rectangular", "bartlett", "kaiser"]
+
+            default_window = field_info.get("default", window_options[0] if window_options else "hann")
 
             input_component = html.Div([
                 dbc.Label(showName, html_for=field_name, style={"minWidth": "140px", "color": "white", "fontSize": "13px"}),
@@ -150,7 +165,12 @@ def build_configuration_ui(schema: dict):
             continue
 
         # ✅ Caso especial: campo "type" (para DCT) - generar dropdown
-        if field_name == "type" and field_info.get("type") == "integer" and "dct" in type.lower():
+        # Detecta tanto type=integer como anyOf con integer (Optional[Literal[1,2,3,4]])
+        is_type_field_dct = (field_name == "type" and "dct" in type.lower() and
+                            (field_info.get("type") == "integer" or
+                             ("anyOf" in field_info and any(x.get("type") == "integer" for x in field_info.get("anyOf", [])))))
+
+        if is_type_field_dct:
             type_options = [1, 2, 3, 4]
             default_type = field_info.get("default", 2)
 
@@ -167,8 +187,8 @@ def build_configuration_ui(schema: dict):
             components.append(input_component)
             continue
 
-        # ✅ Caso especial: campo "norm" (para DCT) - dropdown con None
-        if field_name == "norm" and field_info.get("type") == "string" and "dct" in type.lower():
+        # ✅ Caso especial: campo "norm" - dropdown con None (para DCT, FFT, etc.)
+        if field_name == "norm":
             input_component = html.Div([
                 dbc.Label(showName, html_for=field_name, style={"minWidth": "140px", "color": "white", "fontSize": "13px"}),
                 dcc.Dropdown(
