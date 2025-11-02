@@ -81,16 +81,34 @@ def build_configuration_ui(schema: dict):
             # Buscar si todos los anyOf son const (indica Literal de Pydantic)
             consts = [x.get("const") for x in field_info["anyOf"] if "const" in x]
             if consts and len(consts) == len([x for x in field_info["anyOf"] if "const" in x or x.get("type") == "null"]):
-                # Filtrar None/null de las opciones
-                enum_values = [c for c in consts if c is not None]
+                # MANTENER los valores None/null - se procesarán después
+                enum_values = consts
 
         # Case "enum" (directo o detectado desde anyOf)
         if enum_values:
+            # Obtener valor por defecto si existe
+            default_value = field_info.get("default")
+
+            # Filtrar valores None/null de las opciones (Dash Dropdown no los acepta)
+            # Si hay None, agregarlo como string "None" para que sea seleccionable
+            dropdown_options = []
+            has_none = False
+            for val in enum_values:
+                if val is None:
+                    has_none = True
+                else:
+                    dropdown_options.append({"label": str(val), "value": val})
+
+            # Si había None en las opciones, agregar como string "None"
+            if has_none:
+                dropdown_options.append({"label": "None", "value": "None"})
+
             input_component = html.Div([
                 dbc.Label(showName, html_for=field_name, style={"minWidth": "140px", "color": "white", "fontSize": "13px"}),
                 dcc.Dropdown(
                     id=f"{type}-{field_name}",
-                    options=[{"label": str(val), "value": val} for val in enum_values],
+                    options=dropdown_options,
+                    value=default_value if default_value is not None else None,
                     placeholder=f"Selecciona valor",
                     style={"flex": "1", "color": "black", "fontSize": "14px"}
                 )

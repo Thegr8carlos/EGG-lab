@@ -182,9 +182,12 @@ def TransformCallbackRegister(boton_id: str, inputs_map: dict):
 
         for input_id, value in zip(input_ids, field_values):
             _, field = input_id.split("-", 1)
+            # Convertir string "None" a Python None (para campos Optional[Literal[..., None]])
+            if isinstance(value, str) and value == "None":
+                datos[field] = None
             # Preprocesar campos que pueden ser arrays
             # Si el valor es string con comas, convertir a lista de números
-            if isinstance(value, str) and "," in value:
+            elif isinstance(value, str) and "," in value:
                 try:
                     # Intentar parsear como lista de números
                     valores_separados = [float(v.strip()) for v in value.split(",")]
