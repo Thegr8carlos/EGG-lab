@@ -163,7 +163,7 @@ def TransformCallbackRegister(boton_id: str, inputs_map: dict):
 
         if not signal_data or "source" not in signal_data:
             print(f"❌ No hay señal cargada en signal-store-extractores")
-            return no_update, no_update
+            return "❌ No hay señal cargada", no_update
 
         # Obtener path del evento actual (ya incluye prefijo Aux/ si es necesario)
         event_file_path = signal_data.get("source")
@@ -176,7 +176,7 @@ def TransformCallbackRegister(boton_id: str, inputs_map: dict):
 
         if transform_class is None:
             print(f"❌ Transform '{transform_name}' no encontrada")
-            return no_update, no_update
+            return "❌ Transform no encontrada", no_update
 
         datos = {}
         experiment = Experiment._load_latest_experiment()
@@ -282,7 +282,7 @@ def TransformCallbackRegister(boton_id: str, inputs_map: dict):
 
             if not success:
                 print(f"❌ La transformada {transform_name} no se aplicó correctamente")
-                return no_update, no_update
+                return "❌ Error al aplicar transform", no_update
 
             # Construir path del archivo transformado
             transform_suffixes = {
@@ -321,7 +321,7 @@ def TransformCallbackRegister(boton_id: str, inputs_map: dict):
                 if not out_path.exists():
                     print(f"❌ No se encontró el archivo transformado: {out_path}")
                     print(f"   Archivos en directorio: {[f.name for f in all_files[:5]]}")
-                    return no_update, no_update
+                    return "❌ Archivo no encontrado", no_update
 
             # Cargar datos transformados
             arr = np.load(str(out_path), allow_pickle=False)
@@ -389,11 +389,17 @@ def TransformCallbackRegister(boton_id: str, inputs_map: dict):
 
         except ValidationError as e:
             print(f"❌ Errores en {transform_name}: {e}")
-            return no_update, no_update
+            errores = e.errors()
+            # Construir mensaje de error legible
+            error_fields = [err['loc'][0] for err in errores if err['loc']]
+            msg_short = f"❌ Error: {', '.join(error_fields)}" if error_fields else "❌ Error de validación"
+            msg_full = "\n".join(f"{err['loc'][0]}: {err['msg']}" for err in errores)
+            print(f"❌ Detalles: {msg_full}")
+            return msg_short, no_update
         except Exception as e:
             print(f"❌ Error al aplicar {transform_name}: {e}")
             import traceback
             traceback.print_exc()
-            return no_update, no_update
+            return f"❌ Error inesperado", no_update
 
 
