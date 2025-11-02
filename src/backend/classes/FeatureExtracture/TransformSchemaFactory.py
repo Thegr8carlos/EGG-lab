@@ -294,12 +294,24 @@ def TransformCallbackRegister(boton_id: str, inputs_map: dict):
             suffix = transform_suffixes.get(transform_name, "transformed")
 
             # Buscar el archivo más reciente con ese sufijo (puede tener diferente ID)
+            # Escapar caracteres especiales en glob pattern
             import glob
-            pattern = f"{p_in.stem}_{suffix}_*.npy"
-            matching_files = sorted(glob.glob(str(dir_out / pattern)), key=lambda x: Path(x).stat().st_mtime, reverse=True)
+            import re
+
+            # Escapar los caracteres especiales [], {}, etc.
+            stem_escaped = re.escape(p_in.stem)
+            pattern_safe = f"{stem_escaped}_{suffix}_*.npy"
+
+            # Buscar todos los archivos en el directorio que coincidan
+            all_files = list(dir_out.glob("*.npy"))
+            matching_files = [
+                f for f in all_files
+                if f.stem.startswith(f"{p_in.stem}_{suffix}_")
+            ]
+            matching_files = sorted(matching_files, key=lambda x: x.stat().st_mtime, reverse=True)
 
             if matching_files:
-                out_path = Path(matching_files[0])
+                out_path = matching_files[0]
                 print(f"✅ Archivo transformado encontrado: {out_path}")
             else:
                 # Intentar con el ID esperado como fallback
@@ -308,7 +320,7 @@ def TransformCallbackRegister(boton_id: str, inputs_map: dict):
 
                 if not out_path.exists():
                     print(f"❌ No se encontró el archivo transformado: {out_path}")
-                    print(f"   Patrón buscado: {pattern} en {dir_out}")
+                    print(f"   Archivos en directorio: {[f.name for f in all_files[:5]]}")
                     return no_update, no_update
 
             # Cargar datos transformados

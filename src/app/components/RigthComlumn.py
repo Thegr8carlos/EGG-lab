@@ -127,7 +127,12 @@ def build_configuration_ui(schema: dict):
             continue
 
         # ✅ Caso especial: campo "mode" - generar dropdown (Wavelets, DCT, etc.)
-        if field_name == "mode" and field_info.get("type") == "string":
+        # Puede ser type="string" o anyOf con string (cuando es Optional[str])
+        is_mode_field = (field_name == "mode" and
+                        (field_info.get("type") == "string" or
+                         ("anyOf" in field_info and any(x.get("type") == "string" for x in field_info.get("anyOf", [])))))
+
+        if is_mode_field:
             mode_options = ["symmetric", "periodization", "reflect", "antireflect", "zero", "constant"]
             default_mode = field_info.get("default", "symmetric")
 
