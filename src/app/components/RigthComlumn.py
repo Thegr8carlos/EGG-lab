@@ -90,7 +90,7 @@ def build_configuration_ui(schema: dict):
                 dropdown_options = []
                 for family, wavelets in wavelet_families.items():
                     for w in wavelets:
-                        dropdown_options.append({"label": f"{w} ({family})", "value": w})
+                        dropdown_options.append({"label": w, "value": w})
 
                 input_component = html.Div([
                     dbc.Label(showName, html_for=field_name, style={"minWidth": "140px", "color": "white", "fontSize": "13px"}),
@@ -126,8 +126,8 @@ def build_configuration_ui(schema: dict):
             components.append(input_component)
             continue
 
-        # ✅ Caso especial: campo "mode" (para Wavelets) - generar dropdown
-        if field_name == "mode" and field_info.get("type") == "string" and "wavelet" in type.lower():
+        # ✅ Caso especial: campo "mode" - generar dropdown (Wavelets, DCT, etc.)
+        if field_name == "mode" and field_info.get("type") == "string":
             mode_options = ["symmetric", "periodization", "reflect", "antireflect", "zero", "constant"]
             default_mode = field_info.get("default", "symmetric")
 
@@ -138,6 +138,42 @@ def build_configuration_ui(schema: dict):
                     options=[{"label": m, "value": m} for m in mode_options],
                     value=default_mode,
                     placeholder=f"Selecciona modo",
+                    style={"flex": "1", "color": "black", "fontSize": "14px"}
+                )
+            ], className="input-field-group")
+            components.append(input_component)
+            continue
+
+        # ✅ Caso especial: campo "type" (para DCT) - generar dropdown
+        if field_name == "type" and field_info.get("type") == "integer" and "dct" in type.lower():
+            type_options = [1, 2, 3, 4]
+            default_type = field_info.get("default", 2)
+
+            input_component = html.Div([
+                dbc.Label(showName, html_for=field_name, style={"minWidth": "140px", "color": "white", "fontSize": "13px"}),
+                dcc.Dropdown(
+                    id=f"{type}-{field_name}",
+                    options=[{"label": f"Tipo {t}", "value": t} for t in type_options],
+                    value=default_type,
+                    placeholder=f"Selecciona tipo DCT",
+                    style={"flex": "1", "color": "black", "fontSize": "14px"}
+                )
+            ], className="input-field-group")
+            components.append(input_component)
+            continue
+
+        # ✅ Caso especial: campo "norm" (para DCT) - dropdown con None
+        if field_name == "norm" and field_info.get("type") == "string" and "dct" in type.lower():
+            input_component = html.Div([
+                dbc.Label(showName, html_for=field_name, style={"minWidth": "140px", "color": "white", "fontSize": "13px"}),
+                dcc.Dropdown(
+                    id=f"{type}-{field_name}",
+                    options=[
+                        {"label": "ortho", "value": "ortho"},
+                        {"label": "None", "value": "None"}
+                    ],
+                    value="None",
+                    placeholder=f"Selecciona normalización",
                     style={"flex": "1", "color": "black", "fontSize": "14px"}
                 )
             ], className="input-field-group")

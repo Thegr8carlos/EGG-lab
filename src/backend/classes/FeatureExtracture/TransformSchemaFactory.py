@@ -292,12 +292,24 @@ def TransformCallbackRegister(boton_id: str, inputs_map: dict):
                 "WindowingTransform": "window"
             }
             suffix = transform_suffixes.get(transform_name, "transformed")
-            out_name = f"{p_in.stem}_{suffix}_{new_id}.npy"
-            out_path = dir_out / out_name
 
-            if not out_path.exists():
-                print(f"❌ No se encontró el archivo transformado: {out_path}")
-                return no_update, no_update
+            # Buscar el archivo más reciente con ese sufijo (puede tener diferente ID)
+            import glob
+            pattern = f"{p_in.stem}_{suffix}_*.npy"
+            matching_files = sorted(glob.glob(str(dir_out / pattern)), key=lambda x: Path(x).stat().st_mtime, reverse=True)
+
+            if matching_files:
+                out_path = Path(matching_files[0])
+                print(f"✅ Archivo transformado encontrado: {out_path}")
+            else:
+                # Intentar con el ID esperado como fallback
+                out_name = f"{p_in.stem}_{suffix}_{new_id}.npy"
+                out_path = dir_out / out_name
+
+                if not out_path.exists():
+                    print(f"❌ No se encontró el archivo transformado: {out_path}")
+                    print(f"   Patrón buscado: {pattern} en {dir_out}")
+                    return no_update, no_update
 
             # Cargar datos transformados
             arr = np.load(str(out_path), allow_pickle=False)
