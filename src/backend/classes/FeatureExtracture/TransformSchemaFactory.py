@@ -149,7 +149,7 @@ def TransformCallbackRegister(boton_id: str, inputs_map: dict):
         [
             State(input_id, "value") for input_id in input_ids
         ] + [
-            State("selected-file-path", "data"),
+            State("signal-store-extractores", "data"),
             State("selected-dataset", "data")
         ],
         prevent_initial_call=True
@@ -158,12 +158,15 @@ def TransformCallbackRegister(boton_id: str, inputs_map: dict):
         if not n_clicks:
             return no_update, no_update
 
-        # Extraer selected_file_path y selected_dataset del final de values
-        *field_values, event_file_path, dataset_name = values
+        # Extraer signal_data y selected_dataset del final de values
+        *field_values, signal_data, dataset_name = values
 
-        if not event_file_path:
-            print(f"❌ No hay archivo seleccionado para aplicar {transform_name}")
+        if not signal_data or "source" not in signal_data:
+            print(f"❌ No hay señal cargada en signal-store-extractores")
             return no_update, no_update
+
+        # Obtener path del evento actual (ya incluye prefijo Aux/ si es necesario)
+        event_file_path = signal_data.get("source")
 
         # we extract the transform name from the button ID.
         # this is of the form: btn-aplicar-<transform_name>
@@ -212,10 +215,34 @@ def TransformCallbackRegister(boton_id: str, inputs_map: dict):
             p_in = Path(event_file_path)
             dir_out = p_in.parent / "transformed"
             dir_labels_out = p_in.parent / "transformed_labels"
-            labels_dir = p_in.parent  # Las etiquetas originales están en el mismo directorio
 
             dir_out.mkdir(parents=True, exist_ok=True)
             dir_labels_out.mkdir(parents=True, exist_ok=True)
+
+            # ✅ Generar etiquetas temporales para eventos individuales
+            # Extraer clase del nombre del archivo (ej: "abajo[439.357]{441.908}.npy" → "abajo")
+            file_name = p_in.stem
+            event_class = file_name.split('[')[0].strip() if '[' in file_name else file_name
+
+            # Crear directorio temporal para etiquetas
+            labels_dir = p_in.parent / "temp_labels"
+            labels_dir.mkdir(parents=True, exist_ok=True)
+
+            # Generar array de etiquetas (todas con la misma clase)
+            arr_signal = np.load(str(p_in), allow_pickle=False)
+            if arr_signal.ndim == 1:
+                n_samples = arr_signal.shape[0]
+            elif arr_signal.ndim == 2:
+                n_samples = arr_signal.shape[1]  # (n_channels, n_times)
+            else:
+                n_samples = arr_signal.shape[0]
+
+            labels_array = np.array([event_class] * n_samples, dtype=str)
+
+            # Guardar etiquetas temporales
+            temp_labels_file = labels_dir / p_in.name
+            np.save(str(temp_labels_file), labels_array)
+            print(f"📝 Etiquetas temporales generadas: {temp_labels_file}")
 
             # Aplicar transformada
             success = transform_class.apply(
@@ -225,6 +252,11 @@ def TransformCallbackRegister(boton_id: str, inputs_map: dict):
                 labels_directory=str(labels_dir),
                 labels_out_path=str(dir_labels_out)
             )
+
+            # Limpiar archivo temporal después de aplicar
+            if temp_labels_file.exists():
+                temp_labels_file.unlink()
+                print(f"🧹 Limpiado archivo temporal: {temp_labels_file}")
 
             if not success:
                 print(f"❌ La transformada {transform_name} no se aplicó correctamente")
@@ -248,13 +280,27 @@ def TransformCallbackRegister(boton_id: str, inputs_map: dict):
             # Cargar datos transformados
             arr = np.load(str(out_path), allow_pickle=False)
 
+            # ✅ Manejo de arrays 3D (transformadas ventaneadas)
+            # Formato: (n_frames, frame_size, n_channels) → (n_channels, n_frames * frame_size)
+            if arr.ndim == 3:
+                n_frames, frame_size, n_channels = arr.shape
+                print(f"📊 Array 3D detectado: {arr.shape} (frames, frame_size, canales)")
+
+                # Paso 1: Transponer → (n_channels, n_frames, frame_size)
+                arr_transposed = arr.transpose(2, 0, 1)
+
+                # Paso 2: Concatenar frames → (n_channels, n_frames * frame_size)
+                arr = arr_transposed.reshape(n_channels, n_frames * frame_size)
+
+                print(f"✅ Array 3D concatenado: {arr.shape} (canales x tiempo)")
+
             # Obtener nombres de canales
             try:
                 from backend.classes.dataset import Dataset
                 channel_names = Dataset.get_all_channel_names(dataset_name)
-                channel_names_for_plots = channel_names if channel_names else [f"Ch{i}" for i in range(arr.shape[1] if arr.ndim == 2 else 1)]
+                channel_names_for_plots = channel_names if channel_names else [f"Ch{i}" for i in range(arr.shape[0] if arr.ndim == 2 else 1)]
             except:
-                channel_names_for_plots = [f"Ch{i}" for i in range(arr.shape[1] if arr.ndim == 2 else 1)]
+                channel_names_for_plots = [f"Ch{i}" for i in range(arr.shape[0] if arr.ndim == 2 else 1)]
 
             # Extraer información del archivo
             import os
@@ -268,7 +314,7 @@ def TransformCallbackRegister(boton_id: str, inputs_map: dict):
                 arr = arr.reshape(1, -1)
 
             # Asegurar forma (n_channels, n_times)
-            if arr.shape[0] > arr.shape[1]:
+            if arr.ndim == 2 and arr.shape[0] > arr.shape[1]:
                 arr = arr.T
 
             matrix_list = [row.tolist() for row in arr]
