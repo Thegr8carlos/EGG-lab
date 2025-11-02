@@ -200,7 +200,15 @@ def TransformCallbackRegister(boton_id: str, inputs_map: dict):
                     datos[field] = value
             else:
                 datos[field] = value
-        datos["id"] = str(new_id)  # ✅ Convertir a string
+
+        # ✅ Agregar id y sp (frecuencia de muestreo)
+        datos["id"] = str(new_id)
+
+        # Obtener sp del signal_data si no viene del formulario
+        if "sp" not in datos or datos.get("sp") is None:
+            sfreq = signal_data.get("sfreq", 1024.0)
+            datos["sp"] = float(sfreq)
+            print(f"[TransformSchemaFactory] 📊 Usando frecuencia de muestreo: {sfreq} Hz")
 
         try:
             from pathlib import Path
@@ -244,14 +252,28 @@ def TransformCallbackRegister(boton_id: str, inputs_map: dict):
             np.save(str(temp_labels_file), labels_array)
             print(f"📝 Etiquetas temporales generadas: {temp_labels_file}")
 
-            # Aplicar transformada
-            success = transform_class.apply(
-                instancia_valida,
-                file_path_in=str(p_in),
-                directory_path_out=str(dir_out),
-                labels_directory=str(labels_dir),
-                labels_out_path=str(dir_labels_out)
-            )
+            # Aplicar transformada (con manejo de diferentes firmas de apply)
+            try:
+                # Intentar primero con labels_out_path (WaveletTransform, DCTTransform)
+                success = transform_class.apply(
+                    instancia_valida,
+                    file_path_in=str(p_in),
+                    directory_path_out=str(dir_out),
+                    labels_directory=str(labels_dir),
+                    labels_out_path=str(dir_labels_out)
+                )
+            except TypeError as e:
+                # Si falla, intentar con dir_out_labels (FFTTransform)
+                if "labels_out_path" in str(e):
+                    success = transform_class.apply(
+                        instancia_valida,
+                        file_path_in=str(p_in),
+                        directory_path_out=str(dir_out),
+                        labels_directory=str(labels_dir),
+                        dir_out_labels=str(dir_labels_out)
+                    )
+                else:
+                    raise
 
             # Limpiar archivo temporal después de aplicar
             if temp_labels_file.exists():

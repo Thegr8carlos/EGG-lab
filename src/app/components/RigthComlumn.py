@@ -73,6 +73,77 @@ def build_configuration_ui(schema: dict):
         showName = NOMBRE_CAMPOS_ES.get(field_name, field_info.get("title", field_name))
         ## We process each field according to its type
 
+        # ✅ Caso especial: campo "wavelet" - generar dropdown dinámicamente
+        if field_name == "wavelet" and field_info.get("type") == "string":
+            try:
+                import pywt
+                wavelet_families = {
+                    "Daubechies": [f"db{i}" for i in range(1, 39)],
+                    "Symlets": [f"sym{i}" for i in range(2, 21)],
+                    "Coiflets": [f"coif{i}" for i in range(1, 18)],
+                    "Biorthogonal": [f"bior{i}.{j}" for i in range(1, 7) for j in [1, 3, 5, 7, 9] if f"bior{i}.{j}" in pywt.wavelist(kind='discrete')],
+                    "Reverse biorthogonal": [f"rbio{i}.{j}" for i in range(1, 7) for j in [1, 3, 5, 7, 9] if f"rbio{i}.{j}" in pywt.wavelist(kind='discrete')],
+                    "Discrete Meyer": ["dmey"],
+                    "Haar": ["haar"],
+                }
+
+                dropdown_options = []
+                for family, wavelets in wavelet_families.items():
+                    for w in wavelets:
+                        dropdown_options.append({"label": f"{w} ({family})", "value": w})
+
+                input_component = html.Div([
+                    dbc.Label(showName, html_for=field_name, style={"minWidth": "140px", "color": "white", "fontSize": "13px"}),
+                    dcc.Dropdown(
+                        id=f"{type}-{field_name}",
+                        options=dropdown_options,
+                        value="db4",  # Default
+                        placeholder=f"Selecciona wavelet",
+                        style={"flex": "1", "color": "black", "fontSize": "14px"}
+                    )
+                ], className="input-field-group")
+                components.append(input_component)
+                continue
+            except Exception as e:
+                print(f"⚠️ No se pudo generar dropdown de wavelets: {e}")
+                # Continuar con lógica normal si falla
+
+        # ✅ Caso especial: campo "window" (para FFT/DCT/etc.) - generar dropdown
+        if field_name == "window" and field_info.get("type") == "string":
+            window_options = ["hann", "hamming", "blackman", "rectangular", "bartlett", "kaiser"]
+            default_window = field_info.get("default", "hann")
+
+            input_component = html.Div([
+                dbc.Label(showName, html_for=field_name, style={"minWidth": "140px", "color": "white", "fontSize": "13px"}),
+                dcc.Dropdown(
+                    id=f"{type}-{field_name}",
+                    options=[{"label": w, "value": w} for w in window_options],
+                    value=default_window,
+                    placeholder=f"Selecciona ventana",
+                    style={"flex": "1", "color": "black", "fontSize": "14px"}
+                )
+            ], className="input-field-group")
+            components.append(input_component)
+            continue
+
+        # ✅ Caso especial: campo "mode" (para Wavelets) - generar dropdown
+        if field_name == "mode" and field_info.get("type") == "string" and "wavelet" in type.lower():
+            mode_options = ["symmetric", "periodization", "reflect", "antireflect", "zero", "constant"]
+            default_mode = field_info.get("default", "symmetric")
+
+            input_component = html.Div([
+                dbc.Label(showName, html_for=field_name, style={"minWidth": "140px", "color": "white", "fontSize": "13px"}),
+                dcc.Dropdown(
+                    id=f"{type}-{field_name}",
+                    options=[{"label": m, "value": m} for m in mode_options],
+                    value=default_mode,
+                    placeholder=f"Selecciona modo",
+                    style={"flex": "1", "color": "black", "fontSize": "14px"}
+                )
+            ], className="input-field-group")
+            components.append(input_component)
+            continue
+
         # Detectar enums (puede venir como "enum" directo o dentro de "anyOf" con "const")
         enum_values = None
         if "enum" in field_info:
