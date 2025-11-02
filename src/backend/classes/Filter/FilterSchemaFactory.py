@@ -139,7 +139,7 @@ def filterCallbackRegister(boton_id: str, inputs_map: dict):
 
         if not signal_data or "source" not in signal_data:
             print(f"❌ No hay señal cargada en signal-store-filtros")
-            return no_update, no_update
+            return "❌ No hay señal cargada", no_update
 
         # Obtener path del evento actual
         event_file_path = signal_data.get("source")
@@ -188,7 +188,7 @@ def filterCallbackRegister(boton_id: str, inputs_map: dict):
 
             if not success:
                 print(f"❌ El filtro {filtro_nombre} no se aplicó correctamente")
-                return no_update, no_update
+                return "❌ Error al aplicar filtro", no_update
 
             # Construir el path del archivo filtrado
             suffix = filter_suffixes.get(filtro_nombre, 'filtered')
@@ -198,7 +198,7 @@ def filterCallbackRegister(boton_id: str, inputs_map: dict):
             # Cargar datos filtrados
             if not out_path.exists():
                 print(f"❌ No se encontró el archivo filtrado: {out_path}")
-                return no_update, no_update
+                return "❌ Archivo no encontrado", no_update
 
             arr = np.load(str(out_path), allow_pickle=False)
 
@@ -223,18 +223,23 @@ def filterCallbackRegister(boton_id: str, inputs_map: dict):
         except ValidationError as e:
             print(f"❌ Errores de validación en {filtro_nombre}: {e}")
             errores = e.errors()
-            msg = "\n".join(f"{err['loc'][0]}: {err['msg']}" for err in errores)
-            print(f"❌ Mensaje de error: {msg}")
-            return no_update, no_update
+            # Construir mensaje de error legible
+            error_fields = [err['loc'][0] for err in errores if err['loc']]
+            msg_short = f"❌ Error: {', '.join(error_fields)}" if error_fields else "❌ Error de validación"
+            msg_full = "\n".join(f"{err['loc'][0]}: {err['msg']}" for err in errores)
+            print(f"❌ Mensaje de error: {msg_full}")
+            # Retornar mensaje en el botón
+            return msg_short, no_update
         except ValueError as e:
             # Errores de validación específicos del backend (como sp inválido)
+            error_msg = f"❌ Error: {str(e)}"
             print(f"❌ Error de validación en {filtro_nombre}: {str(e)}")
-            return no_update, no_update
+            return error_msg, no_update
         except Exception as e:
             print(f"❌ Error al aplicar filtro {filtro_nombre}: {str(e)}")
             import traceback
             traceback.print_exc()
-            return no_update, no_update
+            return f"❌ Error inesperado", no_update
 
 
 

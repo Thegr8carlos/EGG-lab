@@ -74,23 +74,36 @@ def build_configuration_ui(schema: dict):
         ## We process each field according to its type
 
         # ✅ Caso especial: campo "wavelet" - generar dropdown dinámicamente
+        # Diferencia entre WaveletsBase (filtro, 16 opciones) y WaveletTransform (60+ opciones)
         if field_name == "wavelet" and field_info.get("type") == "string":
             try:
                 import pywt
-                wavelet_families = {
-                    "Daubechies": [f"db{i}" for i in range(1, 39)],
-                    "Symlets": [f"sym{i}" for i in range(2, 21)],
-                    "Coiflets": [f"coif{i}" for i in range(1, 18)],
-                    "Biorthogonal": [f"bior{i}.{j}" for i in range(1, 7) for j in [1, 3, 5, 7, 9] if f"bior{i}.{j}" in pywt.wavelist(kind='discrete')],
-                    "Reverse biorthogonal": [f"rbio{i}.{j}" for i in range(1, 7) for j in [1, 3, 5, 7, 9] if f"rbio{i}.{j}" in pywt.wavelist(kind='discrete')],
-                    "Discrete Meyer": ["dmey"],
-                    "Haar": ["haar"],
-                }
 
-                dropdown_options = []
-                for family, wavelets in wavelet_families.items():
-                    for w in wavelets:
-                        dropdown_options.append({"label": w, "value": w})
+                # 🔍 Detectar si es WaveletsBase (filtro) o WaveletTransform (transformada)
+                is_filter = "WaveletsBase" in type
+
+                if is_filter:
+                    # WaveletsBase: Solo wavelets válidos según el Literal del modelo
+                    valid_wavelets = ['db1', 'db2', 'db3', 'db4', 'db5', 'db6', 'db8',
+                                    'sym2', 'sym3', 'sym4', 'sym5',
+                                    'coif1', 'coif2', 'coif3', 'coif5', 'haar']
+                    dropdown_options = [{"label": w, "value": w} for w in valid_wavelets]
+                else:
+                    # WaveletTransform: Catálogo completo de wavelets
+                    wavelet_families = {
+                        "Daubechies": [f"db{i}" for i in range(1, 39)],
+                        "Symlets": [f"sym{i}" for i in range(2, 21)],
+                        "Coiflets": [f"coif{i}" for i in range(1, 18)],
+                        "Biorthogonal": [f"bior{i}.{j}" for i in range(1, 7) for j in [1, 3, 5, 7, 9] if f"bior{i}.{j}" in pywt.wavelist(kind='discrete')],
+                        "Reverse biorthogonal": [f"rbio{i}.{j}" for i in range(1, 7) for j in [1, 3, 5, 7, 9] if f"rbio{i}.{j}" in pywt.wavelist(kind='discrete')],
+                        "Discrete Meyer": ["dmey"],
+                        "Haar": ["haar"],
+                    }
+
+                    dropdown_options = []
+                    for family, wavelets in wavelet_families.items():
+                        for w in wavelets:
+                            dropdown_options.append({"label": w, "value": w})
 
                 input_component = html.Div([
                     dbc.Label(showName, html_for=field_name, style={"minWidth": "140px", "color": "white", "fontSize": "13px"}),
