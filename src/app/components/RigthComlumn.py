@@ -257,14 +257,6 @@ for grupo in generar_mapa_validacion_inputs(FilterSchemaFactory.get_all_filter_s
     for boton_id, inputs_map in grupo.items():
         filterCallbackRegister(boton_id, inputs_map)
 
-# --- Clasificadores: dos for separados ---
-for grupo in generar_mapa_validacion_inputs(_tag_classifier_schemas("_p300")):
-    #print(_tag_classifier_schemas("_p300"))
-    for boton_id, inputs_map in grupo.items():
-        ClassifierCallbackRegister(boton_id, inputs_map)
-
-for grupo in generar_mapa_validacion_inputs(_tag_classifier_schemas("_inner")):
-    for boton_id, inputs_map in grupo.items():
-        ClassifierCallbackRegister(boton_id, inputs_map)
+# Callbacks de clasificadores movidos a modelado_p300.py para configuración interactiva
 
 #--------------------------------------------------------------------------------------------------------
