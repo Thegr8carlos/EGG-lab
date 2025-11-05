@@ -162,3 +162,12 @@ def ClassifierCallbackRegister(boton_id: str, inputs_map: dict):
         except ValidationError as e:
             print(f"❌ Errores en {classifier_name} ({ctx}): {e}")
             return no_update
+
+
+
+# import json
+
+# schemas = ClassifierSchemaFactory.get_all_classifier_schemas()
+
+# with open("schemas.json", "w", encoding="utf-8") as f:
+#     json.dump(schemas, f, ensure_ascii=False, indent=4)
