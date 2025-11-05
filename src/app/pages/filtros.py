@@ -47,6 +47,21 @@ layout = html.Div(
         dcc.Store(id=CHANNEL_RANGE_STORE, data={"start": 0, "count": 8}),
         dcc.Store(id=SELECTED_CLASS_STORE, data=None),
         dcc.Store(id=SELECTED_CHANNELS_STORE, data=None),  # Nuevo: canales seleccionados
+        dcc.Store(id='pipeline-update-trigger-filtros', data=0),  # Trigger para actualizar historial
+        dcc.Store(id='auto-apply-pipeline-filtros', data=True),  # Toggle auto-apply (ON por defecto)
+        # Modal para mostrar JSON del historial
+        dbc.Modal([
+            dbc.ModalHeader(dbc.ModalTitle(id="modal-history-json-title-filtros")),
+            dbc.ModalBody(html.Pre(id="modal-history-json-content-filtros", style={
+                "fontSize": "10px",
+                "maxHeight": "500px",
+                "overflow": "auto",
+                "background": "var(--card-bg)",
+                "padding": "12px",
+                "borderRadius": "var(--radius-sm)",
+                "color": "var(--text)"
+            })),
+        ], id="modal-history-json-filtros", size="lg", is_open=False)
     ],
     style={"display": "flex"},
 )
@@ -204,6 +219,67 @@ def create_navigation_controls(meta: dict):
                 "marginBottom": "12px"
             })
         ]),
+
+        # Divisor
+        html.Hr(style={
+            "border": "none",
+            "borderTop": "1px solid var(--border-weak)",
+            "margin": "8px 0",
+            "opacity": "0.4"
+        }),
+
+        # 📊 Historial del Pipeline (nuevo)
+        html.Div(id='pipeline-history-viewer-filtros', children=[
+            html.Div("Cargando historial...", style={
+                "fontSize": "9px",
+                "color": "var(--text-muted)",
+                "textAlign": "center",
+                "padding": "8px"
+            })
+        ]),
+
+        # Divisor
+        html.Hr(style={
+            "border": "none",
+            "borderTop": "1px solid var(--border-weak)",
+            "margin": "8px 0",
+            "opacity": "0.4"
+        }),
+
+        # 🔄 Toggle Auto-aplicar Pipeline
+        html.Div([
+            html.Div([
+                html.Span("Auto-aplicar pipeline", style={
+                    "fontSize": "10px",
+                    "fontWeight": "600",
+                    "color": "#ddd",
+                    "flex": "1"
+                }),
+                html.Button(
+                    "ON",
+                    id="toggle-auto-apply-filtros",
+                    n_clicks=0,
+                    style={
+                        "padding": "2px 8px",
+                        "fontSize": "9px",
+                        "borderRadius": "3px",
+                        "border": "1px solid #4CAF50",
+                        "background": "#4CAF50",
+                        "color": "white",
+                        "cursor": "pointer",
+                        "fontWeight": "600"
+                    }
+                )
+            ], style={
+                "display": "flex",
+                "alignItems": "center",
+                "gap": "8px",
+                "padding": "6px",
+                "background": "#1a1a1a",
+                "borderRadius": "4px",
+                "border": "1px solid #333"
+            })
+        ], style={"marginBottom": "12px"}),
 
         # Divisor
         html.Hr(style={
@@ -417,17 +493,22 @@ def handle_channel_buttons(n_all, n_clear, n_eeg, options, current_value):
     [
         Output(EVENTS_STORE_ID, "data"),
         Output(DATA_STORE_ID, "data"),
+        Output(FILTERED_DATA_STORE_ID, "data", allow_duplicate=True),  # 🔥 También actualizar filtrados
     ],
     [
         Input("selected-file-path", "data"),
         Input(SELECTED_CLASS_STORE, "data"),
         Input(SELECTED_CHANNELS_STORE, "data")  # ✨ Nuevo: canales seleccionados
     ],
-    State("selected-dataset", "data")
+    [
+        State("selected-dataset", "data"),
+        State('auto-apply-pipeline-filtros', 'data')  # 🔄 Toggle auto-apply
+    ],
+    prevent_initial_call=True
 )
-def pass_selected_path(selected_file_path, selected_class, selected_channels, dataset_name):
+def pass_selected_path(selected_file_path, selected_class, selected_channels, dataset_name, auto_apply_enabled):
     if selected_file_path is None:
-        return no_update, no_update
+        return no_update, no_update, no_update  # 3 outputs ahora
 
     if isinstance(selected_file_path, dict):
         candidate = selected_file_path.get("path") or selected_file_path.get("file") or ""
@@ -436,11 +517,12 @@ def pass_selected_path(selected_file_path, selected_class, selected_channels, da
 
     candidate = candidate.strip()
     if not candidate:
-        return no_update, no_update
+        return no_update, no_update, no_update  # 3 outputs ahora
 
     payload = {"path": candidate, "ts": time.time()}
 
     data_payload = no_update
+    filtered_payload = no_update  # 🔥 Nuevo: payload para filtered-signal-store
     try:
         # Usar la nueva función que filtra por clase
         res = Dataset.get_events_by_class(candidate, class_name=selected_class)
@@ -517,10 +599,60 @@ def pass_selected_path(selected_file_path, selected_class, selected_channels, da
                 print(f"[filtros] ✅ Cargado evento de clase '{selected_class}': {first_evt}")
 
             print(f"[filtros] 📊 Sesión: {session_info}, Duración: {duration_sec:.3f}s, Muestras: {n_samples}")
+
+            # 🔄 Auto-aplicar pipeline si está habilitado
+            if auto_apply_enabled:
+                try:
+                    from backend.classes.Experiment import Experiment
+                    print(f"[filtros] 🔄 Auto-aplicando pipeline al evento...")
+
+                    pipeline_result = Experiment.apply_history_pipeline(
+                        file_path=first_evt,
+                        force_recalculate=False,
+                        save_intermediates=True,
+                        verbose=True
+                    )
+
+                    if pipeline_result and "signal" in pipeline_result:
+                        arr_processed = pipeline_result["signal"]
+                        cache_used = pipeline_result.get("cache_used", False)
+
+                        # Preparar datos procesados SOLO para columna derecha
+                        n_samples_processed = arr_processed.shape[1] if arr_processed.ndim == 2 else arr_processed.shape[0]
+                        duration_processed = n_samples_processed / sfreq
+
+                        # 🔥 IMPORTANTE: Columna IZQUIERDA siempre muestra RAW (data_payload NO se modifica)
+                        # 🔥 Columna DERECHA muestra datos procesados (filtered_payload)
+
+                        # Copiar metadata de data_payload y actualizar con señal procesada
+                        filtered_payload = dict(data_payload)  # Copiar metadata (channel_names, file_name, etc)
+                        filtered_payload.update({
+                            "matrix": arr_processed.tolist(),
+                            "shape": list(arr_processed.shape),
+                            "duration_sec": round(duration_processed, 3),
+                            "pipeline_applied": True,
+                            "cache_used": cache_used,
+                            "source": pipeline_result.get("cache_path", first_evt),
+                            "ts": time.time()  # Timestamp para forzar re-render
+                        })
+
+                        status = "desde caché ⚡" if cache_used else "recalculado 🔧"
+                        print(f"[filtros] ✅ Pipeline aplicado exitosamente ({status})")
+                        print(f"[filtros] 📊 Shape procesado: {arr_processed.shape}")
+                        print(f"[filtros] 🔄 Timestamp actualizado para forzar re-render del gráfico (ambas columnas)")
+                    else:
+                        print(f"[filtros] ⚠️ Pipeline no devolvió resultado válido")
+
+                except Exception as e:
+                    print(f"[filtros] ❌ Error aplicando pipeline: {e}")
+                    import traceback
+                    traceback.print_exc()
+                    # Continuar con la señal original si falla el pipeline
+
     except Exception as e:
         print(f"[filtros] ERROR cargando evento .npy: {e}")
 
-    return payload, data_payload
+    return payload, data_payload, filtered_payload
 
 
 # CALLBACK: Seleccionar todas las clases (limpiar filtro)
@@ -1340,3 +1472,295 @@ clientside_callback(
     Output('btn-next-channels', 'disabled'),
     [Input(CHANNEL_RANGE_STORE, 'data'), Input(DATA_STORE_ID, 'data')]
 )
+
+
+# ==================== CALLBACKS DEL HISTORIAL DEL PIPELINE ====================
+
+@callback(
+    Output('pipeline-history-viewer-filtros', 'children'),
+    [
+        Input('selected-dataset', 'data'),
+        Input('pipeline-update-trigger-filtros', 'data')
+    ]
+)
+def update_pipeline_history_viewer(selected_dataset, trigger):
+    """Actualiza el visor de historial del pipeline cuando se selecciona un dataset o se aplica un filtro/transformada"""
+    import json
+    from backend.classes.Experiment import Experiment
+
+    if not selected_dataset:
+        return html.Div("Selecciona un dataset", style={
+            "fontSize": "9px",
+            "color": "#888",
+            "textAlign": "center",
+            "padding": "6px"
+        })
+
+    try:
+        # Obtener resumen del experimento (SIN calcular cache para que sea rápido)
+        summary = Experiment.get_experiment_summary(calculate_cache=False)
+
+        experiment_id = summary.get("experiment_id", "N/A")
+        filters = summary.get("filters", [])
+        transforms = summary.get("transforms", [])
+        total_steps = summary.get("total_steps", 0)
+        cache_info = summary.get("cache_info", {})
+
+        if total_steps == 0:
+            return html.Div([
+                html.Div(f"Exp {experiment_id}", style={
+                    "fontSize": "9px",
+                    "fontWeight": "600",
+                    "color": "#ddd",
+                    "marginBottom": "3px"
+                }),
+                html.Div("Sin pasos aplicados", style={
+                    "fontSize": "8px",
+                    "color": "#888",
+                    "textAlign": "center"
+                })
+            ])
+
+        # Crear lista compacta de pasos
+        all_steps = []
+
+        # Agregar filtros
+        for f in filters:
+            filter_id = f.get("id", "?")
+            filter_name = f.get("name", "Unknown")
+            all_steps.append(
+                html.Div([
+                    html.Span(f"F{filter_id}: {filter_name}", style={
+                        "fontSize": "8px",
+                        "color": "#ddd",
+                        "flex": "1"
+                    }),
+                    html.Button("JSON",
+                        id={'type': 'btn-view-json-filtros', 'category': 'filter', 'index': filter_id},
+                        n_clicks=0,
+                        style={
+                            "padding": "1px 4px",
+                            "fontSize": "7px",
+                            "borderRadius": "2px",
+                            "border": "1px solid #555",
+                            "background": "#2a2a2a",
+                            "color": "#aaa",
+                            "cursor": "pointer"
+                        })
+                ], style={
+                    "display": "flex",
+                    "alignItems": "center",
+                    "gap": "4px",
+                    "marginBottom": "2px",
+                    "padding": "2px 4px",
+                    "background": "#1a1a1a",
+                    "borderRadius": "3px",
+                    "border": "1px solid #333"
+                })
+            )
+
+        # Agregar transformadas
+        for t in transforms:
+            transform_id = t.get("id", "?")
+            transform_name = t.get("name", "Unknown")
+            all_steps.append(
+                html.Div([
+                    html.Span(f"T{transform_id}: {transform_name}", style={
+                        "fontSize": "8px",
+                        "color": "#ddd",
+                        "flex": "1"
+                    }),
+                    html.Button("JSON",
+                        id={'type': 'btn-view-json-filtros', 'category': 'transform', 'index': transform_id},
+                        n_clicks=0,
+                        style={
+                            "padding": "1px 4px",
+                            "fontSize": "7px",
+                            "borderRadius": "2px",
+                            "border": "1px solid #555",
+                            "background": "#2a2a2a",
+                            "color": "#aaa",
+                            "cursor": "pointer"
+                        })
+                ], style={
+                    "display": "flex",
+                    "alignItems": "center",
+                    "gap": "4px",
+                    "marginBottom": "2px",
+                    "padding": "2px 4px",
+                    "background": "#1a1a1a",
+                    "borderRadius": "3px",
+                    "border": "1px solid #333"
+                })
+            )
+
+        # Crear el componente completo
+        return html.Div([
+            # Header compacto
+            html.Div([
+                html.Span(f"Exp {experiment_id}", style={
+                    "fontSize": "9px",
+                    "fontWeight": "600",
+                    "color": "#ddd"
+                }),
+                html.Span(f"({total_steps})", style={
+                    "fontSize": "8px",
+                    "color": "#888",
+                    "marginLeft": "4px"
+                })
+            ], style={"marginBottom": "4px"}),
+
+            # Lista de pasos
+            html.Div(all_steps, style={
+                "maxHeight": "120px",
+                "overflowY": "auto",
+                "overflowX": "hidden",
+                "marginBottom": "4px"
+            })
+        ], style={
+            "background": "#0f0f0f",
+            "padding": "6px",
+            "borderRadius": "4px",
+            "border": "1px solid #2a2a2a"
+        })
+
+    except FileNotFoundError:
+        return html.Div("Sin experimento", style={
+            "fontSize": "8px",
+            "color": "#888",
+            "textAlign": "center",
+            "padding": "6px"
+        })
+    except Exception as e:
+        print(f"[update_pipeline_history_viewer] Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return html.Div("Error", style={
+            "fontSize": "8px",
+            "color": "#f88",
+            "textAlign": "center",
+            "padding": "6px"
+        })
+
+
+@callback(
+    [
+        Output('modal-history-json-filtros', 'is_open'),
+        Output('modal-history-json-title-filtros', 'children'),
+        Output('modal-history-json-content-filtros', 'children')
+    ],
+    Input({'type': 'btn-view-json-filtros', 'category': ALL, 'index': ALL}, 'n_clicks'),
+    State('modal-history-json-filtros', 'is_open'),
+    prevent_initial_call=True
+)
+def toggle_json_modal_filtros(n_clicks_list, is_open):
+    """Abre el modal con el JSON del filtro o transformada seleccionado"""
+    import json
+    from backend.classes.Experiment import Experiment
+
+    if not any(n_clicks_list):
+        return no_update, no_update, no_update
+
+    # Detectar cuál botón se presionó
+    triggered = ctx.triggered_id
+    if not triggered:
+        return no_update, no_update, no_update
+
+    category = triggered.get('category')
+    index = triggered.get('index')
+
+    try:
+        # Cargar experimento
+        summary = Experiment.get_experiment_summary()
+
+        # Buscar el item correspondiente
+        item_config = None
+        item_name = "Unknown"
+
+        if category == 'filter':
+            for f in summary.get('filters', []):
+                if f.get('id') == index:
+                    item_config = f.get('config', {})
+                    item_name = f.get('name', 'Filter')
+                    break
+        elif category == 'transform':
+            for t in summary.get('transforms', []):
+                if t.get('id') == index:
+                    item_config = t.get('config', {})
+                    item_name = t.get('name', 'Transform')
+                    break
+
+        if item_config is None:
+            return True, "Error", "Configuración no encontrada"
+
+        # Formatear JSON
+        json_str = json.dumps(item_config, indent=2, ensure_ascii=False)
+
+        title = f"{item_name} [ID: {index}]"
+
+        return True, title, json_str
+
+    except Exception as e:
+        print(f"[toggle_json_modal_filtros] Error: {e}")
+        return True, "Error", str(e)
+
+
+# CALLBACK: Toggle auto-apply pipeline ON/OFF
+@callback(
+    Output('auto-apply-pipeline-filtros', 'data'),
+    Input('toggle-auto-apply-filtros', 'n_clicks'),
+    State('auto-apply-pipeline-filtros', 'data'),
+    prevent_initial_call=True
+)
+def toggle_auto_apply_pipeline(n_clicks, current_state):
+    """Toggle entre ON/OFF para auto-aplicar pipeline"""
+    if n_clicks:
+        new_state = not current_state
+        status = "ON" if new_state else "OFF"
+        print(f"[toggle_auto_apply_pipeline] Auto-apply cambiado a: {status}")
+        return new_state
+    return current_state
+
+
+# CALLBACK: Actualizar estilo del botón toggle
+@callback(
+    [
+        Output('toggle-auto-apply-filtros', 'children'),
+        Output('toggle-auto-apply-filtros', 'style')
+    ],
+    Input('auto-apply-pipeline-filtros', 'data')
+)
+def update_toggle_button_style(is_enabled):
+    """Actualiza el texto y estilo del botón según el estado"""
+    if is_enabled:
+        return "ON", {
+            "padding": "2px 8px",
+            "fontSize": "9px",
+            "borderRadius": "3px",
+            "border": "1px solid #4CAF50",
+            "background": "#4CAF50",
+            "color": "white",
+            "cursor": "pointer",
+            "fontWeight": "600"
+        }
+    else:
+        return "OFF", {
+            "padding": "2px 8px",
+            "fontSize": "9px",
+            "borderRadius": "3px",
+            "border": "1px solid #888",
+            "background": "#333",
+            "color": "#888",
+            "cursor": "pointer",
+            "fontWeight": "600"
+        }
+
+
+@callback(
+    Output('modal-history-json-filtros', 'is_open', allow_duplicate=True),
+    Input('modal-history-json-filtros', 'is_open'),
+    prevent_initial_call=True
+)
+def close_modal_on_click(is_open):
+    """Permite cerrar el modal haciendo clic fuera de él"""
+    return is_open
