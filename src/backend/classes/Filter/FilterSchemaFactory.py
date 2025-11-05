@@ -78,7 +78,7 @@ class FilterSchemaFactory:
             "config": filter_instance.dict()
         })
 
-        with open(path, "a+", encoding="utf-8") as f:
+        with open(path, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=4)
 
         return no_update
@@ -118,28 +118,32 @@ def filterCallbackRegister(boton_id: str, inputs_map: dict):
     @callback(
         [
             Output(boton_id, "children"),
-            Output("filtered-signal-store-filtros", "data", allow_duplicate=True)
+            Output("filtered-signal-store-filtros", "data", allow_duplicate=True),
+            Output("pipeline-update-trigger-filtros", "data", allow_duplicate=True)
         ],
         Input(boton_id, "n_clicks"),
-        [State(input_id, "value") for input_id in input_ids] + [State("signal-store-filtros", "data")],
+        [State(input_id, "value") for input_id in input_ids] + [
+            State("signal-store-filtros", "data"),
+            State("pipeline-update-trigger-filtros", "data")
+        ],
         prevent_initial_call=True
     )
     def formManager(n_clicks, *values, input_ids=input_ids, validadores=inputs_map):
 
-
         if not n_clicks:
-            return no_update, no_update
+            return no_update, no_update, no_update
 
         filtro_nombre = boton_id.replace("btn-aplicar-", "")
         clase_validadora = available_filters.get(filtro_nombre)
 
-        # El último valor es el signal_data store
-        signal_data = values[-1]
-        values = values[:-1]
+        # Los últimos dos valores son signal_data y trigger
+        trigger_value = values[-1]
+        signal_data = values[-2]
+        values = values[:-2]
 
         if not signal_data or "source" not in signal_data:
             print(f"❌ No hay señal cargada en signal-store-filtros")
-            return "❌ No hay señal cargada", no_update
+            return "❌ No hay señal cargada", no_update, no_update
 
         # Obtener path del evento actual
         event_file_path = signal_data.get("source")
@@ -188,7 +192,7 @@ def filterCallbackRegister(boton_id: str, inputs_map: dict):
 
             if not success:
                 print(f"❌ El filtro {filtro_nombre} no se aplicó correctamente")
-                return "❌ Error al aplicar filtro", no_update
+                return "❌ Error al aplicar filtro", no_update, no_update
 
             # Construir el path del archivo filtrado
             suffix = filter_suffixes.get(filtro_nombre, 'filtered')
@@ -198,7 +202,7 @@ def filterCallbackRegister(boton_id: str, inputs_map: dict):
             # Cargar datos filtrados
             if not out_path.exists():
                 print(f"❌ No se encontró el archivo filtrado: {out_path}")
-                return "❌ Archivo no encontrado", no_update
+                return "❌ Archivo no encontrado", no_update, no_update
 
             arr = np.load(str(out_path), allow_pickle=False)
 
@@ -218,8 +222,10 @@ def filterCallbackRegister(boton_id: str, inputs_map: dict):
             # Guardar configuración del filtro en el experimento
             Experiment.add_filter_config(instancia_valida)
 
+            # Incrementar trigger para actualizar el historial
+            new_trigger = (trigger_value or 0) + 1
 
-            return no_update, filtered_data_payload
+            return no_update, filtered_data_payload, new_trigger
         except ValidationError as e:
             print(f"❌ Errores de validación en {filtro_nombre}: {e}")
             errores = e.errors()
@@ -229,17 +235,17 @@ def filterCallbackRegister(boton_id: str, inputs_map: dict):
             msg_full = "\n".join(f"{err['loc'][0]}: {err['msg']}" for err in errores)
             print(f"❌ Mensaje de error: {msg_full}")
             # Retornar mensaje en el botón
-            return msg_short, no_update
+            return msg_short, no_update, no_update
         except ValueError as e:
             # Errores de validación específicos del backend (como sp inválido)
             error_msg = f"❌ Error: {str(e)}"
             print(f"❌ Error de validación en {filtro_nombre}: {str(e)}")
-            return error_msg, no_update
+            return error_msg, no_update, no_update
         except Exception as e:
             print(f"❌ Error al aplicar filtro {filtro_nombre}: {str(e)}")
             import traceback
             traceback.print_exc()
-            return f"❌ Error inesperado", no_update
+            return f"❌ Error inesperado", no_update, no_update
 
 
 
