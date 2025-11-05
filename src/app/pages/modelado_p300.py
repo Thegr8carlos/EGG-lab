@@ -1,7 +1,17 @@
 # app/pages/modelado_p300.py
-import time, random, math
-from dash import html, dcc, register_page, callback, Output, Input, State, no_update
+import time, random, math, json
+from dash import html, dcc, register_page, callback, Output, Input, State, no_update, ALL
 from shared.fileUtils import get_dataset_metadata
+
+# ← NUEVO: traemos los esquemas desde el backend al arrancar
+from backend.classes.ClasificationModel.ClassifierSchemaFactory import ClassifierSchemaFactory
+
+
+# ← NUEVO: cards de configuración interactiva
+from app.components.model_config_cards import (
+    create_config_card,
+    create_model_selector_card
+)
 
 register_page(__name__, path="/p300", name="Modelado P300")
 
@@ -21,6 +31,17 @@ STATUS_VIEW_ID   = "train-status-view-p300"
 METRICS_VIEW_ID  = "train-metrics-view-p300"
 DATASET_LABEL_ID = "ds-name-p300"
 
+# ← NUEVO: layout y navegación de modelos
+SCHEMAS_STORE_ID       = "classifier-schemas-store"
+SELECTED_MODEL_STORE_ID= "selected-model-store"
+SIDEBAR_ID             = "models-sidebar"
+MAIN_VIEW_ID           = "model-config-container"
+
+# ---------- Carga de esquemas al inicio ----------
+# Se calcula una vez al importar el módulo
+CLASSIFIER_SCHEMAS = ClassifierSchemaFactory.get_all_classifier_schemas() or {}
+MODEL_NAMES = list(CLASSIFIER_SCHEMAS.keys())
+
 # ---------- UI helpers ----------
 def _badge(text, kind="info"):
     return html.Span(text, className=f"badge {kind}")
@@ -29,49 +50,86 @@ def _progress(percent: float):
     pct = max(0, min(100, float(percent)))
     return html.Div([html.Div(className="progress__fill", style={"width": f"{pct:.0f}%"} )], className="progress")
 
-def _training_card():
-    return html.Div(
-        [
-            html.H2("Entrenamiento del modelo P300"),
-            html.Div(id=DATASET_LABEL_ID, className="train-meta"),
+# ← Barra lateral derecha con cards de modelos
+def _models_sidebar(models: list[str]) -> html.Div:
+    """Crea la barra lateral derecha con las cards de modelos."""
+    model_cards = [
+        create_model_selector_card(model, idx)
+        for idx, model in enumerate(models)
+    ]
 
-            html.Label("Clases a incluir", className="train-label"),
-            dcc.Dropdown(id=DD_CLASSES_ID, options=[], value=[], multi=True,
-                         placeholder="Selecciona clases…", className="train-input"),
-            html.Div(style={"height":".5rem"}),
+    return html.Div([
+        html.H2("Modelos de clasificación", className="right-panel-title"),
+        html.Div(model_cards, className="right-panel-container")
+    ], id=SIDEBAR_ID, className="models-sidebar", style={
+        "height": "100%",
+        "overflowY": "auto",
+        "overflowX": "hidden"
+    })
 
-            html.Label("Canales a incluir", className="train-label"),
-            dcc.Dropdown(id=DD_CHANNELS_ID, options=[], value=[], multi=True,
-                         placeholder="Selecciona canales…", className="train-input"),
-            html.Div(style={"height":".5rem"}),
 
-            html.Label("Test split (%)", className="train-label"),
-            dcc.Input(id=IN_SPLIT_ID, type="number", min=5, max=50, step=1, value=20, className="train-input"),
-            html.Div(style={"height":".5rem"}),
 
-            html.Label("K-Folds", className="train-label"),
-            dcc.Input(id=IN_KFOLDS_ID, type="number", min=2, max=10, step=1, value=5, className="train-input"),
-            html.Div(style={"height":".75rem"}),
+# ← Layout maestro con 2 columnas: configuración (izq/centro) | modelos (der)
+layout = html.Div([
+    # Stores para esquemas y estado
+    dcc.Store(id=SCHEMAS_STORE_ID, data=CLASSIFIER_SCHEMAS),
+    dcc.Store(id=SELECTED_MODEL_STORE_ID),
+    dcc.Store(id=TRAIN_CONFIG_STORE_ID),
+    dcc.Store(id=TRAIN_STATUS_STORE_ID),
+    dcc.Store(id=TRAIN_METRICS_STORE_ID),
+    dcc.Interval(id=TRAIN_INTERVAL_ID, interval=1000, disabled=True),
 
-            html.Button("Entrenar", id=BTN_TRAIN_ID, n_clicks=0, className="btn-primary"),
+    # Contenedor principal con 2 columnas
+    html.Div([
+        # Columna izquierda: Configuración de modelo (scrolleable) - 85%
+        html.Div([
+            html.Div(id=MAIN_VIEW_ID, children=[
+                html.Div([
+                    html.H3("Bienvenido", className="text-center mb-3", style={"color": "white"}),
+                    html.P(
+                        "Selecciona un modelo de la barra derecha para configurarlo de manera interactiva.",
+                        className="text-center",
+                        style={"color": "rgba(255,255,255,0.7)"}
+                    ),
+                    html.Div([
+                        html.I(className="fas fa-brain fa-5x", style={"color": "#4A90E2"})
+                    ], className="text-center mt-5")
+                ], className="welcome-message", style={
+                    "padding": "60px 20px",
+                    "borderRadius": "8px",
+                    "minHeight": "400px"
+                })
+            ], style={
+                "height": "100%",
+                "overflowY": "auto",
+                "overflowX": "hidden"
+            })
+        ], className="center-column", style={
+            "width": "85%",
+            "padding": "20px 20px 20px 20px",
+            "maxHeight": "calc(100vh - 140px)"
+        }),
 
-            html.Hr(className="hr-soft"),
-            html.Div(id=STATUS_VIEW_ID, style={"marginBottom":".5rem"}),
-            dcc.Loading(html.Div(id=METRICS_VIEW_ID)),
-
-            # Stores + Interval (mock)
-            dcc.Store(id=TRAIN_CONFIG_STORE_ID),
-            dcc.Store(id=TRAIN_STATUS_STORE_ID),
-            dcc.Store(id=TRAIN_METRICS_STORE_ID),
-            dcc.Interval(id=TRAIN_INTERVAL_ID, interval=1000, disabled=True),
-        ],
-        className="train-card"
-    )
-
-layout = html.Div([_training_card()], className="page-wrap")
+        # Columna derecha: Lista de modelos - pegada a la derecha
+        html.Div(_models_sidebar(MODEL_NAMES), className="right-column", style={
+            "width": "15%",
+            "minWidth": "280px",
+            "maxWidth": "350px",
+            "position": "fixed",
+            "right": "0",
+            "top": "100px",
+            "height": "calc(100vh - 120px)",
+            "paddingRight": "20px"
+        })
+    ], style={
+        "display": "flex",
+        "position": "relative",
+        "width": "100%",
+        "height": "calc(100vh - 100px)"
+    })
+], className="page-wrap")
 
 # ---------- Callbacks ----------
-
 @callback(
     [Output(DD_CLASSES_ID, "options"),
      Output(DD_CHANNELS_ID, "options"),
@@ -131,7 +189,7 @@ def tick_training(n, status, cfg):
     if step < n_steps:
         return {"status": "running", "step": step, "t0": status.get("t0")}, no_update, False
 
-    # terminar
+    # terminar (mock)
     if random.random() < 0.8:
         acc = round(random.uniform(0.75, 0.94), 3)
         f1  = round(random.uniform(0.70, 0.92), 3)
@@ -194,3 +252,83 @@ def render_metrics(m):
                  style={"fontWeight":"700","margin":"0 0 .5rem 0"}),
         table
     ])
+
+# =========================
+# Navegación de modelos
+# =========================
+
+# 1) Al hacer click en cualquier botón de "Configurar" de un modelo
+@callback(
+    Output(SELECTED_MODEL_STORE_ID, "data"),
+    Input({"type": "model-selector-btn", "index": ALL, "model": ALL}, "n_clicks"),
+    State(SELECTED_MODEL_STORE_ID, "data"),
+    prevent_initial_call=True
+)
+def select_model(n_clicks_list, current_sel):
+    """Guarda el modelo seleccionado cuando se hace click en 'Configurar'."""
+    if not n_clicks_list or not any(n_clicks_list):
+        return no_update
+
+    from dash import callback_context as ctx
+    if not ctx.triggered:
+        return no_update
+
+    # Obtener el botón que disparó el callback
+    trig = ctx.triggered[0]["prop_id"].split(".")[0]
+
+    try:
+        btn_id = json.loads(trig)
+        model_name = btn_id.get("model")
+        return {"name": model_name}
+    except Exception as e:
+        print(f"Error al seleccionar modelo: {e}")
+        return no_update
+
+
+# 2) Renderiza la card de configuración según el modelo seleccionado
+@callback(
+    Output(MAIN_VIEW_ID, "children"),
+    [Input(SELECTED_MODEL_STORE_ID, "data"),
+     Input(SCHEMAS_STORE_ID, "data")]
+)
+def render_config_card(selected, schemas):
+    """Renderiza la card de configuración del modelo seleccionado."""
+    # Si no hay selección, muestra mensaje de bienvenida
+    if not selected or not selected.get("name"):
+        return html.Div([
+            html.H3("Bienvenido", className="text-center mb-3", style={"color": "white"}),
+            html.P(
+                "Selecciona un modelo de la barra derecha para configurarlo de manera interactiva.",
+                className="text-center",
+                style={"color": "rgba(255, 255, 255, 0.7)"}
+            ),
+            html.Div([
+                html.I(className="fas fa-brain fa-5x", style={"color": "#4A90E2"})
+            ], className="text-center mt-5")
+        ], className="welcome-message", style={
+            "padding": "60px 20px",
+            "borderRadius": "8px",
+            "minHeight": "400px"
+        })
+
+    model_name = selected["name"]
+    schema = (schemas or {}).get(model_name, {})
+
+    if not schema:
+        return html.Div([
+            html.H4(f"Error: No se encontró esquema para {model_name}", style={"color": "#ff6b6b"})
+        ])
+
+    # Crear card de configuración interactiva
+    return create_config_card(model_name, schema)
+
+
+# 3) Botón "Volver" dentro de la card de configuración
+@callback(
+    Output(SELECTED_MODEL_STORE_ID, "data", allow_duplicate=True),
+    Input("config-back-btn", "n_clicks"),
+    prevent_initial_call=True
+)
+def back_to_welcome(_):
+    """Limpia la selección para volver a la vista de bienvenida."""
+    return None

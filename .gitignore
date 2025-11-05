@@ -200,3 +200,5 @@ src/test_schemas_results.json
 test_classifier_instances_complete.json
 test_instances_results.json
 DOCUMENTACION_TESTS.md
+schemas.json
+src/SISTEMA_INTERACTIVO_MODELOS.md
