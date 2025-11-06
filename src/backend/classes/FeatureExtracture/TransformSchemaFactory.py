@@ -110,7 +110,7 @@ class TransformSchemaFactory:
         })
 
         # Guardar siempre el archivo (ya sea creado o modificado)
-        with open(path, "a+", encoding="utf-8") as f:
+        with open(path, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=4)
 
         return f"✅ Transform '{transform_name}' added to experiment_{experiment_id}.json"
@@ -143,27 +143,29 @@ def TransformCallbackRegister(boton_id: str, inputs_map: dict):
     @callback(
         [
             Output(boton_id, "children"),
-            Output("transformed-signal-store-extractores", "data", allow_duplicate=True)
+            Output("transformed-signal-store-extractores", "data", allow_duplicate=True),
+            Output("pipeline-update-trigger-extractores", "data", allow_duplicate=True)
         ],
         Input(boton_id, "n_clicks"),
         [
             State(input_id, "value") for input_id in input_ids
         ] + [
             State("signal-store-extractores", "data"),
-            State("selected-dataset", "data")
+            State("selected-dataset", "data"),
+            State("pipeline-update-trigger-extractores", "data")
         ],
         prevent_initial_call=True
     )
     def formManager(n_clicks, *values, input_ids=input_ids, validadores=inputs_map):
         if not n_clicks:
-            return no_update, no_update
+            return no_update, no_update, no_update
 
-        # Extraer signal_data y selected_dataset del final de values
-        *field_values, signal_data, dataset_name = values
+        # Extraer signal_data, dataset_name y trigger del final de values
+        *field_values, signal_data, dataset_name, trigger_value = values
 
         if not signal_data or "source" not in signal_data:
             print(f"❌ No hay señal cargada en signal-store-extractores")
-            return "❌ No hay señal cargada", no_update
+            return "❌ No hay señal cargada", no_update, no_update
 
         # Obtener path del evento actual (ya incluye prefijo Aux/ si es necesario)
         event_file_path = signal_data.get("source")
@@ -176,7 +178,7 @@ def TransformCallbackRegister(boton_id: str, inputs_map: dict):
 
         if transform_class is None:
             print(f"❌ Transform '{transform_name}' no encontrada")
-            return "❌ Transform no encontrada", no_update
+            return "❌ Transform no encontrada", no_update, no_update
 
         datos = {}
         experiment = Experiment._load_latest_experiment()
@@ -282,7 +284,7 @@ def TransformCallbackRegister(boton_id: str, inputs_map: dict):
 
             if not success:
                 print(f"❌ La transformada {transform_name} no se aplicó correctamente")
-                return "❌ Error al aplicar transform", no_update
+                return "❌ Error al aplicar transform", no_update, no_update
 
             # Construir path del archivo transformado
             transform_suffixes = {
@@ -321,7 +323,7 @@ def TransformCallbackRegister(boton_id: str, inputs_map: dict):
                 if not out_path.exists():
                     print(f"❌ No se encontró el archivo transformado: {out_path}")
                     print(f"   Archivos en directorio: {[f.name for f in all_files[:5]]}")
-                    return "❌ Archivo no encontrado", no_update
+                    return "❌ Archivo no encontrado", no_update, no_update
 
             # Cargar datos transformados
             arr = np.load(str(out_path), allow_pickle=False)
@@ -385,7 +387,10 @@ def TransformCallbackRegister(boton_id: str, inputs_map: dict):
             print(f"✅ Transformada aplicada: {out_path}")
             print(f"✅ Shape transformado: {arr.shape}")
 
-            return no_update, transformed_payload
+            # Incrementar trigger para actualizar el historial
+            new_trigger = (trigger_value or 0) + 1
+
+            return no_update, transformed_payload, new_trigger
 
         except ValidationError as e:
             print(f"❌ Errores en {transform_name}: {e}")
@@ -395,11 +400,11 @@ def TransformCallbackRegister(boton_id: str, inputs_map: dict):
             msg_short = f"❌ Error: {', '.join(error_fields)}" if error_fields else "❌ Error de validación"
             msg_full = "\n".join(f"{err['loc'][0]}: {err['msg']}" for err in errores)
             print(f"❌ Detalles: {msg_full}")
-            return msg_short, no_update
+            return msg_short, no_update, no_update
         except Exception as e:
             print(f"❌ Error al aplicar {transform_name}: {e}")
             import traceback
             traceback.print_exc()
-            return f"❌ Error inesperado", no_update
+            return f"❌ Error inesperado", no_update, no_update
 
 
