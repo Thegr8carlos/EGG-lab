@@ -328,9 +328,36 @@ class Experiment(BaseModel):
         """
         Stores the P300 classifier configuration.
         """
+        import numpy as np
+
+        def convert_numpy_to_list(obj):
+            """Recursivamente convierte numpy arrays a listas."""
+            if isinstance(obj, np.ndarray):
+                return obj.tolist()
+            elif isinstance(obj, dict):
+                return {k: convert_numpy_to_list(v) for k, v in obj.items()}
+            elif isinstance(obj, (list, tuple)):
+                return [convert_numpy_to_list(item) for item in obj]
+            else:
+                return obj
+
         experiment = cls._load_latest_experiment()
         classifier_name = classifier.__class__.__name__
-        classifier_data = classifier.dict() if isinstance(classifier, BaseModel) else vars(classifier)
+
+        # Usar model_dump (Pydantic v2) y luego convertir numpy arrays
+        if isinstance(classifier, BaseModel):
+            try:
+                # Pydantic v2
+                classifier_data = classifier.model_dump()
+            except AttributeError:
+                # Fallback Pydantic v1
+                classifier_data = classifier.dict()
+
+            # Convertir todos los numpy arrays a listas
+            classifier_data = convert_numpy_to_list(classifier_data)
+        else:
+            classifier_data = vars(classifier)
+
         experiment.P300Classifier = {
             classifier_name: classifier_data
         }
@@ -341,9 +368,36 @@ class Experiment(BaseModel):
         """
         Stores the Inner Speech classifier configuration.
         """
+        import numpy as np
+
+        def convert_numpy_to_list(obj):
+            """Recursivamente convierte numpy arrays a listas."""
+            if isinstance(obj, np.ndarray):
+                return obj.tolist()
+            elif isinstance(obj, dict):
+                return {k: convert_numpy_to_list(v) for k, v in obj.items()}
+            elif isinstance(obj, (list, tuple)):
+                return [convert_numpy_to_list(item) for item in obj]
+            else:
+                return obj
+
         experiment = cls._load_latest_experiment()
         classifier_name = classifier.__class__.__name__
-        classifier_data = classifier.dict() if isinstance(classifier, BaseModel) else vars(classifier)
+
+        # Usar model_dump (Pydantic v2) y luego convertir numpy arrays
+        if isinstance(classifier, BaseModel):
+            try:
+                # Pydantic v2
+                classifier_data = classifier.model_dump()
+            except AttributeError:
+                # Fallback Pydantic v1
+                classifier_data = classifier.dict()
+
+            # Convertir todos los numpy arrays a listas
+            classifier_data = convert_numpy_to_list(classifier_data)
+        else:
+            classifier_data = vars(classifier)
+
         experiment.innerSpeachClassifier = {
             classifier_name: classifier_data
         }
