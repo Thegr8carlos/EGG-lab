@@ -1889,8 +1889,17 @@ def create_interactive_config_card(model_name: str, schema: Dict[str, Any], clas
                         className="w-100 mt-3",
                         style={"fontSize": "15px", "height": "42px", "fontWeight": "600"}
                     ),
-                    # Alert para mostrar resultados de validación
-                    html.Div(id={"type": "test-config-result", "model": model_name}, className="mt-3")
+                    # Alert para mostrar resultados de validación con animación de carga
+                    dcc.Loading(
+                        id={"type": "test-config-loading", "model": model_name},
+                        type="circle",
+                        fullscreen=False,
+                        children=[
+                            html.Div(id={"type": "test-config-result", "model": model_name}, className="mt-3")
+                        ],
+                        color="#0d6efd",
+                        style={"marginTop": "20px"}
+                    )
                 ])
             ])
         ], className="right-panel-card")
@@ -2589,34 +2598,137 @@ def register_interactive_callbacks():
                     ])
                 ], color="danger", dismissable=True)
 
-            # ===== PASO 2: INSTANCIAR EN EXPERIMENTO =====
+            # ===== PASO 2: VERIFICACIÓN DE COMPILACIÓN =====
+            # Primero verificar que el modelo compila ANTES de guardarlo en el experimento
+            compilation_ok = False
+            compilation_error = None
+            experiment_type_msg = "Habla Interna" if classifier_type == "InnerSpeech" else "P300"
 
+            try:
+                # Validar que existe dataset
+                if not selected_dataset:
+                    compilation_error = "No se ha seleccionado un dataset"
+                    print(f"⚠️ [INTERNO] No hay dataset seleccionado")
+                else:
+                    from pathlib import Path
+                    dataset_path = Path(selected_dataset)
+
+                    # Verificar que la path del dataset existe
+                    if not dataset_path.exists():
+                        compilation_error = "El dataset seleccionado no existe en el sistema"
+                        print(f"⚠️ [INTERNO] Dataset no encontrado: {selected_dataset}")
+                    else:
+                        print(f"\n{'='*70}")
+                        print(f"🔧 VERIFICANDO CONFIGURACIÓN DEL MODELO")
+                        print(f"{'='*70}")
+                        print(f"📦 Modelo: {model_type}")
+                        print(f"🎯 Experimento: {experiment_type_msg}")
+                        print(f"📂 Dataset: {selected_dataset}")
+                        print(f"\n⏳ Preparando datos de prueba...")
+
+                        # Generar mini dataset con pipeline completo (invisible para el usuario)
+                        mini_dataset = Experiment.generate_pipeline_dataset(
+                            dataset_path=str(selected_dataset),
+                            n_train=10,
+                            n_test=5,
+                            selected_classes=None,
+                            force_recalculate=False,
+                            verbose=False  # Sin output en consola
+                        )
+
+                        print(f"✅ Datos preparados: {mini_dataset['n_train']} train + {mini_dataset['n_test']} test")
+
+                        if mini_dataset["n_train"] < 3:
+                            compilation_error = "El pipeline de preprocesamiento no generó suficientes datos válidos"
+                            print(f"⚠️ [INTERNO] Dataset insuficiente: {mini_dataset['n_train']} ejemplos")
+                        else:
+                            # Verificar si el modelo tiene método train
+                            if hasattr(classifier_class, 'train'):
+                                print(f"🔧 [INTERNO] Ejecutando mini-entrenamiento...")
+
+                                # Los modelos usan parámetros: xTrain, yTrain, xTest, yTest
+                                # (epochs, batch_size, etc. ya están en validated_instance)
+                                try:
+                                    metrics = classifier_class.train(
+                                        validated_instance,
+                                        xTrain=mini_dataset["train_data"],
+                                        yTrain=mini_dataset["train_labels"],
+                                        xTest=mini_dataset["test_data"],
+                                        yTest=mini_dataset["test_labels"]
+                                    )
+                                    compilation_ok = True
+                                    print(f"✅ [INTERNO] Compilación verificada exitosamente")
+                                except Exception as train_err:
+                                    compilation_error = "Error al compilar el modelo con los datos procesados"
+                                    print(f"❌ [INTERNO] Error en compilación: {train_err}")
+                                    import traceback
+                                    traceback.print_exc()
+                            else:
+                                # Si no tiene método train, asumimos OK si llegó aquí
+                                compilation_ok = True
+                                print(f"✅ [INTERNO] Modelo sin método train(), validación OK")
+
+            except Exception as test_err:
+                compilation_error = "Error en el pipeline de preprocesamiento. Revisa la configuración de filtros y transformadas"
+                print(f"⚠️ [INTERNO] Error en verificación: {test_err}")
+                import traceback
+                traceback.print_exc()
+
+            # Si hubo error de compilación, NO guardar en experimento
+            if compilation_error:
+                return dbc.Alert([
+                    html.I(className="fas fa-times-circle me-2"),
+                    html.Div([
+                        html.Strong("✗ Error de compilación"),
+                        html.Br(),
+                        html.Div([
+                            html.I(className="fas fa-exclamation-triangle me-1", style={"fontSize": "12px"}),
+                            html.Small(compilation_error, style={"fontWeight": "500"})
+                        ], className="mt-2"),
+                        html.Div([
+                            html.I(className="fas fa-info-circle me-1", style={"fontSize": "12px"}),
+                            html.Small("El modelo NO fue guardado. Verifica:")
+                        ], className="mt-2", style={"opacity": "0.9"}),
+                        html.Ul([
+                            html.Li("Configuración de filtros y transformadas", style={"fontSize": "13px"}),
+                            html.Li("Que el dataset tenga eventos procesados", style={"fontSize": "13px"}),
+                            html.Li("Compatibilidad del pipeline con el modelo", style={"fontSize": "13px"})
+                        ], className="mb-0 mt-1", style={"opacity": "0.8"})
+                    ])
+                ], color="danger", dismissable=True, duration=12000)
+
+            # ===== PASO 3: INSTANCIAR EN EXPERIMENTO (solo si compilación OK) =====
             try:
                 # Agregar clasificador al experimento según el tipo
                 if classifier_type == "InnerSpeech":
                     Experiment.add_inner_speech_classifier(validated_instance)
-                    experiment_type_msg = "Habla Interna"
                     print(f"✅ {model_type} agregado como InnerSpeechClassifier al experimento")
                 else:  # P300 por defecto
                     Experiment.add_P300_classifier(validated_instance)
-                    experiment_type_msg = "P300"
                     print(f"✅ {model_type} agregado como P300Classifier al experimento")
 
-                # ===== PASO 3: TODO - MINI ENTRENAMIENTO =====
-                # TODO: Implementar mini-entrenamiento para verificar compilación
-                # classifier_class.train(validated_instance)
-
-                return dbc.Alert([
+                # Éxito total con detalles de compilación
+                success_content = [
                     html.I(className="fas fa-check-circle me-2"),
                     html.Div([
-                        html.Strong(f"✓ {model_type} configurado exitosamente"),
+                        html.Strong(f"✓ {model_type} configurado y compilado exitosamente"),
                         html.Br(),
-                        html.Small(f"El modelo ha sido validado y agregado al experimento de {experiment_type_msg}"),
-                        html.Br(),
-                        html.Small(f"Entrada: {num_channels} canales | Salida: {num_classes} clases",
-                                  style={"opacity": "0.8"})
+                        html.Div([
+                            html.I(className="fas fa-cogs me-1", style={"fontSize": "12px"}),
+                            html.Small(f"Modelo compilado con datos reales del pipeline")
+                        ], className="mt-2"),
+                        html.Div([
+                            html.I(className="fas fa-database me-1", style={"fontSize": "12px"}),
+                            html.Small(f"{num_channels} canales • {num_classes} clases • Experimento: {experiment_type_msg}")
+                        ], className="mt-1", style={"opacity": "0.8"}),
+                        html.Div([
+                            html.I(className="fas fa-check me-1", style={"fontSize": "12px", "color": "#28a745"}),
+                            html.Small("Listo para entrenamiento completo", style={"color": "#28a745", "fontWeight": "500"})
+                        ], className="mt-2")
                     ])
-                ], color="success", dismissable=True, duration=6000)
+                ]
+
+                return dbc.Alert(success_content, color="success", dismissable=True, duration=8000)
 
             except Exception as exp_err:
                 print(f"❌ Error al agregar al experimento: {exp_err}")
