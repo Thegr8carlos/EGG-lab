@@ -71,12 +71,13 @@ def _models_sidebar(models: list[str]) -> html.Div:
 
 # ← Layout maestro con 2 columnas: configuración (izq/centro) | modelos (der)
 layout = html.Div([
-    # Stores para esquemas y estado
-    dcc.Store(id=SCHEMAS_STORE_ID, data=CLASSIFIER_SCHEMAS),
-    dcc.Store(id=SELECTED_MODEL_STORE_ID),
-    dcc.Store(id=TRAIN_CONFIG_STORE_ID),
-    dcc.Store(id=TRAIN_STATUS_STORE_ID),
-    dcc.Store(id=TRAIN_METRICS_STORE_ID),
+    # Stores para esquemas y estado - usando storage_type='session' para persistir
+    dcc.Store(id=SCHEMAS_STORE_ID, data=CLASSIFIER_SCHEMAS, storage_type='session'),
+    dcc.Store(id=SELECTED_MODEL_STORE_ID, storage_type='session'),
+    dcc.Store(id="page-classifier-type", data="P300", storage_type='session'),  # Tipo de clasificador para esta página
+    dcc.Store(id=TRAIN_CONFIG_STORE_ID, storage_type='session'),
+    dcc.Store(id=TRAIN_STATUS_STORE_ID, storage_type='session'),
+    dcc.Store(id=TRAIN_METRICS_STORE_ID, storage_type='session'),
     dcc.Interval(id=TRAIN_INTERVAL_ID, interval=1000, disabled=True),
 
     # Contenedor principal con 2 columnas
@@ -289,9 +290,10 @@ def select_model(n_clicks_list, current_sel):
 @callback(
     Output(MAIN_VIEW_ID, "children"),
     [Input(SELECTED_MODEL_STORE_ID, "data"),
-     Input(SCHEMAS_STORE_ID, "data")]
+     Input(SCHEMAS_STORE_ID, "data"),
+     Input("page-classifier-type", "data")]
 )
-def render_config_card(selected, schemas):
+def render_config_card(selected, schemas, classifier_type):
     """Renderiza la card de configuración del modelo seleccionado."""
     # Si no hay selección, muestra mensaje de bienvenida
     if not selected or not selected.get("name"):
@@ -319,8 +321,8 @@ def render_config_card(selected, schemas):
             html.H4(f"Error: No se encontró esquema para {model_name}", style={"color": "#ff6b6b"})
         ])
 
-    # Crear card de configuración interactiva
-    return create_config_card(model_name, schema)
+    # Crear card de configuración interactiva con el tipo de clasificador
+    return create_config_card(model_name, schema, classifier_type or "P300")
 
 
 # 3) Botón "Volver" dentro de la card de configuración

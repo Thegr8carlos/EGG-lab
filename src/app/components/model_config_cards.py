@@ -419,17 +419,22 @@ def create_nested_object_stepper(model_name: str, schema: Dict[str, Any]) -> htm
     return html.Div(stepper_content, className="stepper-container")
 
 
-def create_config_card(model_name: str, schema: Dict[str, Any]) -> html.Div:
+def create_config_card(model_name: str, schema: Dict[str, Any], classifier_type: str = "P300") -> html.Div:
     """
     Crea la card completa de configuración para un modelo.
     Usa el sistema interactivo para redes neuronales y formulario simple para modelos clásicos.
+
+    Args:
+        model_name: Nombre del modelo (LSTM, GRU, SVM, etc.)
+        schema: Schema del modelo
+        classifier_type: Tipo de clasificador - "P300" o "InnerSpeech" (default: "P300")
     """
     # Determinar si es una red neuronal compleja (usa sistema interactivo)
     is_neural_network = model_name in ["LSTM", "GRU", "CNN", "SVNN"]
 
     if is_neural_network:
         # Usar el nuevo sistema interactivo de construcción de arquitectura
-        return create_interactive_config_card(model_name, schema)
+        return create_interactive_config_card(model_name, schema, classifier_type)
     else:
         # Para modelos clásicos (SVM, RandomForest), usar formulario simple
         properties = schema.get("properties", {})
@@ -440,6 +445,9 @@ def create_config_card(model_name: str, schema: Dict[str, Any]) -> html.Div:
         )
 
         return html.Div([
+            # Store para guardar el tipo de clasificador - persiste durante la sesión
+            dcc.Store(id="classifier-type-store", data=classifier_type, storage_type='session'),
+
             dbc.Card([
                 dbc.CardHeader([
                     html.Div(f"CONFIGURACIÓN: {model_name.upper()}", className="mb-0", style={"flex": "1"}),
@@ -459,11 +467,12 @@ def create_config_card(model_name: str, schema: Dict[str, Any]) -> html.Div:
                     html.Div([
                         dbc.Button(
                             "Probar Configuración",
-                            id={"type": "test-config-btn", "model": model_name},
+                            id={"type": "classic-test-config-btn", "model": model_name},
                             color="primary",
                             className="mt-2",
                             style={"fontSize": "15px", "height": "42px", "fontWeight": "600", "width": "100%"}
-                        )
+                        ),
+                        html.Div(id={"type": "classic-test-config-result", "model": model_name}, className="mt-3")
                     ])
                 ])
             ], className="right-panel-card")
@@ -483,3 +492,194 @@ def create_config_card(model_name: str, schema: Dict[str, Any]) -> html.Div:
 #     Aquí se validaría y ejecutaría el modelo con la configuración proporcionada.
 #     """
 #     pass
+
+
+from dash import no_update, ctx
+import dash_bootstrap_components as dbc
+from dash import html
+
+# ------------------------------------------------------------
+# Utilidades internas para reconstruir config y castear valores
+# ------------------------------------------------------------
+def _coerce_value(v):
+    # Mantén None/booleanos tal cual
+    if v is None or isinstance(v, bool):
+        return v
+
+    # Si ya es numérico/lista, respeta
+    if isinstance(v, (int, float, list, dict)):
+        return v
+
+    if isinstance(v, str):
+        s = v.strip()
+
+        # Bool por string
+        if s.lower() in ("true", "false"):
+            return s.lower() == "true"
+
+        # Lista separada por comas -> intenta numérico
+        if "," in s:
+            parts = [p.strip() for p in s.split(",")]
+            casted = []
+            for p in parts:
+                try:
+                    # int si aplica, si no float, si no deja string
+                    casted.append(int(p))
+                except ValueError:
+                    try:
+                        casted.append(float(p))
+                    except ValueError:
+                        casted.append(p)
+            return casted
+
+        # Número único
+        try:
+            return int(s)
+        except ValueError:
+            try:
+                return float(s)
+            except ValueError:
+                return s
+
+    # Cualquier otro tipo lo regresamos tal cual
+    return v
+
+
+def _set_deep(dct, dotted_path, value):
+    """
+    Inserta value en dct siguiendo una ruta con puntos, por ejemplo:
+    dotted_path = "encoder.input_feature_dim" -> dct["encoder"]["input_feature_dim"] = value
+    """
+    parts = dotted_path.split(".")
+    cur = dct
+    for p in parts[:-1]:
+        if p not in cur or not isinstance(cur[p], dict):
+            cur[p] = {}
+        cur = cur[p]
+    cur[parts[-1]] = value
+
+
+# ------------------------------------------------------------
+# Callback para "modelos simples" (SVM, RandomForest, etc.)
+# ------------------------------------------------------------
+@callback(
+    Output({"type": "classic-test-config-result", "model": MATCH}, "children"),
+    Input({"type": "classic-test-config-btn", "model": MATCH}, "n_clicks"),
+    [
+        State({"type": "config-input", "model": MATCH, "field": ALL}, "value"),
+        State({"type": "config-input", "model": MATCH, "field": ALL}, "id"),
+        State("classifier-type-store", "data"),
+    ],
+    prevent_initial_call=True
+)
+def test_classic_model_configuration(n_clicks, input_values, input_ids, classifier_type):
+    """
+    Valida y registra modelos NO-NN (SVM, RandomForest, etc.) usando los inputs simples.
+    Este callback se auto-omite si no hay `config-input` (lo que ocurre en las NN).
+
+    Args:
+        classifier_type: "P300" o "InnerSpeech" - determina qué método del experimento usar
+    """
+    if not n_clicks:
+        return no_update
+
+    # Si no hay inputs 'config-input', asumimos que no es una card clásica -> omitir
+    if not input_ids or len(input_ids) == 0:
+        return no_update
+
+    # Determinar el nombre del modelo desde los IDs
+    # (cualquier id trae {"model": "<Modelo>"})
+    model_name = input_ids[0].get("model", "UNKNOWN")
+
+    # Reconstruir configuración a partir de full_path en 'field'
+    # Ej: field = "hyperparams.C"  -> {"hyperparams": {"C": <valor>}}
+    config = {}
+    for id_obj, raw_value in zip(input_ids, input_values):
+        dotted_path = id_obj.get("field", "")
+        value = _coerce_value(raw_value)
+        if dotted_path:
+            _set_deep(config, dotted_path, value)
+
+    # Validar contra la clase Pydantic y registrar en el experimento
+    try:
+        from backend.classes.ClasificationModel.ClassifierSchemaFactory import ClassifierSchemaFactory
+        from pydantic import ValidationError
+
+        classifier_class = ClassifierSchemaFactory.available_classifiers.get(model_name)
+        if not classifier_class:
+            return dbc.Alert(
+                [
+                    html.I(className="fas fa-times-circle me-2"),
+                    f"Error: Modelo '{model_name}' no está registrado en ClassifierSchemaFactory"
+                ],
+                color="danger",
+                dismissable=True
+            )
+
+        try:
+            validated_instance = classifier_class(**config)
+        except ValidationError as ve:
+            # Formatear errores de Pydantic
+            err_lines = []
+            for e in ve.errors():
+                loc = ".".join(str(x) for x in e.get("loc", []))
+                msg = e.get("msg", "Error")
+                err_lines.append(f"• {loc}: {msg}")
+            return dbc.Alert(
+                [
+                    html.I(className="fas fa-times-circle me-2"),
+                    html.Div([
+                        html.Strong("Errores de validación:"), html.Br(),
+                        html.Pre("\n".join(err_lines), style={"fontSize": "12px", "marginTop": "8px"})
+                    ])
+                ],
+                color="danger",
+                dismissable=True
+            )
+
+        # Agregar al experimento según el tipo de clasificador
+        try:
+            from backend.classes.Experiment import Experiment
+
+            # Usar el método correcto según el tipo
+            if classifier_type == "InnerSpeech":
+                Experiment.add_inner_speech_classifier(validated_instance)
+                success_msg = "El modelo ha sido validado y agregado al experimento de Habla Interna"
+            else:  # P300 por defecto
+                Experiment.add_P300_classifier(validated_instance)
+                success_msg = "El modelo ha sido validado y agregado al experimento P300"
+
+        except Exception as exp_err:
+            return dbc.Alert(
+                [
+                    html.I(className="fas fa-exclamation-triangle me-2"),
+                    f"Configuración válida, pero no se pudo registrar en el experimento: {exp_err}"
+                ],
+                color="warning",
+                dismissable=True
+            )
+
+        # Éxito
+        return dbc.Alert(
+            [
+                html.I(className="fas fa-check-circle me-2"),
+                html.Div([
+                    html.Strong(f"✓ {model_name} configurado exitosamente"),
+                    html.Br(),
+                    html.Small(success_msg)
+                ])
+            ],
+            color="success",
+            dismissable=True,
+            duration=6000
+        )
+
+    except Exception as e:
+        return dbc.Alert(
+            [
+                html.I(className="fas fa-times-circle me-2"),
+                f"Error inesperado: {str(e)}"
+            ],
+            color="danger",
+            dismissable=True
+        )
