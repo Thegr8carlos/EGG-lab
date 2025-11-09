@@ -13,15 +13,15 @@ class Experiment(BaseModel):
     id: str = Field(..., description="Unique identifier for the experiment")
     transform: List[dict] = Field(
         default_factory=list,
-        description="Feature transformations applied to the data"
+        description="Feature transformations applied to the data (legacy, deprecated)"
     )
     P300Classifier: Optional[dict] = Field(
         None,
-        description="Classification model configuration for P300 detection"
+        description="Classification model configuration for P300 detection. Structure: {model_name: {config, transform: {...}}}"
     )
     innerSpeachClassifier: Optional[dict] = Field(
         None,
-        description="Classification model configuration for Inner Speech detection"
+        description="Classification model configuration for Inner Speech detection. Structure: {model_name: {config, transform: {...}}}"
     )
     filters: List[dict] = Field(
         default_factory=list,
@@ -367,6 +367,7 @@ class Experiment(BaseModel):
     def add_P300_classifier(cls, classifier: Classifier) -> None:
         """
         Stores the P300 classifier configuration.
+        The transform field (if exists) will be preserved from previous configuration.
         """
         import numpy as np
 
@@ -397,6 +398,18 @@ class Experiment(BaseModel):
             classifier_data = convert_numpy_to_list(classifier_data)
         else:
             classifier_data = vars(classifier)
+
+        # Preservar transformación existente si hay una
+        existing_transform = None
+        if experiment.P300Classifier and isinstance(experiment.P300Classifier, dict):
+            for model_name, model_config in experiment.P300Classifier.items():
+                if isinstance(model_config, dict) and "transform" in model_config:
+                    existing_transform = model_config["transform"]
+                    break
+
+        # Agregar transformación preservada al nuevo config
+        if existing_transform is not None:
+            classifier_data["transform"] = existing_transform
 
         experiment.P300Classifier = {
             classifier_name: classifier_data
@@ -404,9 +417,54 @@ class Experiment(BaseModel):
         cls._save_latest_experiment(experiment)
 
     @classmethod
+    def set_P300_transform(cls, transform: Transform) -> None:
+        """
+        Sets or updates the transform configuration for the P300 classifier.
+        Creates an empty classifier entry if it doesn't exist yet.
+        """
+        experiment = cls._load_latest_experiment()
+
+        transform_name = transform.__class__.__name__
+        transform_data = transform.dict() if isinstance(transform, BaseModel) else vars(transform)
+
+        # Si no hay clasificador P300 aún, crear estructura básica
+        if not experiment.P300Classifier or not isinstance(experiment.P300Classifier, dict):
+            experiment.P300Classifier = {
+                "pending_model": {
+                    "transform": {transform_name: transform_data}
+                }
+            }
+        else:
+            # Actualizar transform en el modelo existente
+            for model_name, model_config in experiment.P300Classifier.items():
+                if isinstance(model_config, dict):
+                    model_config["transform"] = {transform_name: transform_data}
+                    break
+
+        cls._save_latest_experiment(experiment)
+        print(f"✅ Transformación '{transform_name}' configurada para P300")
+
+    @classmethod
+    def get_P300_transform(cls) -> Optional[dict]:
+        """
+        Retrieves the transform configuration from the P300 classifier.
+        Returns None if no transform is configured.
+        """
+        try:
+            experiment = cls._load_latest_experiment()
+            if experiment.P300Classifier and isinstance(experiment.P300Classifier, dict):
+                for model_name, model_config in experiment.P300Classifier.items():
+                    if isinstance(model_config, dict) and "transform" in model_config:
+                        return model_config["transform"]
+            return None
+        except Exception:
+            return None
+
+    @classmethod
     def add_inner_speech_classifier(cls, classifier: Classifier) -> None:
         """
         Stores the Inner Speech classifier configuration.
+        The transform field (if exists) will be preserved from previous configuration.
         """
         import numpy as np
 
@@ -438,12 +496,632 @@ class Experiment(BaseModel):
         else:
             classifier_data = vars(classifier)
 
+        # Preservar transformación existente si hay una
+        existing_transform = None
+        if experiment.innerSpeachClassifier and isinstance(experiment.innerSpeachClassifier, dict):
+            for model_name, model_config in experiment.innerSpeachClassifier.items():
+                if isinstance(model_config, dict) and "transform" in model_config:
+                    existing_transform = model_config["transform"]
+                    break
+
+        # Agregar transformación preservada al nuevo config
+        if existing_transform is not None:
+            classifier_data["transform"] = existing_transform
+
         experiment.innerSpeachClassifier = {
             classifier_name: classifier_data
         }
         cls._save_latest_experiment(experiment)
 
-    # -------------------- Pipeline History System --------------------
+    @classmethod
+    def set_inner_speech_transform(cls, transform: Transform) -> None:
+        """
+        Sets or updates the transform configuration for the Inner Speech classifier.
+        Creates an empty classifier entry if it doesn't exist yet.
+        """
+        experiment = cls._load_latest_experiment()
+
+        transform_name = transform.__class__.__name__
+        transform_data = transform.dict() if isinstance(transform, BaseModel) else vars(transform)
+
+        # Si no hay clasificador Inner Speech aún, crear estructura básica
+        if not experiment.innerSpeachClassifier or not isinstance(experiment.innerSpeachClassifier, dict):
+            experiment.innerSpeachClassifier = {
+                "pending_model": {
+                    "transform": {transform_name: transform_data}
+                }
+            }
+        else:
+            # Actualizar transform en el modelo existente
+            for model_name, model_config in experiment.innerSpeachClassifier.items():
+                if isinstance(model_config, dict):
+                    model_config["transform"] = {transform_name: transform_data}
+                    break
+
+        cls._save_latest_experiment(experiment)
+        print(f"✅ Transformación '{transform_name}' configurada para Inner Speech")
+
+    @classmethod
+    def get_inner_speech_transform(cls) -> Optional[dict]:
+        """
+        Retrieves the transform configuration from the Inner Speech classifier.
+        Returns None if no transform is configured.
+        """
+        try:
+            experiment = cls._load_latest_experiment()
+            if experiment.innerSpeachClassifier and isinstance(experiment.innerSpeachClassifier, dict):
+                for model_name, model_config in experiment.innerSpeachClassifier.items():
+                    if isinstance(model_config, dict) and "transform" in model_config:
+                        return model_config["transform"]
+            return None
+        except Exception:
+            return None
+
+    # -------------------- Pipeline System for Models --------------------
+
+    @classmethod
+    def apply_model_pipeline(
+        cls,
+        file_path: str,
+        model_type: str = "p300",
+        force_recalculate: bool = False,
+        save_intermediates: bool = True,
+        verbose: bool = True
+    ) -> Dict[str, Any]:
+        """
+        Applies the complete pipeline for a specific model type: filters → model's transform → ready for model.
+
+        This is the NEW method that should be used for P300 and Inner Speech models.
+        It replaces apply_history_pipeline() for model-specific workflows.
+
+        Workflow:
+        1. Apply all filters from experiment.filters
+        2. Apply the specific transform from experiment.P300Classifier.transform or experiment.innerSpeachClassifier.transform
+        3. Return processed signal ready for the model
+
+        Args:
+            file_path: Path to the event .npy file
+            model_type: "p300" or "inner" to determine which model's transform to use
+            force_recalculate: If True, ignores cache and recalculates
+            save_intermediates: If True, saves intermediate results after each step
+            verbose: If True, prints progress messages
+
+        Returns:
+            dict with keys:
+                - signal: Final processed signal array
+                - metadata: Pipeline execution info
+                - cache_used: Boolean indicating if cache was used
+                - cache_path: Path to cached file
+                - labels_path: Path to labels file (if generated by transform)
+        """
+        import numpy as np
+        import time
+        import hashlib
+        from pathlib import Path
+
+        # Load experiment
+        experiment = cls._load_latest_experiment()
+        experiment_id = experiment.id
+
+        if verbose:
+            print(f"\n{'='*60}")
+            print(f"🧪 PIPELINE DE MODELO: {model_type.upper()}")
+            print(f"📂 Archivo: {Path(file_path).name}")
+            print(f"{'='*60}")
+
+        # Get the model's transform
+        if model_type == "p300":
+            model_transform_dict = cls.get_P300_transform()
+            model_name = "P300"
+        elif model_type == "inner":
+            model_transform_dict = cls.get_inner_speech_transform()
+            model_name = "Inner Speech"
+        else:
+            raise ValueError(f"model_type debe ser 'p300' o 'inner', recibido: {model_type}")
+
+        if verbose:
+            n_filters = len(experiment.filters)
+            has_transform = model_transform_dict is not None
+            print(f"📋 Pipeline: {n_filters} filtros + {'1 transformación' if has_transform else 'sin transformación'}")
+
+            if n_filters > 0:
+                print(f"\n🔧 Filtros a aplicar:")
+                for i, filter_entry in enumerate(experiment.filters):
+                    filter_id = filter_entry.get("id", "?")
+                    filter_name = next((k for k, v in filter_entry.items() if k != "id" and isinstance(v, dict)), "Unknown")
+                    print(f"  {i+1}. F{filter_id}: {filter_name}")
+
+            if has_transform:
+                transform_name = next(iter(model_transform_dict.keys()))
+                print(f"\n🎨 Transformación del modelo {model_name}:")
+                print(f"  - {transform_name}")
+
+            print(f"{'='*60}\n")
+
+        # Get cache paths (usando model_type en el hash para diferenciar)
+        cache_paths = cls._get_model_pipeline_cache_path(file_path, experiment_id, model_type)
+        cache_file = cache_paths["cache_file"]
+        metadata_file = cache_paths["metadata_file"]
+        cache_dir = Path(cache_paths["cache_dir"])
+        intermediates_dir = Path(cache_paths["intermediates_dir"])
+
+        # Create directories
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        if save_intermediates:
+            intermediates_dir.mkdir(parents=True, exist_ok=True)
+
+        # Check cache validity
+        cache_exists = os.path.exists(cache_file) and os.path.exists(metadata_file)
+
+        if cache_exists and not force_recalculate:
+            # Load metadata to verify pipeline hash
+            with open(metadata_file, "r") as f:
+                cached_metadata = json.load(f)
+
+            # Hash actual config (filters + model transform)
+            current_config = {
+                "filters": experiment.filters,
+                "model_transform": model_transform_dict,
+                "model_type": model_type
+            }
+            current_hash = hashlib.md5(
+                json.dumps(current_config, sort_keys=True).encode()
+            ).hexdigest()
+
+            if cached_metadata.get("pipeline_hash") == current_hash:
+                # Valid cache found
+                if verbose:
+                    print(f"✅ Cache válido encontrado: {Path(cache_file).name}")
+
+                signal = np.load(cache_file, allow_pickle=False)
+                labels_path = cached_metadata.get("labels_file")
+
+                return {
+                    "signal": signal,
+                    "metadata": cached_metadata,
+                    "cache_used": True,
+                    "cache_path": cache_file,
+                    "labels_path": labels_path
+                }
+
+        # No valid cache - execute full pipeline
+        if verbose:
+            print(f"🔄 Ejecutando pipeline completo...")
+
+        start_time = time.time()
+
+        # Load original signal
+        current_signal = np.load(file_path, allow_pickle=False)
+        original_shape = current_signal.shape
+
+        current_labels_file = None
+        step_count = 0
+        execution_log = []
+        # Visualization payload (if a model transform outputs 3D, we'll keep a limited copy for UI)
+        viz_payload = None
+
+        # Phase 1: Apply all filters
+        if experiment.filters:
+            if verbose:
+                print(f"📍 Fase 1: Aplicando {len(experiment.filters)} filtros")
+
+            for filter_entry in experiment.filters:
+                filter_id = filter_entry.get("id")
+
+                # Extract filter name and config
+                filter_name = None
+                filter_config = None
+                for key, value in filter_entry.items():
+                    if key != "id" and isinstance(value, dict):
+                        filter_name = key
+                        filter_config = value
+                        break
+
+                if not filter_name or not filter_config:
+                    if verbose:
+                        print(f"⚠️ Filtro {filter_id} sin configuración válida, saltando")
+                    continue
+
+                try:
+                    # Reconstruct filter instance
+                    filter_instance = cls._reconstruct_filter_instance(filter_name, filter_config)
+
+                    if verbose:
+                        print(f"  → Aplicando {filter_name} (ID: {filter_id})")
+
+                    # Get filter class for apply method
+                    from backend.classes.Filter.FilterSchemaFactory import FilterSchemaFactory
+                    filter_class = FilterSchemaFactory.available_filters[filter_name]
+
+                    # Save CURRENT INPUT for this filter
+                    # Mantener forma REAL (sin adaptación 3D→2D) para diagnóstico transparente
+                    if verbose:
+                        try:
+                            print(f"    ↪ Entrada filtro: shape={current_signal.shape}, ndim={getattr(current_signal,'ndim', 'na')}")
+                        except Exception:
+                            pass
+                    temp_input = intermediates_dir / f"temp_step_{step_count}_input.npy"
+                    np.save(str(temp_input), current_signal)
+
+                    # (Eliminado intento previo de adaptación; usar señal directa)
+
+                    # Create temp output directory
+                    temp_output_dir = intermediates_dir / f"temp_step_{step_count}_output"
+                    temp_output_dir.mkdir(exist_ok=True)
+
+                    # Apply filter
+                    success = filter_class.apply(
+                        filter_instance,
+                        file_path=str(temp_input),
+                        directory_path_out=str(temp_output_dir)
+                    )
+
+                    if success:
+                        # Find the output file
+                        output_files = list(temp_output_dir.glob("*.npy"))
+                        if output_files:
+                            temp_output = output_files[0]
+                            current_signal = np.load(str(temp_output), allow_pickle=False)
+
+                            # Save intermediate if requested
+                            if save_intermediates:
+                                intermediate_file = intermediates_dir / f"step_{step_count:02d}_{filter_name}_{filter_id}.npy"
+                                np.save(str(intermediate_file), current_signal)
+
+                            execution_log.append({
+                                "step": step_count,
+                                "type": "filter",
+                                "name": filter_name,
+                                "id": filter_id,
+                                "shape": list(current_signal.shape),
+                                "status": "success"
+                            })
+
+                            if verbose:
+                                print(f"    ✅ {filter_name} aplicado: {current_signal.shape}")
+
+                            step_count += 1
+                        else:
+                            if verbose:
+                                print(f"    ⚠️ {filter_name} no generó archivo de salida")
+                            execution_log.append({
+                                "step": step_count,
+                                "type": "filter",
+                                "name": filter_name,
+                                "id": filter_id,
+                                "status": "no_output"
+                            })
+                    else:
+                        if verbose:
+                            print(f"    ❌ {filter_name} falló")
+                        execution_log.append({
+                            "step": step_count,
+                            "type": "filter",
+                            "name": filter_name,
+                            "id": filter_id,
+                            "status": "failed"
+                        })
+
+                    # Cleanup temp files
+                    if temp_input.exists():
+                        temp_input.unlink()
+                    if temp_output_dir.exists():
+                        import shutil
+                        shutil.rmtree(temp_output_dir)
+
+                except Exception as e:
+                    if verbose:
+                        print(f"  ❌ Error aplicando filtro {filter_name}: {e}")
+                    continue
+
+        # Phase 2: Apply model's transform (if exists)
+        if model_transform_dict:
+            if verbose:
+                print(f"📍 Fase 2: Aplicando transformación del modelo {model_name}")
+
+            # Extract transform name and config
+            transform_name = next(iter(model_transform_dict.keys()))
+            transform_config = model_transform_dict[transform_name]
+
+            try:
+                # Reconstruct transform instance
+                transform_instance = cls._reconstruct_transform_instance(transform_name, transform_config)
+
+                if verbose:
+                    print(f"  → Aplicando {transform_name}")
+
+                # Get transform class for apply method
+                from backend.classes.FeatureExtracture.TransformSchemaFactory import TransformSchemaFactory
+                transform_class = TransformSchemaFactory.available_transforms[transform_name]
+
+                # Save current signal to temp file
+                temp_input = intermediates_dir / f"temp_step_{step_count}_input.npy"
+                np.save(str(temp_input), current_signal)
+
+                temp_output_dir = intermediates_dir / "temp_output"
+                temp_output_dir.mkdir(exist_ok=True)
+
+                # Create temp labels (nombre debe coincidir con temp_input para que transform lo encuentre)
+                event_name = Path(file_path).stem
+                event_class = event_name.split('[')[0].strip() if '[' in event_name else event_name
+
+                temp_labels_dir = intermediates_dir / "temp_labels"
+                temp_labels_dir.mkdir(exist_ok=True)
+
+                # Determinar longitud de labels según dimensionalidad:
+                # - Para señales 2D (channels, time): usar la dimensión mayor (normalmente tiempo)
+                # - Para señales 3D ya venteadas: usar primera dim (frames)
+                if isinstance(current_signal, np.ndarray):
+                    if current_signal.ndim == 1:
+                        n_times = int(current_signal.shape[0])
+                    elif current_signal.ndim == 2:
+                        # En EEG 2D, típicamente (n_channels, n_times) o (n_times, n_channels)
+                        # Usar la dimensión mayor como tiempo
+                        n_times = int(max(current_signal.shape))
+                    elif current_signal.ndim == 3:
+                        # Ya venteado: (n_frames, feature_len, n_channels)
+                        n_times = int(current_signal.shape[0])
+                    else:
+                        n_times = int(current_signal.shape[0])
+                else:
+                    try:
+                        n_times = int(len(current_signal))
+                    except Exception:
+                        n_times = 0
+
+                labels_array = np.array([event_class] * n_times, dtype=str)
+                # CRÍTICO: El nombre debe ser temp_input.name para que transform lo encuentre
+                temp_labels_file = temp_labels_dir / temp_input.name
+                np.save(str(temp_labels_file), labels_array)
+
+                if verbose:
+                    print(f"    🏷️  Labels creadas: clase='{event_class}', n={n_times}, archivo={temp_labels_file.name}")
+
+                # Apply transform
+                try:
+                    success = transform_class.apply(
+                        transform_instance,
+                        file_path_in=str(temp_input),
+                        directory_path_out=str(temp_output_dir),
+                        labels_directory=str(temp_labels_dir),
+                        labels_out_path=str(temp_output_dir)
+                    )
+                except TypeError:
+                    # Try with dir_out_labels instead
+                    success = transform_class.apply(
+                        transform_instance,
+                        file_path_in=str(temp_input),
+                        directory_path_out=str(temp_output_dir),
+                        labels_directory=str(temp_labels_dir),
+                        dir_out_labels=str(temp_output_dir)
+                    )
+
+                if success:
+                    # Find output file
+                    output_files = sorted(
+                        [f for f in temp_output_dir.glob("*.npy") if "_labels" not in f.name],
+                        key=lambda x: x.stat().st_mtime,
+                        reverse=True
+                    )
+
+                    # Find labels file
+                    label_files = sorted(
+                        [f for f in temp_output_dir.glob("*_labels.npy")],
+                        key=lambda x: x.stat().st_mtime,
+                        reverse=True
+                    )
+
+                    if output_files:
+                        current_signal = np.load(str(output_files[0]), allow_pickle=False)
+
+                        # Save labels path if exists
+                        if label_files:
+                            current_labels_file = label_files[0]
+
+                        # Handle 3D arrays (windowed/features) → build viz payload and flatten for model
+                        if current_signal.ndim == 3:
+                            n_frames, feature_len, n_channels = current_signal.shape
+
+                            # Determine domain based on transform name
+                            domain = "unknown"
+                            if transform_name == "FFTTransform":
+                                domain = "time-freq"
+                            elif transform_name == "DCTTransform":
+                                domain = "coeffs"
+                            elif transform_name in ("WaveletTransform", "WindowingTransform"):
+                                domain = "window-time"
+
+                            # Limit payload size for UI responsiveness
+                            MAX_FRAMES = 128
+                            MAX_FEATURES = 256
+                            f_lim = min(feature_len, MAX_FEATURES)
+                            t_lim = min(n_frames, MAX_FRAMES)
+                            cube_limited = current_signal[:t_lim, :f_lim, :]
+
+                            viz_payload = {
+                                "domain": domain,
+                                "shape": [int(n_frames), int(feature_len), int(n_channels)],
+                                "cube": cube_limited.tolist(),  # (frames, feature_axis, channels)
+                                "frames_shown": int(t_lim),
+                                "features_shown": int(f_lim),
+                                "transform_name": transform_name
+                            }
+
+                            # Flatten to 2D for model consumption (channels, frames*feature_len)
+                            current_signal = current_signal.transpose(2, 0, 1).reshape(n_channels, n_frames * feature_len)
+
+                        # Save intermediate if requested
+                        if save_intermediates:
+                            intermediate_file = intermediates_dir / f"step_{step_count:02d}_{transform_name}_model.npy"
+                            np.save(str(intermediate_file), current_signal)
+
+                        execution_log.append({
+                            "step": step_count,
+                            "type": "model_transform",
+                            "name": transform_name,
+                            "model_type": model_type,
+                            "shape": list(current_signal.shape),
+                            "status": "success"
+                        })
+
+                        if verbose:
+                            print(f"    ✅ {transform_name} aplicada: {current_signal.shape}")
+
+                        step_count += 1
+                    else:
+                        if verbose:
+                            print(f"    ⚠️ {transform_name} no generó archivo de salida")
+                        execution_log.append({
+                            "step": step_count,
+                            "type": "model_transform",
+                            "name": transform_name,
+                            "model_type": model_type,
+                            "status": "no_output"
+                        })
+                else:
+                    if verbose:
+                        print(f"    ❌ {transform_name} falló")
+                    execution_log.append({
+                        "step": step_count,
+                        "type": "model_transform",
+                        "name": transform_name,
+                        "model_type": model_type,
+                        "status": "failed"
+                    })
+
+                # Cleanup temp files
+                import shutil
+                if temp_input.exists():
+                    temp_input.unlink()
+                if temp_output_dir.exists():
+                    shutil.rmtree(str(temp_output_dir))
+                if temp_labels_file.exists():
+                    temp_labels_file.unlink()
+
+            except Exception as e:
+                if verbose:
+                    print(f"  ❌ Error aplicando transformada {transform_name}: {e}")
+                import traceback
+                traceback.print_exc()
+
+        # Save final result to cache
+        np.save(cache_file, current_signal)
+
+        # Save labels file to cache if generated
+        labels_cache_file = None
+        if current_labels_file and Path(current_labels_file).exists():
+            labels_cache_file = str(Path(cache_file).parent / f"{Path(cache_file).stem}_labels.npy")
+            import shutil
+            shutil.copy2(current_labels_file, labels_cache_file)
+            if verbose:
+                print(f"💾 Labels guardadas en cache: {Path(labels_cache_file).name}")
+
+        # Save metadata
+        current_config = {
+            "filters": experiment.filters,
+            "model_transform": model_transform_dict,
+            "model_type": model_type
+        }
+        pipeline_hash = hashlib.md5(
+            json.dumps(current_config, sort_keys=True).encode()
+        ).hexdigest()
+
+        execution_time = time.time() - start_time
+
+        metadata = {
+            "pipeline_hash": pipeline_hash,
+            "experiment_id": experiment_id,
+            "model_type": model_type,
+            "original_file": file_path,
+            "original_shape": list(original_shape),
+            "final_shape": list(current_signal.shape),
+            "execution_time_seconds": execution_time,
+            "steps_applied": step_count,
+            "execution_log": execution_log,
+            "timestamp": time.time(),
+            "labels_file": labels_cache_file
+        }
+
+        with open(metadata_file, "w") as f:
+            json.dump(metadata, f, indent=2)
+
+        if verbose:
+            # Final summary
+            successful_steps = [log for log in execution_log if log.get("status") == "success"]
+            failed_steps = [log for log in execution_log if log.get("status") == "failed"]
+
+            print(f"\n{'='*60}")
+            print(f"📊 RESUMEN DEL PIPELINE {model_name.upper()}")
+            print(f"{'='*60}")
+            print(f"⏱️  Tiempo total: {execution_time:.2f}s")
+            print(f"📏 Shape: {original_shape} → {current_signal.shape}")
+            print(f"✅ Pasos exitosos: {len(successful_steps)}/{len(execution_log)}")
+
+            if failed_steps:
+                print(f"❌ Pasos fallidos: {len(failed_steps)}")
+                for step in failed_steps:
+                    print(f"   - {step['name']} (tipo: {step['type']})")
+
+            print(f"💾 Cache guardado: {Path(cache_file).name}")
+            print(f"{'='*60}\n")
+
+        # Build result
+        result = {
+            "signal": current_signal,
+            "metadata": metadata,
+            "cache_used": False,
+            "cache_path": cache_file,
+            "labels_path": labels_cache_file
+        }
+        if viz_payload is not None:
+            result["viz"] = viz_payload
+            # Exponer nombre de transform actual también fuera del payload para fácil acceso en UI
+            if isinstance(viz_payload, dict) and "transform_name" in viz_payload:
+                result["applied_transform_name"] = viz_payload["transform_name"]
+        return result
+
+    @classmethod
+    def _get_model_pipeline_cache_path(cls, file_path: str, experiment_id: str, model_type: str) -> Dict[str, str]:
+        """
+        Constructs cache file paths for a model-specific pipeline.
+        Includes model_type in the path to differentiate P300 vs Inner Speech caches.
+
+        Returns:
+            dict with keys: cache_file, metadata_file, cache_dir, intermediates_dir
+        """
+        import hashlib
+        from pathlib import Path
+
+        event_path = Path(file_path)
+
+        # Si el path contiene "Aux/", navegar hasta encontrar el directorio base correcto
+        # Ejemplo: Aux/inner_speech/sub-01/.../Events/archivo.npy -> usar Aux/inner_speech/... como base
+        # Ejemplo: Data/inner_speech/sub-01/.../Events/archivo.npy -> usar Data/inner_speech/... como base
+        parts = event_path.parts
+
+        # Buscar "Events" en el path y usar su padre como dataset_dir
+        if "Events" in parts:
+            events_index = parts.index("Events")
+            dataset_dir = Path(*parts[:events_index + 1])
+        else:
+            dataset_dir = event_path.parent
+
+        # Create Aux/experiment_{id}/model_{type}/ structure
+        aux_dir = dataset_dir / "Aux" / f"experiment_{experiment_id}" / f"model_{model_type}"
+        cache_dir = aux_dir / "pipeline_cache"
+        intermediates_dir = aux_dir / "intermediates"
+
+        # Hash the event filename for uniqueness
+        file_hash = hashlib.md5(event_path.name.encode()).hexdigest()[:8]
+
+        return {
+            "cache_file": str(cache_dir / f"{event_path.stem}_{file_hash}_final.npy"),
+            "metadata_file": str(cache_dir / f"{event_path.stem}_{file_hash}_metadata.json"),
+            "cache_dir": str(cache_dir),
+            "intermediates_dir": str(intermediates_dir)
+        }
+
+    # -------------------- Pipeline History System (Legacy) --------------------
 
     @classmethod
     def _get_pipeline_cache_path(cls, file_path: str, experiment_id: str) -> Dict[str, str]:
@@ -458,7 +1136,14 @@ class Experiment(BaseModel):
 
         # Get base dataset directory (parent of the event file)
         event_path = Path(file_path)
-        dataset_dir = event_path.parent
+
+        # Si el path contiene "Events", usar ese directorio como base
+        parts = event_path.parts
+        if "Events" in parts:
+            events_index = parts.index("Events")
+            dataset_dir = Path(*parts[:events_index + 1])
+        else:
+            dataset_dir = event_path.parent
 
         # Create Aux/experiment_{id}/ structure
         aux_dir = dataset_dir / "Aux" / f"experiment_{experiment_id}"
@@ -521,483 +1206,246 @@ class Experiment(BaseModel):
         file_path: str,
         force_recalculate: bool = False,
         save_intermediates: bool = True,
-        verbose: bool = True
+        verbose: bool = True,
+        model_type: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
-        Applies ALL filters and transforms from experiment history to a signal file.
-        Uses intelligent caching to avoid redundant computation.
-
-        Workflow:
-        1. Check if cache exists and is valid
-        2. If valid cache exists and force_recalculate=False, return cached result
-        3. Otherwise, execute full pipeline:
-           - Apply all filters in sequence
-           - Apply all transforms in sequence
-           - Save final result to cache
-           - Optionally save intermediate steps
-
-        Args:
-            file_path: Path to the event .npy file
-            force_recalculate: If True, ignores cache and recalculates
-            save_intermediates: If True, saves intermediate results after each step
-            verbose: If True, prints progress messages
-
-        Returns:
-            dict with keys:
-                - signal: Final transformed signal array
-                - metadata: Pipeline execution info
-                - cache_used: Boolean indicating if cache was used
-                - cache_path: Path to cached file
+        Aplica el pipeline histórico bajo el contrato: n filtros + 1 transformación.
+        Ver histórico completo solo como referencia; no se ejecutan múltiples transformaciones.
         """
-        import numpy as np
-        import time
-        import hashlib
+        import numpy as np, time, hashlib, os, json
         from pathlib import Path
 
-        # Load experiment
         experiment = cls._load_latest_experiment()
         experiment_id = experiment.id
 
-        # 🔍 DEBUG: Mostrar información del experimento
         if verbose:
             print(f"\n{'='*60}")
             print(f"🧪 EXPERIMENTO #{experiment_id}")
             print(f"📂 Archivo: {Path(file_path).name}")
             print(f"{'='*60}")
-
-            # Mostrar historial completo
-            n_filters = len(experiment.filters)
-            n_transforms = len(experiment.transform)
-            print(f"📋 Pipeline completo: {n_filters} filtros + {n_transforms} transformadas")
-
-            if n_filters > 0:
-                print(f"\n🔧 Filtros a aplicar:")
-                for i, filter_entry in enumerate(experiment.filters):
-                    filter_id = filter_entry.get("id", "?")
-                    filter_name = None
-                    for key, value in filter_entry.items():
-                        if key != "id" and isinstance(value, dict):
-                            filter_name = key
-                            break
-                    print(f"  {i+1}. F{filter_id}: {filter_name}")
-
-            if n_transforms > 0:
-                print(f"\n🎨 Transformadas a aplicar:")
-                for i, transform_entry in enumerate(experiment.transform):
-                    transform_id = transform_entry.get("id", "?")
-                    transform_name = None
-                    for key, value in transform_entry.items():
-                        if key not in ["id", "dimensionality_change"] and isinstance(value, dict):
-                            transform_name = key
-                            break
-                    print(f"  {i+1}. T{transform_id}: {transform_name}")
-
+            print(f"📋 Historial: {len(experiment.filters)} filtros + {len(experiment.transform)} transformadas")
+            if experiment.filters:
+                print("\n🔧 Filtros:")
+                for i, fentry in enumerate(experiment.filters):
+                    fid = fentry.get('id','?')
+                    fname = next((k for k,v in fentry.items() if k!='id' and isinstance(v,dict)), '?')
+                    print(f"  {i+1}. F{fid}: {fname}")
+            if experiment.transform:
+                print("\n🎨 Transformaciones (referencia):")
+                for i, tentry in enumerate(experiment.transform):
+                    tid = tentry.get('id','?')
+                    tname = next((k for k,v in tentry.items() if k not in ['id','dimensionality_change'] and isinstance(v,dict)), '?')
+                    print(f"  {i+1}. T{tid}: {tname}")
             print(f"{'='*60}\n")
 
-        # Get cache paths
-        cache_paths = cls._get_pipeline_cache_path(file_path, experiment_id)
-        cache_file = cache_paths["cache_file"]
-        metadata_file = cache_paths["metadata_file"]
-        cache_dir = Path(cache_paths["cache_dir"])
-        intermediates_dir = Path(cache_paths["intermediates_dir"])
-
-        # Create directories
+        paths = cls._get_pipeline_cache_path(file_path, experiment_id)
+        cache_file = paths['cache_file']
+        metadata_file = paths['metadata_file']
+        cache_dir = Path(paths['cache_dir'])
+        intermediates_dir = Path(paths['intermediates_dir'])
         cache_dir.mkdir(parents=True, exist_ok=True)
         if save_intermediates:
             intermediates_dir.mkdir(parents=True, exist_ok=True)
 
-        # Check cache validity
         cache_exists = os.path.exists(cache_file) and os.path.exists(metadata_file)
-
         if cache_exists and not force_recalculate:
-            # Load metadata to verify experiment hash
-            with open(metadata_file, "r") as f:
-                cached_metadata = json.load(f)
-
-            # Simple hash: serialize filters + transforms config
-            current_config = {
-                "filters": experiment.filters,
-                "transforms": experiment.transform
-            }
-            current_hash = hashlib.md5(
-                json.dumps(current_config, sort_keys=True).encode()
-            ).hexdigest()
-
-            if cached_metadata.get("pipeline_hash") == current_hash:
-                # Valid cache found
+            with open(metadata_file,'r') as f:
+                cached_meta = json.load(f)
+            current_cfg = {"filters": experiment.filters, "transforms": experiment.transform, "model_type": model_type}
+            current_hash = hashlib.md5(json.dumps(current_cfg, sort_keys=True).encode()).hexdigest()
+            if cached_meta.get('pipeline_hash') == current_hash:
                 if verbose:
-                    print(f"✅ Cache válido encontrado: {cache_file}")
+                    print(f"✅ Cache válido: {Path(cache_file).name}")
+                return {"signal": np.load(cache_file, allow_pickle=False), "metadata": cached_meta, "cache_used": True, "cache_path": cache_file, "labels_path": cached_meta.get('labels_file')}
 
-                signal = np.load(cache_file, allow_pickle=False)
-
-                # Obtener path de labels desde metadata
-                labels_path = cached_metadata.get("labels_file")
-
-                return {
-                    "signal": signal,
-                    "metadata": cached_metadata,
-                    "cache_used": True,
-                    "cache_path": cache_file,
-                    "labels_path": labels_path  # Path al archivo de labels
-                }
-
-        # No valid cache - execute full pipeline
         if verbose:
-            print(f"🔄 Ejecutando pipeline completo para: {Path(file_path).name}")
+            print("🔄 Ejecutando pipeline histórico (n filtros + 1 transformación)...")
 
         start_time = time.time()
-
-        # Load original signal
         current_signal = np.load(file_path, allow_pickle=False)
         original_shape = current_signal.shape
-
-        # Variable para guardar el path de labels generado por la última transformación
         current_labels_file = None
-
+        execution_log: List[Dict[str,Any]] = []
         step_count = 0
-        execution_log = []
 
-        # Phase 1: Apply all filters
+        # Fase 1: filtros
         if experiment.filters:
             if verbose:
-                print(f"📍 Fase 1: Aplicando {len(experiment.filters)} filtros")
-
-            for filter_entry in experiment.filters:
-                filter_id = filter_entry.get("id")
-
-                # Extract filter name and config
-                filter_name = None
-                filter_config = None
-                for key, value in filter_entry.items():
-                    if key != "id" and isinstance(value, dict):
-                        filter_name = key
-                        filter_config = value
-                        break
-
-                if not filter_name or not filter_config:
-                    if verbose:
-                        print(f"⚠️ Filtro {filter_id} sin configuración válida, saltando")
+                print(f"📍 Fase 1: {len(experiment.filters)} filtros")
+            for fentry in experiment.filters:
+                fid = fentry.get('id')
+                fname = None; fcfg=None
+                for k,v in fentry.items():
+                    if k!='id' and isinstance(v,dict):
+                        fname=k; fcfg=v; break
+                if not fname or not fcfg:
+                    if verbose: print(f"⚠️ Filtro {fid} inválido, se omite")
                     continue
-
                 try:
-                    # Reconstruct filter instance
-                    filter_instance = cls._reconstruct_filter_instance(filter_name, filter_config)
-
-                    if verbose:
-                        print(f"  → Aplicando {filter_name} (ID: {filter_id})")
-
-                    # Get filter class for apply method
+                    finst = cls._reconstruct_filter_instance(fname, fcfg)
                     from backend.classes.Filter.FilterSchemaFactory import FilterSchemaFactory
-                    filter_class = FilterSchemaFactory.available_filters[filter_name]
-
-                    # Save current signal to temp file
-                    temp_input = intermediates_dir / f"temp_step_{step_count}_input.npy"
-                    np.save(str(temp_input), current_signal)
-
-                    # Create temp output directory
-                    temp_output_dir = intermediates_dir / f"temp_step_{step_count}_output"
-                    temp_output_dir.mkdir(exist_ok=True)
-
-                    # Apply filter (filters take file_path and directory_path_out)
-                    success = filter_class.apply(
-                        filter_instance,
-                        file_path=str(temp_input),
-                        directory_path_out=str(temp_output_dir)
-                    )
-
-                    if success:
-                        # Find the output file (filters create it automatically)
-                        output_files = list(temp_output_dir.glob("*.npy"))
-                        if output_files:
-                            temp_output = output_files[0]
-                            current_signal = np.load(str(temp_output), allow_pickle=False)
-
-                            # Save intermediate if requested
+                    fclass = FilterSchemaFactory.available_filters[fname]
+                    if verbose:
+                        print(f"  → {fname} (ID:{fid}) entrada shape={current_signal.shape}")
+                    tmp_in = intermediates_dir / f"temp_step_{step_count}_input.npy"; np.save(str(tmp_in), current_signal)
+                    tmp_out_dir = intermediates_dir / f"temp_step_{step_count}_output"; tmp_out_dir.mkdir(exist_ok=True)
+                    ok = fclass.apply(finst, file_path=str(tmp_in), directory_path_out=str(tmp_out_dir))
+                    if ok:
+                        outs = list(tmp_out_dir.glob('*.npy'))
+                        if outs:
+                            current_signal = np.load(str(outs[0]), allow_pickle=False)
                             if save_intermediates:
-                                intermediate_file = intermediates_dir / f"step_{step_count:02d}_{filter_name}_{filter_id}.npy"
-                                np.save(str(intermediate_file), current_signal)
-
-                            execution_log.append({
-                                "step": step_count,
-                                "type": "filter",
-                                "name": filter_name,
-                                "id": filter_id,
-                                "shape": list(current_signal.shape),
-                                "status": "success"
-                            })
-
-                            if verbose:
-                                print(f"    ✅ {filter_name} aplicado: {current_signal.shape}")
-
+                                np.save(str(intermediates_dir / f"step_{step_count:02d}_{fname}_{fid}.npy"), current_signal)
+                            execution_log.append({"step": step_count, "type":"filter", "id": fid, "name": fname, "shape": list(current_signal.shape), "status":"success"})
+                            if verbose: print(f"    ✅ {fname} aplicado: {current_signal.shape}")
                             step_count += 1
                         else:
-                            if verbose:
-                                print(f"    ⚠️ {filter_name} no generó archivo de salida")
-                            execution_log.append({
-                                "step": step_count,
-                                "type": "filter",
-                                "name": filter_name,
-                                "id": filter_id,
-                                "status": "no_output"
-                            })
+                            execution_log.append({"step": step_count, "type":"filter", "id": fid, "name": fname, "status":"no_output"})
+                            if verbose: print(f"    ⚠️ {fname} sin salida")
                     else:
-                        if verbose:
-                            print(f"    ❌ {filter_name} falló")
-                        execution_log.append({
-                            "step": step_count,
-                            "type": "filter",
-                            "name": filter_name,
-                            "id": filter_id,
-                            "status": "failed"
-                        })
-
-                    # Cleanup temp files
-                    if temp_input.exists():
-                        temp_input.unlink()
-                    if temp_output_dir.exists():
-                        import shutil
-                        shutil.rmtree(temp_output_dir)
-
+                        execution_log.append({"step": step_count, "type":"filter", "id": fid, "name": fname, "status":"failed"})
+                        if verbose: print(f"    ❌ {fname} falló")
                 except Exception as e:
-                    if verbose:
-                        print(f"  ❌ Error aplicando filtro {filter_name}: {e}")
-                    continue
-
-        # Phase 2: Apply all transforms
-        if experiment.transform:
-            if verbose:
-                print(f"📍 Fase 2: Aplicando {len(experiment.transform)} transformadas")
-
-            for transform_entry in experiment.transform:
-                transform_id = transform_entry.get("id")
-
-                # Extract transform name and config
-                transform_name = None
-                transform_config = None
-                for key, value in transform_entry.items():
-                    if key not in ["id", "dimensionality_change"] and isinstance(value, dict):
-                        transform_name = key
-                        transform_config = value
-                        break
-
-                if not transform_name or not transform_config:
-                    if verbose:
-                        print(f"⚠️ Transformada {transform_id} sin configuración válida, saltando")
-                    continue
-
-                try:
-                    # Reconstruct transform instance
-                    transform_instance = cls._reconstruct_transform_instance(transform_name, transform_config)
-
-                    if verbose:
-                        print(f"  → Aplicando {transform_name} (ID: {transform_id})")
-
-                    # Get transform class for apply method
-                    from backend.classes.FeatureExtracture.TransformSchemaFactory import TransformSchemaFactory
-                    transform_class = TransformSchemaFactory.available_transforms[transform_name]
-
-                    # Save current signal to temp file
-                    temp_input = intermediates_dir / f"temp_step_{step_count}_input.npy"
-                    np.save(str(temp_input), current_signal)
-
-                    temp_output_dir = intermediates_dir / "temp_output"
-                    temp_output_dir.mkdir(exist_ok=True)
-
-                    # Create temp labels (all same class from filename)
-                    event_name = Path(file_path).stem
-                    event_class = event_name.split('[')[0].strip() if '[' in event_name else event_name
-
-                    temp_labels_dir = intermediates_dir / "temp_labels"
-                    temp_labels_dir.mkdir(exist_ok=True)
-
-                    n_samples = current_signal.shape[1] if current_signal.ndim == 2 else current_signal.shape[0]
-                    labels_array = np.array([event_class] * n_samples, dtype=str)
-                    temp_labels_file = temp_labels_dir / Path(file_path).name
-                    np.save(str(temp_labels_file), labels_array)
-
-                    # Apply transform
+                    execution_log.append({"step": step_count, "type":"filter", "id": fid, "name": fname or 'unknown', "status":"error", "error": str(e)})
+                    if verbose: print(f"    ❌ Error en filtro {fname}: {e}")
+                finally:
+                    # cleanup
                     try:
-                        success = transform_class.apply(
-                            transform_instance,
-                            file_path_in=str(temp_input),
-                            directory_path_out=str(temp_output_dir),
-                            labels_directory=str(temp_labels_dir),
-                            labels_out_path=str(temp_output_dir)
-                        )
-                    except TypeError:
-                        # Try with dir_out_labels instead
-                        success = transform_class.apply(
-                            transform_instance,
-                            file_path_in=str(temp_input),
-                            directory_path_out=str(temp_output_dir),
-                            labels_directory=str(temp_labels_dir),
-                            dir_out_labels=str(temp_output_dir)
-                        )
+                        if 'tmp_in' in locals() and tmp_in.exists(): tmp_in.unlink()
+                        if 'tmp_out_dir' in locals() and tmp_out_dir.exists():
+                            import shutil; shutil.rmtree(str(tmp_out_dir))
+                    except Exception: pass
 
-                    if success:
-                        # Find output file
-                        transform_suffixes = {
-                            "WaveletTransform": "wavelet",
-                            "FFTTransform": "fft",
-                            "DCTTransform": "dct",
-                            "WindowingTransform": "window"
-                        }
-                        suffix = transform_suffixes.get(transform_name, "transformed")
+        # Fase 2: elegir UNA transform
+        sel_name=None; sel_cfg=None; sel_source=None
+        if model_type == 'p300':
+            mt = cls.get_P300_transform();
+            if mt:
+                sel_name = next(iter(mt.keys())); sel_cfg = mt[sel_name]; sel_source='P300Classifier'
+        elif model_type == 'inner':
+            mt = cls.get_inner_speech_transform();
+            if mt:
+                sel_name = next(iter(mt.keys())); sel_cfg = mt[sel_name]; sel_source='InnerSpeechClassifier'
+        if sel_name is None and experiment.transform:
+            last = experiment.transform[-1]
+            for k,v in last.items():
+                if k not in ['id','dimensionality_change'] and isinstance(v,dict):
+                    sel_name=k; sel_cfg=v; sel_source='historial:last'; break
 
-                        # Buscar archivos de señal (excluir labels)
-                        output_files = sorted(
-                            [f for f in temp_output_dir.glob("*.npy") if "_labels" not in f.name],
-                            key=lambda x: x.stat().st_mtime,
-                            reverse=True
-                        )
-
-                        # Buscar archivo de labels generado por la transformación
-                        label_files = sorted(
-                            [f for f in temp_output_dir.glob("*_labels.npy")],
-                            key=lambda x: x.stat().st_mtime,
-                            reverse=True
-                        )
-
-                        if output_files:
-                            current_signal = np.load(str(output_files[0]), allow_pickle=False)
-
-                            # Guardar path de labels si existe
-                            if label_files:
-                                current_labels_file = label_files[0]
-
-                            # Handle 3D arrays (windowed transforms)
-                            if current_signal.ndim == 3:
-                                n_frames, frame_size, n_channels = current_signal.shape
-                                current_signal = current_signal.transpose(2, 0, 1).reshape(n_channels, n_frames * frame_size)
-
-                            # Save intermediate if requested
-                            if save_intermediates:
-                                intermediate_file = intermediates_dir / f"step_{step_count:02d}_{transform_name}_{transform_id}.npy"
-                                np.save(str(intermediate_file), current_signal)
-
-                            execution_log.append({
-                                "step": step_count,
-                                "type": "transform",
-                                "name": transform_name,
-                                "id": transform_id,
-                                "shape": list(current_signal.shape),
-                                "status": "success"
-                            })
-
-                            if verbose:
-                                print(f"    ✅ {transform_name} aplicada: {current_signal.shape}")
-
-                            step_count += 1
-                        else:
-                            if verbose:
-                                print(f"    ⚠️ {transform_name} no generó archivo de salida")
-                            execution_log.append({
-                                "step": step_count,
-                                "type": "transform",
-                                "name": transform_name,
-                                "id": transform_id,
-                                "status": "no_output"
-                            })
+        if sel_name:
+            if verbose:
+                extra = " (múltiples en historial, se aplica solo 1)" if len(experiment.transform)>1 else ""
+                print(f"📍 Fase 2: transform {sel_name} fuente={sel_source}{extra}")
+            try:
+                tinst = cls._reconstruct_transform_instance(sel_name, sel_cfg)
+                from backend.classes.FeatureExtracture.TransformSchemaFactory import TransformSchemaFactory
+                tclass = TransformSchemaFactory.available_transforms[sel_name]
+                tmp_in = intermediates_dir / f"temp_step_{step_count}_input.npy"; np.save(str(tmp_in), current_signal)
+                tmp_out_dir = intermediates_dir / "temp_output"; tmp_out_dir.mkdir(exist_ok=True)
+                # Labels temporales
+                ev_name = Path(file_path).stem
+                ev_class = ev_name.split('[')[0].strip() if '[' in ev_name else ev_name
+                lbl_dir = intermediates_dir / "temp_labels"; lbl_dir.mkdir(exist_ok=True)
+                if isinstance(current_signal, np.ndarray):
+                    if current_signal.ndim == 1: n_times = current_signal.shape[0]
+                    elif current_signal.ndim == 2: n_times = max(current_signal.shape)
+                    elif current_signal.ndim == 3: n_times = current_signal.shape[0]
+                    else: n_times = current_signal.shape[0]
+                else:
+                    try: n_times = len(current_signal)
+                    except Exception: n_times = 0
+                np.save(str(lbl_dir / tmp_in.name), np.array([ev_class]*n_times,dtype=str))
+                try:
+                    ok = tclass.apply(tinst, file_path_in=str(tmp_in), directory_path_out=str(tmp_out_dir), labels_directory=str(lbl_dir), labels_out_path=str(tmp_out_dir))
+                except TypeError:
+                    ok = tclass.apply(tinst, file_path_in=str(tmp_in), directory_path_out=str(tmp_out_dir), labels_directory=str(lbl_dir), dir_out_labels=str(tmp_out_dir))
+                if ok:
+                    outs = sorted([f for f in tmp_out_dir.glob('*.npy') if '_labels' not in f.name], key=lambda x: x.stat().st_mtime, reverse=True)
+                    lbls = sorted(list(tmp_out_dir.glob('*_labels.npy')), key=lambda x: x.stat().st_mtime, reverse=True)
+                    if outs:
+                        current_signal = np.load(str(outs[0]), allow_pickle=False)
+                        if lbls: current_labels_file = lbls[0]
+                        if save_intermediates:
+                            np.save(str(intermediates_dir / f"step_{step_count:02d}_{sel_name}.npy"), current_signal)
+                        execution_log.append({"step": step_count, "type":"transform", "name": sel_name, "shape": list(current_signal.shape), "status":"success"})
+                        if verbose: print(f"    ✅ {sel_name} aplicada: {current_signal.shape}")
+                        step_count += 1
                     else:
-                        if verbose:
-                            print(f"    ❌ {transform_name} falló")
-                        execution_log.append({
-                            "step": step_count,
-                            "type": "transform",
-                            "name": transform_name,
-                            "id": transform_id,
-                            "status": "failed"
-                        })
+                        execution_log.append({"step": step_count, "type":"transform", "name": sel_name, "status":"no_output"})
+                        if verbose: print(f"    ⚠️ {sel_name} sin salida")
+                else:
+                    execution_log.append({"step": step_count, "type":"transform", "name": sel_name, "status":"failed"})
+                    if verbose: print(f"    ❌ {sel_name} falló")
+            except Exception as e:
+                execution_log.append({"step": step_count, "type":"transform", "name": sel_name or 'unknown', "status":"error", "error": str(e)})
+                if verbose: print(f"    ❌ Error transform {sel_name}: {e}")
+            finally:
+                try:
+                    if 'tmp_in' in locals() and tmp_in.exists(): tmp_in.unlink()
+                    if 'tmp_out_dir' in locals() and tmp_out_dir.exists():
+                        import shutil; shutil.rmtree(str(tmp_out_dir))
+                except Exception: pass
 
-                    # Cleanup temp files
-                    import shutil
-                    if temp_input.exists():
-                        temp_input.unlink()
-                    if temp_output_dir.exists():
-                        shutil.rmtree(str(temp_output_dir))
-                    if temp_labels_file.exists():
-                        temp_labels_file.unlink()
-
-                except Exception as e:
-                    if verbose:
-                        print(f"  ❌ Error aplicando transformada {transform_name}: {e}")
-                    import traceback
-                    traceback.print_exc()
-                    continue
-
-        # Save final result to cache
+        # Guardar señal final en caché
         np.save(cache_file, current_signal)
 
-        # Save labels file to cache if generated by a transformation
+        # Labels -> validar y guardar
         labels_cache_file = None
         if current_labels_file and Path(current_labels_file).exists():
-            # Copiar archivo de labels al mismo directorio que la señal
             labels_cache_file = str(Path(cache_file).parent / f"{Path(cache_file).stem}_labels.npy")
-            import shutil
-            shutil.copy2(current_labels_file, labels_cache_file)
-            if verbose:
-                print(f"💾 Labels guardadas en cache: {Path(labels_cache_file).name}")
+            labels_data = np.load(str(current_labels_file), allow_pickle=True)
+            if current_signal.ndim == 3:
+                n_frames = current_signal.shape[0]; n_labels = len(labels_data)
+                if n_labels != n_frames:
+                    if verbose: print(f"  ⚠️ Labels {n_labels} != frames {n_frames}")
+                    if n_labels == 1:
+                        labels_data = np.array([labels_data[0]]*n_frames, dtype=labels_data.dtype)
+                        if verbose: print("  🔧 Expandida 1→frames")
+                    elif n_labels < n_frames:
+                        labels_data = np.concatenate([labels_data, np.array([labels_data[-1]]*(n_frames-n_labels), dtype=labels_data.dtype)])
+                    else:
+                        labels_data = labels_data[:n_frames]
+            np.save(labels_cache_file, labels_data)
+            if verbose: print(f"💾 Labels cache: {Path(labels_cache_file).name} ({len(labels_data)})")
 
-        # Save metadata
-        current_config = {
-            "filters": experiment.filters,
-            "transforms": experiment.transform
-        }
-        pipeline_hash = hashlib.md5(
-            json.dumps(current_config, sort_keys=True).encode()
-        ).hexdigest()
-
-        execution_time = time.time() - start_time
-
+        meta_cfg = {"filters": experiment.filters, "transforms": experiment.transform, "model_type": model_type}
+        pipeline_hash = hashlib.md5(json.dumps(meta_cfg, sort_keys=True).encode()).hexdigest()
+        exec_time = time.time() - start_time
         metadata = {
             "pipeline_hash": pipeline_hash,
             "experiment_id": experiment_id,
             "original_file": file_path,
             "original_shape": list(original_shape),
             "final_shape": list(current_signal.shape),
-            "execution_time_seconds": execution_time,
+            "execution_time_seconds": exec_time,
             "steps_applied": step_count,
             "execution_log": execution_log,
             "timestamp": time.time(),
-            "labels_file": labels_cache_file  # Agregar path de labels
+            "labels_file": labels_cache_file,
+            "selected_transform": sel_name,
+            "selected_transform_source": sel_source
         }
-
-        with open(metadata_file, "w") as f:
-            json.dump(metadata, f, indent=2)
+        with open(metadata_file,'w') as f: json.dump(metadata, f, indent=2)
 
         if verbose:
-            # Resumen final del pipeline
-            successful_steps = [log for log in execution_log if log.get("status") == "success"]
-            failed_steps = [log for log in execution_log if log.get("status") == "failed"]
-            no_output_steps = [log for log in execution_log if log.get("status") == "no_output"]
-
-            print(f"\n{'='*60}")
-            print(f"📊 RESUMEN DEL PIPELINE")
-            print(f"{'='*60}")
-            print(f"⏱️  Tiempo total: {execution_time:.2f}s")
+            succ=[l for l in execution_log if l.get('status')=='success']
+            fail=[l for l in execution_log if l.get('status') in ('failed','error')]
+            noop=[l for l in execution_log if l.get('status')=='no_output']
+            print(f"\n{'='*60}\n📊 RESUMEN HISTÓRICO\n{'='*60}")
+            print(f"⏱️ Tiempo: {exec_time:.2f}s")
             print(f"📏 Shape: {original_shape} → {current_signal.shape}")
-            print(f"✅ Pasos exitosos: {len(successful_steps)}/{len(execution_log)}")
+            print(f"✅ Éxito: {len(succ)}/{len(execution_log)}")
+            if fail:
+                print(f"❌ Fallos: {len(fail)}")
+                for st in fail: print(f"   - {st['type']} {st['name']} ({st['status']})")
+            if noop:
+                print(f"⚠️ Sin salida: {len(noop)}")
+                for st in noop: print(f"   - {st['type']} {st['name']}")
+            print(f"Transform seleccionada: {sel_name} (fuente: {sel_source})")
+            print(f"💾 Cache: {Path(cache_file).name}\n{'='*60}\n")
 
-            if failed_steps:
-                print(f"❌ Pasos fallidos: {len(failed_steps)}")
-                for step in failed_steps:
-                    print(f"   - {step['name']} (ID: {step['id']})")
-
-            if no_output_steps:
-                print(f"⚠️  Sin salida: {len(no_output_steps)}")
-                for step in no_output_steps:
-                    print(f"   - {step['name']} (ID: {step['id']})")
-
-            print(f"💾 Cache guardado: {Path(cache_file).name}")
-            print(f"{'='*60}\n")
-
-        return {
-            "signal": current_signal,
-            "metadata": metadata,
-            "cache_used": False,
-            "cache_path": cache_file,
-            "labels_path": labels_cache_file  # Path al archivo de labels
-        }
+        return {"signal": current_signal, "metadata": metadata, "cache_used": False, "cache_path": cache_file, "labels_path": labels_cache_file}
 
     @classmethod
     def get_experiment_summary(cls, calculate_cache: bool = False) -> Dict[str, Any]:
@@ -1137,6 +1585,243 @@ class Experiment(BaseModel):
     # -------------------- Mini Dataset Generation for Model Testing --------------------
 
     @classmethod
+    def generate_model_dataset(
+        cls,
+        dataset_path: str,
+        model_type: str = "p300",
+        n_train: int = 10,
+        n_test: int = 5,
+        selected_classes: Optional[List[str]] = None,
+        force_recalculate: bool = False,
+        verbose: bool = True
+    ) -> Dict[str, Any]:
+        """
+        Genera un mini dataset de prueba aplicando el pipeline completo de un modelo específico.
+
+        NUEVO MÉTODO que reemplaza generate_pipeline_dataset() para flujos de P300 e Inner Speech.
+
+        Pipeline: filters → model's transform → ready for model
+
+        Este método es utilizado para verificar que la configuración del modelo es correcta
+        antes del entrenamiento completo.
+
+        CACHÉ: El mini-dataset se genera UNA SOLA VEZ por experimento/modelo y se reutiliza
+        en todas las verificaciones, a menos que el pipeline cambie.
+
+        Args:
+            dataset_path: Ruta al dataset (ej: "Data/nieto_inner_speech")
+            model_type: "p300" o "inner" para determinar qué transformación usar
+            n_train: Número de ejemplos para entrenamiento
+            n_test: Número de ejemplos para prueba
+            selected_classes: Lista de clases a usar. Si es None, usa todas las disponibles
+            force_recalculate: Si True, recalcula el pipeline aunque exista caché
+            verbose: Si True, imprime progreso
+
+        Returns:
+            dict con keys:
+                - train_data: Lista de arrays procesados (train)
+                - train_labels: Lista de etiquetas numéricas (train)
+                - test_data: Lista de arrays procesados (test)
+                - test_labels: Lista de etiquetas numéricas (test)
+                - class_mapping: Dict {class_name: class_id}
+                - n_train: Número de ejemplos de entrenamiento
+                - n_test: Número de ejemplos de prueba
+                - pipeline_summary: Resumen del pipeline aplicado
+                - model_type: Tipo de modelo usado
+
+        Example:
+            >>> dataset = Experiment.generate_model_dataset(
+            ...     dataset_path="Data/p300_dataset",
+            ...     model_type="p300",
+            ...     n_train=20,
+            ...     n_test=10,
+            ...     selected_classes=["target", "non-target"]
+            ... )
+            >>> print(f"Train: {len(dataset['train_data'])} | Test: {len(dataset['test_data'])}")
+        """
+        import numpy as np
+        from pathlib import Path
+        from collections import defaultdict
+        import hashlib
+
+        # Load experiment
+        experiment = cls._load_latest_experiment()
+        experiment_id = experiment.id
+
+        # Get model's transform
+        if model_type == "p300":
+            model_transform = cls.get_P300_transform()
+        elif model_type == "inner":
+            model_transform = cls.get_inner_speech_transform()
+        else:
+            raise ValueError(f"model_type debe ser 'p300' o 'inner', recibido: {model_type}")
+
+        # Normalizar dataset_path
+        dataset_path_normalized = dataset_path
+        if not dataset_path.startswith("Data/") and not dataset_path.startswith("/"):
+            dataset_path_normalized = f"Data/{dataset_path}"
+
+        if verbose:
+            print(f"\n{'='*70}")
+            print(f"🔬 GENERANDO MINI DATASET DE PRUEBA - MODELO {model_type.upper()}")
+            print(f"{'='*70}")
+            print(f"📂 Dataset: {dataset_path_normalized}")
+            print(f"📊 Train: {n_train} | Test: {n_test}")
+            print(f"🎨 Transformación: {list(model_transform.keys())[0] if model_transform else 'Ninguna'}")
+            print(f"{'='*70}\n")
+
+        # Get all event files
+        dataset_root = Path(dataset_path_normalized)
+        if not dataset_root.exists():
+            raise FileNotFoundError(f"Dataset no encontrado: {dataset_root}")
+
+        event_files = list(dataset_root.glob("*.npy"))
+        if not event_files:
+            raise ValueError(f"No se encontraron archivos .npy en {dataset_root}")
+
+        # Group files by class
+        files_by_class = defaultdict(list)
+        for event_file in event_files:
+            # Extract class from filename (before '[' if exists)
+            event_name = event_file.stem
+            event_class = event_name.split('[')[0].strip() if '[' in event_name else event_name
+            files_by_class[event_class].append(event_file)
+
+        # Filter classes if specified
+        if selected_classes:
+            files_by_class = {
+                cls_name: files
+                for cls_name, files in files_by_class.items()
+                if cls_name in selected_classes
+            }
+
+        if not files_by_class:
+            raise ValueError(f"No se encontraron clases válidas. Clases disponibles: {list(files_by_class.keys())}")
+
+        # Create class mapping
+        class_mapping = {cls_name: idx for idx, cls_name in enumerate(sorted(files_by_class.keys()))}
+
+        if verbose:
+            print(f"📋 Clases encontradas: {len(class_mapping)}")
+            for cls_name, cls_id in class_mapping.items():
+                print(f"  {cls_id}: {cls_name} ({len(files_by_class[cls_name])} ejemplos)")
+            print()
+
+        # Select train/test samples for each class
+        train_files = []
+        train_labels = []
+        test_files = []
+        test_labels = []
+
+        for cls_name, files in files_by_class.items():
+            cls_id = class_mapping[cls_name]
+
+            # Shuffle and split
+            import random
+            random.shuffle(files)
+
+            n_train_cls = min(n_train, len(files))
+            n_test_cls = min(n_test, len(files) - n_train_cls)
+
+            train_files.extend(files[:n_train_cls])
+            train_labels.extend([cls_id] * n_train_cls)
+
+            test_files.extend(files[n_train_cls:n_train_cls + n_test_cls])
+            test_labels.extend([cls_id] * n_test_cls)
+
+        # Apply pipeline to all files
+        train_data = []
+        train_labels_expanded = []  # Etiquetas expandidas según frames
+        test_data = []
+        test_labels_expanded = []
+
+        if verbose:
+            print(f"🔄 Aplicando pipeline a {len(train_files)} archivos de train...")
+
+        for idx, file_path in enumerate(train_files):
+            try:
+                result = cls.apply_model_pipeline(
+                    file_path=str(file_path),
+                    model_type=model_type,
+                    force_recalculate=force_recalculate,
+                    save_intermediates=False,
+                    verbose=False
+                )
+                signal = result["signal"]
+                train_data.append(signal)
+
+                # Replicar etiqueta según número de frames (eje 0)
+                if signal.ndim == 3:
+                    n_frames = signal.shape[0]
+                    train_labels_expanded.extend([train_labels[idx]] * n_frames)
+                else:
+                    train_labels_expanded.append(train_labels[idx])
+
+            except Exception as e:
+                if verbose:
+                    print(f"  ⚠️ Error procesando {file_path.name}: {e}")
+                continue
+
+        if verbose:
+            print(f"🔄 Aplicando pipeline a {len(test_files)} archivos de test...")
+
+        for idx, file_path in enumerate(test_files):
+            try:
+                result = cls.apply_model_pipeline(
+                    file_path=str(file_path),
+                    model_type=model_type,
+                    force_recalculate=force_recalculate,
+                    save_intermediates=False,
+                    verbose=False
+                )
+                signal = result["signal"]
+                test_data.append(signal)
+
+                # Replicar etiqueta según número de frames (eje 0)
+                if signal.ndim == 3:
+                    n_frames = signal.shape[0]
+                    test_labels_expanded.extend([test_labels[idx]] * n_frames)
+                else:
+                    test_labels_expanded.append(test_labels[idx])
+
+            except Exception as e:
+                if verbose:
+                    print(f"  ⚠️ Error procesando {file_path.name}: {e}")
+                continue
+
+        # Usar etiquetas expandidas
+        train_labels = train_labels_expanded
+        test_labels = test_labels_expanded
+
+        # Create pipeline summary
+        pipeline_summary = {
+            "filters": len(experiment.filters),
+            "transform": list(model_transform.keys())[0] if model_transform else None,
+            "model_type": model_type
+        }
+
+        if verbose:
+            print(f"\n{'='*70}")
+            print(f"✅ MINI DATASET GENERADO")
+            print(f"{'='*70}")
+            print(f"📊 Train: {len(train_data)} ejemplos")
+            print(f"📊 Test: {len(test_data)} ejemplos")
+            print(f"🔧 Pipeline: {pipeline_summary['filters']} filtros + {pipeline_summary['transform'] or 'sin transform'}")
+            print(f"{'='*70}\n")
+
+        return {
+            "train_data": train_data,
+            "train_labels": train_labels,
+            "test_data": test_data,
+            "test_labels": test_labels,
+            "class_mapping": class_mapping,
+            "n_train": len(train_data),
+            "n_test": len(test_data),
+            "pipeline_summary": pipeline_summary,
+            "model_type": model_type
+        }
+
+    @classmethod
     def generate_pipeline_dataset(
         cls,
         dataset_path: str,
@@ -1147,6 +1832,8 @@ class Experiment(BaseModel):
         verbose: bool = True
     ) -> Dict[str, Any]:
         """
+        [LEGACY - DEPRECATED] Usa generate_model_dataset() en su lugar.
+
         Genera un mini dataset de prueba aplicando el pipeline completo del experimento
         a eventos reales del dataset.
 
@@ -1479,9 +2166,26 @@ class Experiment(BaseModel):
                 # Usar labels generadas por transformación
                 train_label_files.append(proc_data["labels_path"])
             else:
-                # Crear archivo de labels con el label escalar
+                # Crear archivo de labels POR FRAME desde la señal procesada
                 label_file = labels_dir / f"train_label_{idx:04d}.npy"
-                np.save(label_file, np.array([proc_data["label"]]))
+
+                # Cargar la señal procesada para determinar el número de frames
+                signal_data = np.load(proc_data["cache_path"])
+
+                # Determinar número de frames según la dimensionalidad
+                if signal_data.ndim >= 3:
+                    # Formato (n_frames, feat, n_channels) o similar
+                    n_frames = signal_data.shape[0]
+                elif signal_data.ndim == 2:
+                    # Formato (feat, n_channels) - un solo frame
+                    n_frames = 1
+                else:
+                    # Formato plano - un solo frame
+                    n_frames = 1
+
+                # Crear array de etiquetas (una por frame, todas iguales)
+                labels_array = np.full(n_frames, proc_data["label"], dtype=np.int64)
+                np.save(label_file, labels_array)
                 train_label_files.append(str(label_file))
 
         # Procesar labels de test
@@ -1490,9 +2194,26 @@ class Experiment(BaseModel):
                 # Usar labels generadas por transformación
                 test_label_files.append(proc_data["labels_path"])
             else:
-                # Crear archivo de labels con el label escalar
+                # Crear archivo de labels POR FRAME desde la señal procesada
                 label_file = labels_dir / f"test_label_{idx:04d}.npy"
-                np.save(label_file, np.array([proc_data["label"]]))
+
+                # Cargar la señal procesada para determinar el número de frames
+                signal_data = np.load(proc_data["cache_path"])
+
+                # Determinar número de frames según la dimensionalidad
+                if signal_data.ndim >= 3:
+                    # Formato (n_frames, feat, n_channels) o similar
+                    n_frames = signal_data.shape[0]
+                elif signal_data.ndim == 2:
+                    # Formato (feat, n_channels) - un solo frame
+                    n_frames = 1
+                else:
+                    # Formato plano - un solo frame
+                    n_frames = 1
+
+                # Crear array de etiquetas (una por frame, todas iguales)
+                labels_array = np.full(n_frames, proc_data["label"], dtype=np.int64)
+                np.save(label_file, labels_array)
                 test_label_files.append(str(label_file))
 
         # Prepare result

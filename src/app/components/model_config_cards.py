@@ -483,7 +483,13 @@ def create_config_card(model_name: str, schema: Dict[str, Any], classifier_type:
                             color="#0d6efd",
                             style={"marginTop": "20px"}
                         )
-                    ])
+                    ]),
+
+                    # Divisor
+                    html.Hr(style={"margin": "30px 0", "borderTop": "1px solid rgba(255,255,255,0.2)"}),
+
+                    # Sección de entrenamiento en la nube
+                    create_cloud_training_section(model_name)
                 ])
             ], className="right-panel-card")
         ], id="config-card-container")
@@ -507,6 +513,11 @@ def create_config_card(model_name: str, schema: Dict[str, Any], classifier_type:
 from dash import no_update, ctx
 import dash_bootstrap_components as dbc
 from dash import html
+from app.components.CloudTrainingComponent import create_cloud_training_section
+
+# Importar el componente de entrenamiento en la nube
+# TEMPORALMENTE COMENTADO PARA DEBUG
+# from app.components.CloudTrainingComponent import create_cloud_training_section
 
 # ------------------------------------------------------------
 # Utilidades internas para reconstruir config y castear valores
@@ -574,28 +585,30 @@ def _set_deep(dct, dotted_path, value):
 # ------------------------------------------------------------
 @callback(
     Output({"type": "classic-test-config-result", "model": MATCH}, "children"),
+    Output({"type": "btn-cloud-training", "model": MATCH}, "disabled", allow_duplicate=True),
+    Output({"type": "cloud-training-hint", "model": MATCH}, "children", allow_duplicate=True),
     Input({"type": "classic-test-config-btn", "model": MATCH}, "n_clicks"),
     [
         State({"type": "config-input", "model": MATCH, "field": ALL}, "value"),
         State({"type": "config-input", "model": MATCH, "field": ALL}, "id"),
         State("classifier-type-store", "data"),
+        State("selected-dataset", "data"),  # Agregar dataset seleccionado
     ],
     prevent_initial_call=True
 )
-def test_classic_model_configuration(n_clicks, input_values, input_ids, classifier_type):
+def test_classic_model_configuration(n_clicks, input_values, input_ids, classifier_type, selected_dataset):
     """
     Valida y registra modelos NO-NN (SVM, RandomForest, etc.) usando los inputs simples.
     Este callback se auto-omite si no hay `config-input` (lo que ocurre en las NN).
-
-    Args:
-        classifier_type: "P300" o "InnerSpeech" - determina qué método del experimento usar
+        Output({"type": "btn-cloud-training", "model": MATCH}, "disabled", allow_duplicate=True),
+        Output({"type": "cloud-training-hint", "model": MATCH}, "children", allow_duplicate=True),
     """
     if not n_clicks:
-        return no_update
+        return no_update, no_update, no_update
 
     # Si no hay inputs 'config-input', asumimos que no es una card clásica -> omitir
     if not input_ids or len(input_ids) == 0:
-        return no_update
+        return no_update, no_update, no_update
 
     # Determinar el nombre del modelo desde los IDs
     # (cualquier id trae {"model": "<Modelo>"})
@@ -617,13 +630,17 @@ def test_classic_model_configuration(n_clicks, input_values, input_ids, classifi
 
         classifier_class = ClassifierSchemaFactory.available_classifiers.get(model_name)
         if not classifier_class:
-            return dbc.Alert(
-                [
-                    html.I(className="fas fa-times-circle me-2"),
-                    f"Error: Modelo '{model_name}' no está registrado en ClassifierSchemaFactory"
-                ],
-                color="danger",
-                dismissable=True
+            return (
+                dbc.Alert(
+                    [
+                        html.I(className="fas fa-times-circle me-2"),
+                        f"Error: Modelo '{model_name}' no está registrado en ClassifierSchemaFactory"
+                    ],
+                    color="danger",
+                    dismissable=True
+                ),
+                True,
+                "Corrige la configuración del modelo para habilitar el entrenamiento en la nube"
             )
 
         try:
@@ -635,16 +652,20 @@ def test_classic_model_configuration(n_clicks, input_values, input_ids, classifi
                 loc = ".".join(str(x) for x in e.get("loc", []))
                 msg = e.get("msg", "Error")
                 err_lines.append(f"• {loc}: {msg}")
-            return dbc.Alert(
-                [
-                    html.I(className="fas fa-times-circle me-2"),
-                    html.Div([
-                        html.Strong("Errores de validación:"), html.Br(),
-                        html.Pre("\n".join(err_lines), style={"fontSize": "12px", "marginTop": "8px"})
-                    ])
-                ],
-                color="danger",
-                dismissable=True
+            return (
+                dbc.Alert(
+                    [
+                        html.I(className="fas fa-times-circle me-2"),
+                        html.Div([
+                            html.Strong("Errores de validación:"), html.Br(),
+                            html.Pre("\n".join(err_lines), style={"fontSize": "12px", "marginTop": "8px"})
+                        ])
+                    ],
+                    color="danger",
+                    dismissable=True
+                ),
+                True,
+                "Hay errores de validación. Corrígelos para habilitar el entrenamiento en la nube"
             )
 
         # ===== PASO 1: VERIFICACIÓN DE COMPILACIÓN =====
@@ -656,14 +677,19 @@ def test_classic_model_configuration(n_clicks, input_values, input_ids, classifi
         experiment_type_msg = "Habla Interna" if classifier_type == "InnerSpeech" else "P300"
 
         try:
-            # Obtener dataset del experimento
-            experiment = Experiment._load_latest_experiment()
-            if not experiment.dataset:
-                compilation_error = "No hay dataset configurado en el experimento"
-                print(f"⚠️ [INTERNO] No se encontró dataset en el experimento")
+            # Obtener dataset seleccionado desde el store de Dash
+            if not selected_dataset:
+                compilation_error = "No hay dataset seleccionado. Por favor selecciona un dataset primero."
+                print(f"⚠️ [INTERNO] No se encontró dataset seleccionado")
             else:
                 from pathlib import Path
-                dataset_path = experiment.dataset.get("path")
+
+                # Construir path del dataset (el nombre viene como "dataset_name")
+                # El dataset se encuentra en Data/dataset_name
+                dataset_path = f"Data/{selected_dataset}"
+
+                print(f"🔍 [INTERNO] Dataset seleccionado: {selected_dataset}")
+                print(f"🔍 [INTERNO] Path del dataset: {dataset_path}")
 
                 # Verificar que la path del dataset existe
                 if not dataset_path or not Path(dataset_path).exists():
@@ -719,30 +745,34 @@ def test_classic_model_configuration(n_clicks, input_values, input_ids, classifi
 
         # Si hubo error de compilación, NO guardar en experimento
         if compilation_error:
-            return dbc.Alert(
-                [
-                    html.I(className="fas fa-times-circle me-2"),
-                    html.Div([
-                        html.Strong("✗ Error de compilación"),
-                        html.Br(),
+            return (
+                dbc.Alert(
+                    [
+                        html.I(className="fas fa-times-circle me-2"),
                         html.Div([
-                            html.I(className="fas fa-exclamation-triangle me-1", style={"fontSize": "12px"}),
-                            html.Small(compilation_error, style={"fontWeight": "500"})
-                        ], className="mt-2"),
-                        html.Div([
-                            html.I(className="fas fa-info-circle me-1", style={"fontSize": "12px"}),
-                            html.Small("El modelo NO fue guardado. Verifica:")
-                        ], className="mt-2", style={"opacity": "0.9"}),
-                        html.Ul([
-                            html.Li("Configuración de filtros y transformadas", style={"fontSize": "13px"}),
-                            html.Li("Que el dataset tenga eventos procesados", style={"fontSize": "13px"}),
-                            html.Li("Compatibilidad del pipeline con el modelo", style={"fontSize": "13px"})
-                        ], className="mb-0 mt-1", style={"opacity": "0.8"})
-                    ])
-                ],
-                color="danger",
-                dismissable=True,
-                duration=12000
+                            html.Strong("✗ Error de compilación"),
+                            html.Br(),
+                            html.Div([
+                                html.I(className="fas fa-exclamation-triangle me-1", style={"fontSize": "12px"}),
+                                html.Small(compilation_error, style={"fontWeight": "500"})
+                            ], className="mt-2"),
+                            html.Div([
+                                html.I(className="fas fa-info-circle me-1", style={"fontSize": "12px"}),
+                                html.Small("El modelo NO fue guardado. Verifica:")
+                            ], className="mt-2", style={"opacity": "0.9"}),
+                            html.Ul([
+                                html.Li("Configuración de filtros y transformadas", style={"fontSize": "13px"}),
+                                html.Li("Que el dataset tenga eventos procesados", style={"fontSize": "13px"}),
+                                html.Li("Compatibilidad del pipeline con el modelo", style={"fontSize": "13px"})
+                            ], className="mb-0 mt-1", style={"opacity": "0.8"})
+                        ])
+                    ],
+                    color="danger",
+                    dismissable=True,
+                    duration=12000
+                ),
+                True,
+                "La compilación falló. Corrige los problemas para habilitar el entrenamiento en la nube"
             )
 
         # ===== PASO 2: INSTANCIAR EN EXPERIMENTO (solo si compilación OK) =====
@@ -774,29 +804,44 @@ def test_classic_model_configuration(n_clicks, input_values, input_ids, classifi
                 ])
             ]
 
-            return dbc.Alert(
-                success_content,
-                color="success",
-                dismissable=True,
-                duration=8000
+            return (
+                dbc.Alert(
+                    success_content,
+                    color="success",
+                    dismissable=True,
+                    duration=8000
+                ),
+                False,
+                "Listo: puedes entrenar el modelo en la nube"
             )
 
         except Exception as exp_err:
-            return dbc.Alert(
-                [
-                    html.I(className="fas fa-exclamation-triangle me-2"),
-                    f"El modelo compiló correctamente pero no se pudo registrar en el experimento: {exp_err}"
-                ],
-                color="warning",
-                dismissable=True
+            return (
+                dbc.Alert(
+                    [
+                        html.I(className="fas fa-exclamation-triangle me-2"),
+                        f"El modelo compiló correctamente pero no se pudo registrar en el experimento: {exp_err}"
+                    ],
+                    color="warning",
+                    dismissable=True
+                ),
+                True,
+                "No se pudo registrar el modelo. Corrige el problema para habilitar el entrenamiento"
             )
 
     except Exception as e:
-        return dbc.Alert(
-            [
-                html.I(className="fas fa-times-circle me-2"),
-                f"Error inesperado: {str(e)}"
-            ],
-            color="danger",
-            dismissable=True
+        return (
+            dbc.Alert(
+                [
+                    html.I(className="fas fa-times-circle me-2"),
+                    f"Error inesperado: {str(e)}"
+                ],
+                color="danger",
+                dismissable=True
+            ),
+            True,
+            "Ocurrió un error inesperado. Intenta nuevamente"
         )
+
+
+# El callback de habilitación del botón se maneja directamente en test_classic_model_configuration

@@ -147,16 +147,56 @@ class RandomForest(Classifier):
         yTest: List[str],
         xTrain: List[str],
         yTrain: List[str],
+        metadata_train: Optional[List[dict]] = None,
+        metadata_test: Optional[List[dict]] = None,
     ) -> EvaluationMetrics:
         """
-        Entrena un RandomForest usando las rutas dadas (concatenación de shards).
-        Devuelve EvaluationMetrics como en SVM.train.
+        Entrena un RandomForest usando las rutas dadas y retorna EvaluationMetrics.
+
+        Args:
+            instance: Instancia configurada de RandomForest
+            xTest: Lista de rutas a archivos .npy de test
+            yTest: Lista de rutas a archivos .npy con etiquetas de test
+            xTrain: Lista de rutas a archivos .npy de entrenamiento
+            yTrain: Lista de rutas a archivos .npy con etiquetas de entrenamiento
+            metadata_train: Lista opcional de diccionarios con metadatos de dimensionality_change para train
+                           (incluido por homogeneidad de API, no usado en RandomForest)
+            metadata_test: Lista opcional de diccionarios con metadatos para test
+                          (incluido por homogeneidad de API, no usado en RandomForest)
+
+        Returns:
+            EvaluationMetrics con accuracy, precision, recall, F1, confusion matrix, AUC-ROC
+
+        Notes:
+            - Regla de negocio aplicada en _prepare_xy():
+              * Aplana cada muestra 3D/2D -> vector 1D
+              * Etiquetas por frame -> moda por muestra
+            - Los metadatos se incluyen para mantener API consistente con otros clasificadores
+              pero no se utilizan en el preprocesamiento de RandomForest
         """
-        # 1) Datos
+        # 1) Cargar y preparar datos
         X_train, y_train = cls._prepare_xy(xTrain, yTrain)
         X_test, y_test = cls._prepare_xy(xTest, yTest)
 
-        # 2) Modelo
+        # Validaciones de shape
+        if X_train.ndim != 2:
+            raise ValueError(f"X_train debe ser 2D tras aplanar; shape={X_train.shape}")
+        if X_test.ndim != 2:
+            raise ValueError(f"X_test debe ser 2D tras aplanar; shape={X_test.shape}")
+        if y_train.ndim != 1 or y_test.ndim != 1:
+            raise ValueError("y_train/y_test deben ser 1D")
+        if X_train.shape[0] != y_train.shape[0]:
+            raise ValueError(
+                f"Número de ejemplos en X_train y y_train no coincide: "
+                f"X_train={X_train.shape[0]} vs y_train={y_train.shape[0]}"
+            )
+        if X_test.shape[0] != y_test.shape[0]:
+            raise ValueError(
+                f"Número de ejemplos en X_test y y_test no coincide: "
+                f"X_test={X_test.shape[0]} vs y_test={y_test.shape[0]}"
+            )
+
+        # 2) Instanciar modelo sklearn
         model = RandomForestClassifier(
             n_estimators=instance.n_estimators,
             max_depth=instance.max_depth,
@@ -166,47 +206,42 @@ class RandomForest(Classifier):
             n_jobs=instance.n_jobs,
         )
 
-        # 3) Entrenamiento + evaluación
+        # 3) Entrenamiento y evaluación
         t0 = time.perf_counter()
         model.fit(X_train, y_train)
         y_pred = model.predict(X_test)
+        eval_seconds = time.perf_counter() - t0
 
+        # 4) Métricas
         acc = float(accuracy_score(y_test, y_pred))
-        prec = float(
-            precision_score(y_test, y_pred, average="weighted", zero_division=0)
-        )
-        rec = float(
-            recall_score(y_test, y_pred, average="weighted", zero_division=0)
-        )
-        f1 = float(
-            f1_score(y_test, y_pred, average="weighted", zero_division=0)
-        )
+        prec = float(precision_score(y_test, y_pred, average="weighted", zero_division=0))
+        rec = float(recall_score(y_test, y_pred, average="weighted", zero_division=0))
+        f1 = float(f1_score(y_test, y_pred, average="weighted", zero_division=0))
         cm = confusion_matrix(y_test, y_pred).tolist()
 
         # AUC-ROC (binario o multiclase con OVR)
         try:
-            proba = model.predict_proba(X_test)  # (n_samples, n_classes)
-            auc = float(
-                roc_auc_score(y_test, proba, multi_class="ovr", average="weighted")
-            )
+            proba = model.predict_proba(X_test)
+            auc = float(roc_auc_score(y_test, proba, multi_class="ovr", average="weighted"))
         except Exception:
             auc = 0.0
 
-        eval_seconds = time.perf_counter() - t0
-
-        # Guardar modelo en la instancia para inferencia posterior
+        # 5) Persistir modelo entrenado para query posterior
         instance._model = model
 
-        return EvaluationMetrics(
+        metrics = EvaluationMetrics(
             accuracy=acc,
             precision=prec,
             recall=rec,
             f1_score=f1,
             confusion_matrix=cm,
             auc_roc=auc,
-            loss=[],  # No hay curva de pérdida en RF de sklearn
+            loss=[],  # RandomForest no produce curva de pérdida
             evaluation_time=f"{eval_seconds:.4f}s",
         )
+
+        print(f"[RandomForest] Acc={acc:.3f} F1={f1:.3f} AUC={auc:.3f}")
+        return metrics
 
     @classmethod
     def query(

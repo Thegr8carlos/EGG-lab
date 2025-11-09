@@ -11,6 +11,7 @@ import json
 
 # Importar editor de kernels de CNN
 from app.components.cnn_kernel_editor import create_convolution_layer_config
+from app.components.CloudTrainingComponent import create_cloud_training_section
 
 # Colores para tipos de capas
 LAYER_COLORS = {
@@ -1900,7 +1901,13 @@ def create_interactive_config_card(model_name: str, schema: Dict[str, Any], clas
                         color="#0d6efd",
                         style={"marginTop": "20px"}
                     )
-                ])
+                ]),
+
+                # Divisor visual antes de sección cloud
+                html.Hr(style={"margin": "30px 0", "borderTop": "1px solid rgba(255,255,255,0.15)"}),
+
+                # Sección de entrenamiento en la nube (simulación)
+                create_cloud_training_section(model_name),
             ])
         ], className="right-panel-card")
     ], id="interactive-config-container")
@@ -2343,9 +2350,11 @@ def register_interactive_callbacks():
         return no_update
 
 
-    # Callback: Probar configuración del modelo
+    # Callback: Probar configuración del modelo (ahora también habilita entrenamiento en la nube)
     @callback(
         Output({"type": "test-config-result", "model": MATCH}, "children"),
+        Output({"type": "btn-cloud-training", "model": MATCH}, "disabled", allow_duplicate=True),
+        Output({"type": "cloud-training-hint", "model": MATCH}, "children", allow_duplicate=True),
         Input({"type": "test-config-btn", "model": MATCH}, "n_clicks"),
         [State({"type": "layer-config-input", "layer_index": ALL, "field": ALL}, "value"),
          State({"type": "layer-config-input", "layer_index": ALL, "field": ALL}, "id"),
@@ -2381,7 +2390,7 @@ def register_interactive_callbacks():
             selected_dataset: Path del dataset seleccionado para obtener metadata
         """
         if not n_clicks:
-            return no_update
+            return no_update, no_update, no_update
 
         from backend.classes.ClasificationModel.ClassifierSchemaFactory import ClassifierSchemaFactory
         from backend.classes.Experiment import Experiment
@@ -2397,10 +2406,10 @@ def register_interactive_callbacks():
 
             # Verificar que hay un dataset seleccionado
             if not selected_dataset:
-                return dbc.Alert([
+                return (dbc.Alert([
                     html.I(className="fas fa-exclamation-triangle me-2"),
                     "Error: No hay un dataset seleccionado. Por favor selecciona un dataset primero."
-                ], color="warning", dismissable=True)
+                ], color="warning", dismissable=True), True, "Selecciona un dataset para habilitar el entrenamiento en la nube")
 
             # Obtener metadata del dataset
             try:
@@ -2412,33 +2421,33 @@ def register_interactive_callbacks():
                 num_classes = len(classes)
 
                 if num_channels <= 0:
-                    return dbc.Alert([
+                    return (dbc.Alert([
                         html.I(className="fas fa-exclamation-triangle me-2"),
                         f"Error: El dataset no tiene canales válidos. Metadata: {metadata}"
-                    ], color="danger", dismissable=True)
+                    ], color="danger", dismissable=True), True, "Dataset sin canales válidos" )
 
                 if num_classes <= 0:
-                    return dbc.Alert([
+                    return (dbc.Alert([
                         html.I(className="fas fa-exclamation-triangle me-2"),
                         f"Error: El dataset no tiene clases válidas. Metadata: {metadata}"
-                    ], color="danger", dismissable=True)
+                    ], color="danger", dismissable=True), True, "Dataset sin clases válidas" )
 
                 print(f"📊 Dataset metadata: {num_channels} canales, {num_classes} clases")
 
             except Exception as meta_err:
-                return dbc.Alert([
+                return (dbc.Alert([
                     html.I(className="fas fa-times-circle me-2"),
                     f"Error al leer metadata del dataset: {str(meta_err)}"
-                ], color="danger", dismissable=True)
+                ], color="danger", dismissable=True), True, "Error leyendo metadata" )
 
             # ===== PASO 1: RECOPILAR CONFIGURACIÓN =====
 
             # Verificar que hay capas
             if not layers or len(layers) == 0:
-                return dbc.Alert([
+                return (dbc.Alert([
                     html.I(className="fas fa-exclamation-triangle me-2"),
                     "Error: Debes agregar al menos una capa a la arquitectura"
-                ], color="danger", dismissable=True)
+                ], color="danger", dismissable=True), True, "Agrega capas para habilitar el entrenamiento en la nube" )
 
             # Construir configuración desde los inputs
             # Los input_ids son dicts con {"type": "layer-config-input", "layer_index": i, "field": "field_name"}
@@ -2554,21 +2563,21 @@ def register_interactive_callbacks():
 
             if conv_layers_without_filters:
                 layer_numbers = ", ".join([f"#{n}" for n in conv_layers_without_filters])
-                return dbc.Alert([
+                return (dbc.Alert([
                     html.I(className="fas fa-exclamation-triangle me-2"),
                     html.Div([
                         html.Strong(f"⚠️ Capas Convolucionales sin filtros: {layer_numbers}"),
                         html.Br(),
                         html.Small("Navega a cada capa Conv y agrega al menos un filtro (botón '+ Agregar Filtro')")
                     ])
-                ], color="warning", dismissable=True)
+                ], color="warning", dismissable=True), True, "Completa filtros CNN para habilitar entrenamiento" )
 
             is_valid, error_msg = validate_complete_architecture(layers, model_type)
             if not is_valid:
-                return dbc.Alert([
+                return (dbc.Alert([
                     html.I(className="fas fa-exclamation-triangle me-2"),
                     f"Arquitectura incompleta: {error_msg}"
-                ], color="warning", dismissable=True)
+                ], color="warning", dismissable=True), True, "Arquitectura incompleta" )
 
             # Construir el diccionario completo del modelo según el tipo
             # Pasar num_channels y num_classes del dataset
@@ -2579,10 +2588,10 @@ def register_interactive_callbacks():
             classifier_class = available_classifiers.get(model_type)
 
             if not classifier_class:
-                return dbc.Alert([
+                return (dbc.Alert([
                     html.I(className="fas fa-times-circle me-2"),
                     f"Error: Modelo '{model_type}' no encontrado"
-                ], color="danger", dismissable=True)
+                ], color="danger", dismissable=True), True, "Modelo no encontrado" )
 
             # Validar con Pydantic
             try:
@@ -2590,13 +2599,13 @@ def register_interactive_callbacks():
                 print(f"✅ Configuración válida para {model_type}: {validated_instance}")
             except ValidationError as ve:
                 error_details = "\n".join([f"• {err['loc'][0]}: {err['msg']}" for err in ve.errors()])
-                return dbc.Alert([
+                return (dbc.Alert([
                     html.I(className="fas fa-times-circle me-2"),
                     html.Div([
                         html.Strong("Errores de validación:"),
                         html.Pre(error_details, style={"fontSize": "12px", "marginTop": "10px"})
                     ])
-                ], color="danger", dismissable=True)
+                ], color="danger", dismissable=True), True, "Errores de validación" )
 
             # ===== PASO 2: VERIFICACIÓN DE COMPILACIÓN =====
             # Primero verificar que el modelo compila ANTES de guardarlo en el experimento
@@ -2642,6 +2651,34 @@ def register_interactive_callbacks():
                             compilation_error = "El pipeline de preprocesamiento no generó suficientes datos válidos"
                             print(f"⚠️ [INTERNO] Dataset insuficiente: {mini_dataset['n_train']} ejemplos")
                         else:
+                            # Para modelos secuenciales (LSTM/GRU), ajustar input_feature_dim a la dimensionalidad real
+                            if model_type in ["LSTM", "GRU"] and hasattr(validated_instance, 'encoder'):
+                                import numpy as np
+                                try:
+                                    # Cargar un archivo de datos para inferir dimensionalidad
+                                    sample_data_path = mini_dataset['train_data'][0]
+                                    sample_data = np.load(sample_data_path)
+
+                                    # Inferir dimensionalidad según shape:
+                                    # - (timesteps, features): usar features
+                                    # - (timesteps, features, channels): aplanar a features * channels
+                                    if sample_data.ndim == 3:
+                                        # Shape: (timesteps, features, channels)
+                                        # LSTM necesita (timesteps, features_aplanadas)
+                                        actual_feature_dim = sample_data.shape[1] * sample_data.shape[2]
+                                    elif sample_data.ndim == 2:
+                                        # Shape: (timesteps, features) - ya está aplanado
+                                        actual_feature_dim = sample_data.shape[1]
+                                    else:
+                                        actual_feature_dim = validated_instance.encoder.input_feature_dim
+
+                                    # Actualizar input_feature_dim si es diferente
+                                    if actual_feature_dim != validated_instance.encoder.input_feature_dim:
+                                        print(f"[{model_type}] Ajustando input_feature_dim: {validated_instance.encoder.input_feature_dim} -> {actual_feature_dim} (shape: {sample_data.shape})")
+                                        validated_instance.encoder.input_feature_dim = actual_feature_dim
+                                except Exception as dim_err:
+                                    print(f"⚠️ No se pudo inferir dimensionalidad: {dim_err}")
+
                             # Verificar si el modelo tiene método train
                             if hasattr(classifier_class, 'train'):
                                 print(f"🔧 [INTERNO] Ejecutando mini-entrenamiento...")
@@ -2676,7 +2713,7 @@ def register_interactive_callbacks():
 
             # Si hubo error de compilación, NO guardar en experimento
             if compilation_error:
-                return dbc.Alert([
+                return (dbc.Alert([
                     html.I(className="fas fa-times-circle me-2"),
                     html.Div([
                         html.Strong("✗ Error de compilación"),
@@ -2695,7 +2732,7 @@ def register_interactive_callbacks():
                             html.Li("Compatibilidad del pipeline con el modelo", style={"fontSize": "13px"})
                         ], className="mb-0 mt-1", style={"opacity": "0.8"})
                     ])
-                ], color="danger", dismissable=True, duration=12000)
+                ], color="danger", dismissable=True, duration=12000), True, "Errores de compilación" )
 
             # ===== PASO 3: INSTANCIAR EN EXPERIMENTO (solo si compilación OK) =====
             try:
@@ -2728,23 +2765,23 @@ def register_interactive_callbacks():
                     ])
                 ]
 
-                return dbc.Alert(success_content, color="success", dismissable=True, duration=8000)
+                return (dbc.Alert(success_content, color="success", dismissable=True, duration=8000), False, "Listo: puedes entrenar el modelo en la nube")
 
             except Exception as exp_err:
                 print(f"❌ Error al agregar al experimento: {exp_err}")
-                return dbc.Alert([
+                return (dbc.Alert([
                     html.I(className="fas fa-times-circle me-2"),
                     f"Error al guardar en experimento: {str(exp_err)}"
-                ], color="danger", dismissable=True)
+                ], color="danger", dismissable=True), True, "Error guardando experimento" )
 
         except Exception as e:
             print(f"❌ Error inesperado: {e}")
             import traceback
             traceback.print_exc()
-            return dbc.Alert([
+            return (dbc.Alert([
                 html.I(className="fas fa-times-circle me-2"),
                 f"Error inesperado: {str(e)}"
-            ], color="danger", dismissable=True)
+            ], color="danger", dismissable=True), True, "Error inesperado" )
 
 
 # Registrar callbacks al importar

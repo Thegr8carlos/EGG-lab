@@ -24,7 +24,7 @@ class WindowingTransform(Transform):
       <stem>_window_<id>_labels.npy   # etiquetas por frame (n_frames,)
     """
     window_size: int = Field(
-        64, ge=16,
+        64, ge=2,
         description="Tamaño de cada ventana en muestras. Default: 64"
     )
 

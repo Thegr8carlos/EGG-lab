@@ -124,12 +124,17 @@ class TransformSchemaFactory:
 
 
 
-def TransformCallbackRegister(boton_id: str, inputs_map: dict):
+def TransformCallbackRegister(boton_id: str, inputs_map: dict, model_type: str = "legacy"):
     """
     Function to register a callback for the transform buttons.
     It generates a callback that validates the inputs and adds the transform to the experiment.
     This function is used to dynamically create callbacks for each transform button, and
     its invoked from the RightColumn page.
+
+    Args:
+        boton_id: ID of the button (e.g., "btn-aplicar-WaveletTransform_p300")
+        inputs_map: Map of input IDs to validation functions
+        model_type: Type of model ("legacy", "p300", or "inner") to determine where to save the transform
     """
     available_transforms = {
         "WaveletTransform": WaveletTransform,
@@ -140,19 +145,28 @@ def TransformCallbackRegister(boton_id: str, inputs_map: dict):
 
     input_ids = list(inputs_map.keys())
 
+    # Determine prefix from boton_id (e.g., "btn-aplicar-WaveletTransform_p300" -> "p300")
+    # or use model_type mapping
+    prefix_map = {
+        "p300": "p300",
+        "inner": "inner",
+        "legacy": "extractores"
+    }
+    prefix = prefix_map.get(model_type, "extractores")
+
     @callback(
         [
             Output(boton_id, "children"),
-            Output("transformed-signal-store-extractores", "data", allow_duplicate=True),
-            Output("pipeline-update-trigger-extractores", "data", allow_duplicate=True)
+            Output(f"transformed-signal-store-{prefix}", "data", allow_duplicate=True),
+            Output(f"pipeline-update-trigger-{prefix}", "data", allow_duplicate=True)
         ],
         Input(boton_id, "n_clicks"),
         [
             State(input_id, "value") for input_id in input_ids
         ] + [
-            State("signal-store-extractores", "data"),
+            State(f"signal-store-{prefix}", "data"),
             State("selected-dataset", "data"),
-            State("pipeline-update-trigger-extractores", "data")
+            State(f"pipeline-update-trigger-{prefix}", "data")
         ],
         prevent_initial_call=True
     )
@@ -164,15 +178,17 @@ def TransformCallbackRegister(boton_id: str, inputs_map: dict):
         *field_values, signal_data, dataset_name, trigger_value = values
 
         if not signal_data or "source" not in signal_data:
-            print(f"❌ No hay señal cargada en signal-store-extractores")
+            print(f"❌ No hay señal cargada en signal-store-{prefix}")
             return "❌ No hay señal cargada", no_update, no_update
 
         # Obtener path del evento actual (ya incluye prefijo Aux/ si es necesario)
         event_file_path = signal_data.get("source")
 
         # we extract the transform name from the button ID.
-        # this is of the form: btn-aplicar-<transform_name>
-        transform_name = boton_id.replace("btn-aplicar-", "")
+        # this is of the form: btn-aplicar-<transform_name> or btn-aplicar-<transform_name>_p300
+        transform_name_full = boton_id.replace("btn-aplicar-", "")
+        # Remove suffix if present (_p300 or _inner)
+        transform_name = transform_name_full.replace("_p300", "").replace("_inner", "")
         # we check if the transform is available
         transform_class = available_transforms.get(transform_name)
 
@@ -219,7 +235,17 @@ def TransformCallbackRegister(boton_id: str, inputs_map: dict):
 
             instancia_valida = transform_class(**datos)
             print(f"✅ Datos válidos para {transform_name}: {instancia_valida}")
-            Experiment.add_transform_config(instancia_valida)
+
+            # Save transform to the appropriate location based on model_type
+            if model_type == "p300":
+                Experiment.set_P300_transform(instancia_valida)
+                print(f"💾 Transformación guardada en P300Classifier.transform")
+            elif model_type == "inner":
+                Experiment.set_inner_speech_transform(instancia_valida)
+                print(f"💾 Transformación guardada en innerSpeachClassifier.transform")
+            else:  # legacy
+                Experiment.add_transform_config(instancia_valida)
+                print(f"💾 Transformación guardada en experiment.transform (legacy)")
 
             # Preparar directorios
             p_in = Path(event_file_path)

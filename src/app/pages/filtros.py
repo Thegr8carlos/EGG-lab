@@ -228,7 +228,7 @@ def create_navigation_controls(meta: dict):
             "opacity": "0.4"
         }),
 
-        # 📊 Historial del Pipeline (nuevo)
+    # Historial del Pipeline
         html.Div(id='pipeline-history-viewer-filtros', children=[
             html.Div("Cargando historial...", style={
                 "fontSize": "9px",
@@ -246,7 +246,7 @@ def create_navigation_controls(meta: dict):
             "opacity": "0.4"
         }),
 
-        # 🔄 Toggle Auto-aplicar Pipeline
+    # Toggle Auto-aplicar Pipeline
         html.Div([
             html.Div([
                 html.Span("Auto-aplicar pipeline", style={
@@ -498,7 +498,8 @@ def handle_channel_buttons(n_all, n_clear, n_eeg, options, current_value):
     [
         Input("selected-file-path", "data"),
         Input(SELECTED_CLASS_STORE, "data"),
-        Input(SELECTED_CHANNELS_STORE, "data")  # ✨ Nuevo: canales seleccionados
+        Input(SELECTED_CHANNELS_STORE, "data"),  # ✨ Nuevo: canales seleccionados
+        Input('pipeline-update-trigger-filtros', 'data'),  # 🔄 Re-aplicar cuando cambia historial
     ],
     [
         State("selected-dataset", "data"),
@@ -506,7 +507,7 @@ def handle_channel_buttons(n_all, n_clear, n_eeg, options, current_value):
     ],
     prevent_initial_call=True
 )
-def pass_selected_path(selected_file_path, selected_class, selected_channels, dataset_name, auto_apply_enabled):
+def pass_selected_path(selected_file_path, selected_class, selected_channels, pipeline_trigger, dataset_name, auto_apply_enabled):
     if selected_file_path is None:
         return no_update, no_update, no_update  # 3 outputs ahora
 
@@ -522,7 +523,8 @@ def pass_selected_path(selected_file_path, selected_class, selected_channels, da
     payload = {"path": candidate, "ts": time.time()}
 
     data_payload = no_update
-    filtered_payload = no_update  # 🔥 Nuevo: payload para filtered-signal-store
+    # Inicializamos siempre la columna filtrada vacía para evitar reutilizar resultados previos
+    filtered_payload = {"ts": time.time(), "pipeline_applied": False}
     try:
         # Usar la nueva función que filtra por clase
         res = Dataset.get_events_by_class(candidate, class_name=selected_class)
@@ -600,11 +602,19 @@ def pass_selected_path(selected_file_path, selected_class, selected_channels, da
 
             print(f"[filtros] 📊 Sesión: {session_info}, Duración: {duration_sec:.3f}s, Muestras: {n_samples}")
 
-            # 🔄 Auto-aplicar pipeline si está habilitado
+            # Determinar si debemos re-aplicar el pipeline
+            # Se re-aplica cuando:
+            #   - auto_apply_enabled es True Y
+            #   - El disparador fue cambio de archivo/clase/canales o cambio de historial (pipeline_trigger Input)
             if auto_apply_enabled:
                 try:
                     from backend.classes.Experiment import Experiment
-                    print(f"[filtros] 🔄 Auto-aplicando pipeline al evento...")
+                    # Identificar qué input disparó
+                    triggered_id = ctx.triggered_id if hasattr(ctx, 'triggered_id') else None
+                    if triggered_id == 'pipeline-update-trigger-filtros':
+                        print(f"[filtros] 🔄 Re-aplicando pipeline tras actualización de historial...")
+                    else:
+                        print(f"[filtros] 🔄 Auto-aplicando pipeline al evento...")
 
                     pipeline_result = Experiment.apply_history_pipeline(
                         file_path=first_evt,
@@ -641,16 +651,22 @@ def pass_selected_path(selected_file_path, selected_class, selected_channels, da
                         print(f"[filtros] 📊 Shape procesado: {arr_processed.shape}")
                         print(f"[filtros] 🔄 Timestamp actualizado para forzar re-render del gráfico (ambas columnas)")
                     else:
-                        print(f"[filtros] ⚠️ Pipeline no devolvió resultado válido")
+                        print(f"[filtros] ⚠️ Pipeline no devolvió resultado válido, limpiando señal filtrada")
+                        filtered_payload = {"ts": time.time(), "pipeline_applied": False}
 
                 except Exception as e:
                     print(f"[filtros] ❌ Error aplicando pipeline: {e}")
                     import traceback
                     traceback.print_exc()
                     # Continuar con la señal original si falla el pipeline
+                    filtered_payload = {"ts": time.time(), "pipeline_applied": False}
+            else:
+                # Auto-apply deshabilitado: limpiamos para reflejar estado real (sin transformaciones aplicadas)
+                filtered_payload = {"ts": time.time(), "pipeline_applied": False}
 
     except Exception as e:
         print(f"[filtros] ERROR cargando evento .npy: {e}")
+        filtered_payload = {"ts": time.time(), "pipeline_applied": False}
 
     return payload, data_payload, filtered_payload
 
