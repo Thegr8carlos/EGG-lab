@@ -353,8 +353,14 @@ def get_rightColumn(window: str):
         title = "Filtros"
     elif window == "featureExtracture":
 
-        all_schemas = TransformSchemaFactory.get_all_transform_schemas() 
+        all_schemas = TransformSchemaFactory.get_all_transform_schemas()
         title = "Extractores de características"
+    elif window == "transformP300":
+        all_schemas = _tag_transform_schemas("_p300")
+        title = "Transformación P300"
+    elif window == "transformInnerSpeech":
+        all_schemas = _tag_transform_schemas("_inner")
+        title = "Transformación Inner Speech"
     elif window == "clasificationModelsP300":
         all_schemas = _tag_classifier_schemas("_p300")
         title = "Modelos de clasificación"
@@ -383,14 +389,26 @@ def get_rightColumn(window: str):
 
 
 
-#  This function is a local helper. 
+#  This function is a local helper.
+def _tag_transform_schemas(type_suffix: str):
+    """
+    Tags transform schemas with a suffix to differentiate P300 vs Inner Speech transforms
+    """
+    schemas = TransformSchemaFactory.get_all_transform_schemas()
+    for s in schemas.values():
+        base = s.get("title", s["type"])
+
+        s["title"] = f"{base}{type_suffix}"  # p.ej., "WaveletTransform_p300" o "FFTTransform_inner"
+
+    return schemas
+
 def _tag_classifier_schemas(type_suffix: str):
     schemas = ClassifierSchemaFactory.get_all_classifier_schemas()
     for s in schemas.values():
         base = s.get("title", s["type"])
-        
+
         s["title"] = f"{base}{type_suffix}"  # p.ej., "LSTM_p300" o "LSTM_inner"
-    
+
     return schemas
 
 
@@ -410,10 +428,20 @@ def _tag_classifier_schemas(type_suffix: str):
 # Specifically, each child class has its own fuction to do changes in the signal.
 # On the other hand,  Experiments management is done in the factories.
 
- ## Transforms
+ ## Transforms (legacy extractores page - deprecated)
 for grupo in generar_mapa_validacion_inputs(TransformSchemaFactory.get_all_transform_schemas()):
     for boton_id, inputs_map in grupo.items():
         TransformCallbackRegister(boton_id, inputs_map)
+
+## Transforms for P300 (with _p300 suffix)
+for grupo in generar_mapa_validacion_inputs(_tag_transform_schemas("_p300")):
+    for boton_id, inputs_map in grupo.items():
+        TransformCallbackRegister(boton_id, inputs_map, model_type="p300")
+
+## Transforms for Inner Speech (with _inner suffix)
+for grupo in generar_mapa_validacion_inputs(_tag_transform_schemas("_inner")):
+    for boton_id, inputs_map in grupo.items():
+        TransformCallbackRegister(boton_id, inputs_map, model_type="inner")
 
 #Filters
 for grupo in generar_mapa_validacion_inputs(FilterSchemaFactory.get_all_filter_schemas()):

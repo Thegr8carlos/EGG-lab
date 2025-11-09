@@ -11,6 +11,7 @@ import time
 
 from backend.classes.Metrics import EvaluationMetrics
 from backend.classes.ClasificationModel.utils.RecurrentModelDataUtils import RecurrentModelDataUtils
+from backend.classes.ClasificationModel.utils.TrainResult import TrainResult
 
 from sklearn.metrics import (
     accuracy_score,
@@ -145,6 +146,9 @@ class LSTMNet(BaseModel):
 
     def flatten_dim(self) -> int:
         return self.feature_dim_after_encoder()
+
+    # Objeto de modelo entrenado (keras.Model) para query posterior (se llena en fit)
+    _tf_model: Optional[object] = None  # usar 'object' para no forzar import keras al parsear schema
 
     # =================================================================================
     # Helpers de metadatos
@@ -564,6 +568,7 @@ class LSTMNet(BaseModel):
             )
 
             print(f"[LSTM] Acc={acc:.3f} F1={f1:.3f} AUC={auc:.3f}")
+            # Solo métricas para compatibilidad legacy
             return metrics
 
 
@@ -583,6 +588,244 @@ class LSTMNet(BaseModel):
                 evaluation_time="",
             )
             return metrics
+
+    # Nuevo método: devuelve TrainResult con el modelo entrenado y métricas
+    @classmethod
+    def fit(
+        cls,
+        instance: "LSTMNet",
+        xTest: List[str],
+        yTest: List[str],
+        xTrain: List[str],
+        yTrain: List[str],
+        metadata_train: Optional[List[dict]] = None,
+        metadata_test: Optional[List[dict]] = None,
+        epochs: int = 2,
+        batch_size: int = 64,
+        lr: float = 1e-3,
+        return_history: bool = True,
+    ) -> TrainResult:
+        """Entrena y devuelve paquete TrainResult (modelo + métricas + historia).
+
+        No rompe `train()`: es una API paralela opt-in.
+        """
+        try:
+            seq_tr, len_tr, y_tr = cls._prepare_sequences_and_labels(
+                xTrain, yTrain,
+                pad_value=instance.encoder.pad_value,
+                metadata_list=metadata_train
+            )
+            seq_te, len_te, y_te = cls._prepare_sequences_and_labels(
+                xTest, yTest,
+                pad_value=instance.encoder.pad_value,
+                metadata_list=metadata_test
+            )
+        except Exception as e:
+            raise RuntimeError(f"Error preparando dataset LSTM: {e}") from e
+
+        d_enc, is_seq = instance.encoder.infer_output_signature()
+        in_F = instance.encoder.input_feature_dim
+        n_classes = int(max(int(y_tr.max()), int(y_te.max()))) + 1
+        if d_enc < 1 or in_F < 1 or n_classes < 2:
+            raise ValueError("Dimensionalidades/num clases inválidas.")
+
+        try:
+            import tensorflow as tf
+            from tensorflow import keras
+            from tensorflow.keras import layers
+
+            gpus = tf.config.list_physical_devices('GPU')
+            if gpus:
+                try:
+                    for gpu in gpus:
+                        tf.config.experimental.set_memory_growth(gpu, True)
+                except RuntimeError as e:
+                    print(f"GPU config error: {e}")
+
+            max_len_tr = int(len_tr.max())
+            max_len_te = int(len_te.max())
+            pad_value = instance.encoder.pad_value
+
+            def pad_sequences(seqs: List[NDArray], max_len: int, pad_val: float) -> NDArray:
+                N = len(seqs)
+                F = seqs[0].shape[1]
+                padded = np.full((N, max_len, F), pad_val, dtype=np.float32)
+                for i, seq in enumerate(seqs):
+                    T = seq.shape[0]
+                    padded[i, :T, :] = seq
+                return padded
+
+            X_tr_padded = pad_sequences(seq_tr, max_len_tr, pad_value)
+            X_te_padded = pad_sequences(seq_te, max_len_te, pad_value)
+
+            def build(spec: LSTMNet, input_shape: Tuple[int, int]) -> keras.Model:
+                inputs = layers.Input(shape=input_shape, name='input')
+                x = layers.Masking(mask_value=spec.encoder.pad_value)(inputs)
+                for i, lstm_layer in enumerate(spec.encoder.layers):
+                    return_sequences = lstm_layer.return_sequences or (i < len(spec.encoder.layers) - 1)
+                    lstm = layers.LSTM(
+                        units=lstm_layer.hidden_size,
+                        return_sequences=return_sequences,
+                        dropout=lstm_layer.dropout if lstm_layer.num_layers > 1 else 0.0,
+                        recurrent_dropout=lstm_layer.recurrent_dropout,
+                        kernel_initializer=lstm_layer.kernel_initializer,
+                        recurrent_initializer=lstm_layer.recurrent_initializer,
+                        use_bias=lstm_layer.use_bias,
+                        unit_forget_bias=lstm_layer.unit_forget_bias,
+                        name=f'lstm_{i}'
+                    )
+                    if lstm_layer.bidirectional:
+                        x = layers.Bidirectional(lstm, name=f'bidirectional_lstm_{i}')(x)
+                    else:
+                        x = lstm(x)
+                    for j in range(1, lstm_layer.num_layers):
+                        inner_return_seq = return_sequences if j == lstm_layer.num_layers - 1 else True
+                        lstm_inner = layers.LSTM(
+                            units=lstm_layer.hidden_size,
+                            return_sequences=inner_return_seq,
+                            dropout=lstm_layer.dropout,
+                            recurrent_dropout=lstm_layer.recurrent_dropout,
+                            kernel_initializer=lstm_layer.kernel_initializer,
+                            recurrent_initializer=lstm_layer.recurrent_initializer,
+                            use_bias=lstm_layer.use_bias,
+                            unit_forget_bias=lstm_layer.unit_forget_bias,
+                            name=f'lstm_{i}_inner_{j}'
+                        )
+                        if lstm_layer.bidirectional:
+                            x = layers.Bidirectional(lstm_inner, name=f'bidirectional_lstm_{i}_inner_{j}')(x)
+                        else:
+                            x = lstm_inner(x)
+                if is_seq or instance.encoder.layers[-1].return_sequences:
+                    pk = instance.pooling.kind
+                    if pk == "last":
+                        x = layers.Lambda(lambda t: t[:, -1, :], name='last_pooling')(x)
+                    elif pk == "mean":
+                        x = layers.GlobalAveragePooling1D(name='mean_pooling')(x)
+                    elif pk == "max":
+                        x = layers.GlobalMaxPooling1D(name='max_pooling')(x)
+                    elif pk == "attn":
+                        attn_hidden = instance.pooling.attn_hidden or 64
+                        attn_scores = layers.Dense(attn_hidden, activation='tanh', name='attn_hidden')(x)
+                        attn_scores = layers.Dense(1, name='attn_scores')(attn_scores)
+                        attn_weights = layers.Softmax(axis=1, name='attn_weights')(attn_scores)
+                        x = layers.Multiply(name='attn_multiply')([x, attn_weights])
+                        x = layers.Lambda(lambda t: tf.reduce_sum(t, axis=1), name='attn_sum')(x)
+                for i, fc in enumerate(instance.fc_layers):
+                    x = layers.Dense(fc.units, name=f'fc_{i}')(x)
+                    act = instance.fc_activation_common.kind
+                    if act == "relu":
+                        x = layers.ReLU(name=f'fc_{i}_relu')(x)
+                    elif act == "tanh":
+                        x = layers.Activation('tanh', name=f'fc_{i}_tanh')(x)
+                    elif act == "gelu":
+                        x = layers.Activation('gelu', name=f'fc_{i}_gelu')(x)
+                    elif act == "sigmoid":
+                        x = layers.Activation('sigmoid', name=f'fc_{i}_sigmoid')(x)
+                outputs = layers.Dense(instance.classification.units, activation='softmax', name='classification')(x)
+                return keras.Model(inputs=inputs, outputs=outputs, name='LSTMNet')
+
+            model = build(instance, input_shape=(X_tr_padded.shape[1], in_F))
+            model.compile(
+                optimizer=keras.optimizers.Adam(learning_rate=lr),
+                loss='sparse_categorical_crossentropy',
+                metrics=['accuracy']
+            )
+            t0 = time.perf_counter()
+            history = model.fit(
+                X_tr_padded, y_tr,
+                batch_size=batch_size,
+                epochs=epochs,
+                verbose=1,
+                validation_data=(X_te_padded, y_te)
+            )
+            train_time = time.perf_counter() - t0
+
+            t_pred0 = time.perf_counter()
+            logits = model.predict(X_te_padded, batch_size=batch_size, verbose=0)
+            y_pred = np.argmax(logits, axis=1)
+            y_true = y_te
+            eval_seconds = time.perf_counter() - t_pred0
+
+            acc  = float(accuracy_score(y_true, y_pred))
+            prec = float(precision_score(y_true, y_pred, average="weighted", zero_division=0))
+            rec  = float(recall_score(y_true, y_pred, average="weighted", zero_division=0))
+            f1   = float(f1_score(y_true, y_pred, average="weighted", zero_division=0))
+            cm   = confusion_matrix(y_true, y_pred).tolist()
+            try:
+                auc = float(roc_auc_score(y_true, logits, multi_class="ovr", average="weighted"))
+            except Exception:
+                auc = 0.0
+            metrics = EvaluationMetrics(
+                accuracy=acc,
+                precision=prec,
+                recall=rec,
+                f1_score=f1,
+                confusion_matrix=cm,
+                auc_roc=auc,
+                loss=history.history.get('loss', []),
+                evaluation_time=f"{eval_seconds:.4f}s",
+            )
+            instance._tf_model = model
+            print(f"[LSTM.fit] Acc={acc:.3f} F1={f1:.3f} AUC={auc:.3f}")
+            return TrainResult(
+                metrics=metrics,
+                model=model,
+                model_name="LSTM",
+                training_seconds=float(train_time),
+                history=history.history if return_history else None,
+                hyperparams={
+                    "epochs": epochs,
+                    "batch_size": batch_size,
+                    "lr": lr,
+                    "n_classes": n_classes,
+                }
+            )
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            dummy = EvaluationMetrics(
+                accuracy=0.0,
+                precision=0.0,
+                recall=0.0,
+                f1_score=0.0,
+                confusion_matrix=[],
+                auc_roc=0.0,
+                loss=[],
+                evaluation_time="",
+            )
+            return TrainResult(
+                metrics=dummy,
+                model=None,
+                model_name="LSTM",
+                training_seconds=0.0,
+                history=None,
+                hyperparams={"error": str(e)}
+            )
+
+    @classmethod
+    def query(
+        cls,
+        instance: "LSTMNet",
+        sequences: List[NDArray],
+        pad_value: float = 0.0,
+        return_logits: bool = False
+    ):
+        """Inferencia sobre lista de secuencias (cada secuencia (T,F))."""
+        if instance._tf_model is None:
+            raise RuntimeError("Modelo LSTM no entrenado: usa fit() antes de query().")
+        if not sequences:
+            return []
+        max_len = max(seq.shape[0] for seq in sequences)
+        F = sequences[0].shape[1]
+        batch = np.full((len(sequences), max_len, F), pad_value, dtype=np.float32)
+        for i, seq in enumerate(sequences):
+            T = seq.shape[0]
+            batch[i, :T, :] = seq
+        probs = instance._tf_model.predict(batch, verbose=0)
+        preds = np.argmax(probs, axis=1).tolist()
+        if return_logits:
+            return preds, probs.tolist()
+        return preds
 
 
 

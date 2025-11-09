@@ -42,14 +42,6 @@ def get_navBar(page_registry):
         ),
         dbc.NavItem(
             dbc.NavLink(
-                "Extractores de Caracteristicas",
-                href="/extractores",
-                active="exact",
-                className="nav-link"
-            )
-        ),
-        dbc.NavItem(
-            dbc.NavLink(
                 "Modelado P300",
                 href="/p300",
                 active="exact",
@@ -58,8 +50,8 @@ def get_navBar(page_registry):
         ),
         dbc.NavItem(
             dbc.NavLink(
-                "Modelado Habla Interna",
-                href="/hablainterna",
+                "Modelado Inner Speech",
+                href="/inner-speech",
                 active="exact",
                 className="nav-link"
             )
