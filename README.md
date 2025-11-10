@@ -49,6 +49,11 @@ pip install -r requirements.txt
 # 5. Ejecutar la aplicación
 python3.12 main.py
 
-
-
-
+# si tenemos conda
+$ conda activate eeg-lab                                                         [0:02:01]
+(eeg-lab) (base)  
+carlos@carlosMachine: /mnt/CarlosSSD/Carlos/tt/EGG-lab/src fixes_develop ⚡
+$ conda deactivate                                                               [0:02:11]
+(base)  
+carlos@carlosMachine: /mnt/CarlosSSD/Carlos/tt/EGG-lab/src fixes_develop ⚡
+$      
