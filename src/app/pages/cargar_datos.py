@@ -69,7 +69,7 @@ PENDING_BUTTON_STYLE = {
 
 layout = get_page_container(
     "Carga y gestión de datos EEG",
-    "Procesa datasets nuevos (.bdf, .edf) o selecciona uno ya procesado.",
+    "Procesa datasets nuevos (.bdf, .edf, .vhdr) o selecciona uno ya procesado.",
     html.Div(
         style=PANEL_STYLE,
         children=[
@@ -184,7 +184,7 @@ def get_pending_datasets():
     Retorna lista de datasets que están en Data/ pero no tienen Aux/ generado correctamente.
 
     Un dataset se considera "válido para mostrar" solo si:
-    - Tiene archivos .bdf o .edf en Data/{nombre}/
+    - Tiene archivos .bdf, .edf o .vhdr en Data/{nombre}/
 
     Un dataset se considera "procesado" solo si tiene:
     - Carpeta Aux/{nombre}/ existente
@@ -208,14 +208,15 @@ def get_pending_datasets():
         # Buscar archivos .bdf y .edf recursivamente
         bdf_files = list(data_folder.rglob("*.bdf"))
         edf_files = list(data_folder.rglob("*.edf"))
+        vhdr_files = list(data_folder.rglob("*.vhdr"))
 
-        total_eeg_files = len(bdf_files) + len(edf_files)
+        total_eeg_files = len(bdf_files) + len(edf_files) + len(vhdr_files)
 
         if total_eeg_files > 0:
             valid_datasets.append(folder_name)
-            print(f"[get_pending_datasets] 📁 {folder_name} tiene {total_eeg_files} archivos EEG (.bdf: {len(bdf_files)}, .edf: {len(edf_files)})")
+            print(f"[get_pending_datasets] 📁 {folder_name} tiene {total_eeg_files} archivos EEG (.bdf: {len(bdf_files)}, .edf: {len(edf_files)}, .vhdr: {len(vhdr_files)})")
         else:
-            print(f"[get_pending_datasets] ⏭️ {folder_name} no tiene archivos .bdf/.edf, se omite")
+            print(f"[get_pending_datasets] ⏭️ {folder_name} no tiene archivos .bdf/.edf/.vhdr, se omite")
 
     # Verificar cuáles realmente están procesadas (con archivos .npy)
     truly_processed = []
@@ -243,7 +244,7 @@ def get_pending_datasets():
     pending = [name for name in valid_datasets if name not in truly_processed]
 
     print(f"[get_pending_datasets] Data folders: {data_folders}")
-    print(f"[get_pending_datasets] Valid datasets (with .bdf/.edf): {valid_datasets}")
+    print(f"[get_pending_datasets] Valid datasets (with .bdf/.edf/.vhdr): {valid_datasets}")
     print(f"[get_pending_datasets] Truly processed: {truly_processed}")
     print(f"[get_pending_datasets] Pending: {pending}")
 
@@ -394,16 +395,17 @@ def process_pending_dataset(n_clicks_list):
             "animation": "shake 0.5s ease-in-out"
         }), None
 
-    # Validar que contenga archivos .bdf o .edf
+    # Validar que contenga archivos .bdf, .edf o .vhdr
     folder_path_obj = Path(dataset_path)
     bdf_files = list(folder_path_obj.rglob("*.bdf"))
     edf_files = list(folder_path_obj.rglob("*.edf"))
-    total_files = len(bdf_files) + len(edf_files)
+    vhdr_files = list(folder_path_obj.rglob("*.vhdr"))
+    total_files = len(bdf_files) + len(edf_files) + len(vhdr_files)
 
     if total_files == 0:
         return "", html.Div([
             html.Span("⚠️ Advertencia: ", style={"fontWeight": "bold", "color": "#FFD400"}),
-            html.Span(f"No se encontraron archivos .bdf o .edf en Data/{dataset_name}."),
+            html.Span(f"No se encontraron archivos .bdf, .edf o .vhdr en Data/{dataset_name}."),
         ], style={
             "color": "var(--text)",
             "padding": "0.5rem",
@@ -414,7 +416,7 @@ def process_pending_dataset(n_clicks_list):
 
     # Procesar dataset
     try:
-        print(f"[PROCESAR DATASET] Encontrados {len(bdf_files)} .bdf y {len(edf_files)} .edf")
+        print(f"[PROCESAR DATASET] Encontrados {len(bdf_files)} .bdf, {len(edf_files)} .edf, {len(vhdr_files)} .vhdr")
 
         dataset = Dataset(dataset_path, dataset_name)
         result = dataset.upload_dataset(dataset_path)
@@ -471,7 +473,7 @@ def process_pending_dataset(n_clicks_list):
                 ], style={"marginBottom": "0.5rem"}),
                 html.Span(f"Dataset '{dataset_name}' procesado correctamente."),
                 html.Br(),
-                html.Span(f"Archivos procesados: {num_files} (.bdf: {len(bdf_files)}, .edf: {len(edf_files)})",
+                html.Span(f"Archivos procesados: {num_files} (.bdf: {len(bdf_files)}, .edf: {len(edf_files)}, .vhdr: {len(vhdr_files)})",
                          style={"fontSize": "0.85rem", "opacity": "0.8"}),
                 html.Br(),
                 html.Span(f"Archivos .npy, Labels y Events generados en Aux/{dataset_name}/",

@@ -229,11 +229,11 @@ def create_metadata_section(meta: dict):
 
 
 def create_navigation_controls(meta: dict):
-    """Crea los controles de navegación de canales y filtrado por clase (copiado de extractores.py)"""
+    """Crea los controles de navegación de canales y filtrado por clase"""
     classes = meta.get("classes", []) if isinstance(meta, dict) else []
 
     return html.Div([
-        # Navegación de canales (sin título)
+        # Navegación de canales
         html.Div([
             html.Div(
                 id='channel-nav-info-p300',
@@ -538,7 +538,7 @@ layout = html.Div([
 
     # Contenedor principal con layout vertical: Indicador arriba + Contenido abajo
     html.Div([
-        # Indicador de pasos en la parte superior (completamente arriba)
+        # Indicador de pasos en la parte superior
         html.Div(
             id=STEP_INDICATOR_ID,
             children=_step_indicator("transform", False),
@@ -546,7 +546,7 @@ layout = html.Div([
                 "width": "100%",
                 "padding": "10px 20px",
                 "boxSizing": "border-box",
-                "flexShrink": "0"  # No se encoge
+                "flexShrink": "0"
             }
         ),
         # Badge de transformación aplicada (se rellena vía callback)
@@ -1095,6 +1095,8 @@ def back_to_welcome(_):
 # =========================
 # Registrar callbacks del visor de transformaciones
 # =========================
+# NOTA: Los callbacks de filtrado por clase YA están incluidos en register_transformation_callbacks
+# No necesitamos duplicarlos aquí
 # Esto registra todos los callbacks (Python y clientside) del componente TransformationViewer
 # con el prefijo "p300" y el tipo de modelo "p300"
 # NOTA: Los callbacks del checklist de canales ya están incluidos en register_transformation_callbacks

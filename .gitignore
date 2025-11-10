@@ -182,7 +182,8 @@ notes.txt
 thingsToDo.txt
 src/backend/Experiments/*
 
-.claude
+.claude/*
+src/.claude/*
 node_modules/
 src/package.json
 src/package-lock.json
