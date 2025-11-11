@@ -23,7 +23,7 @@ Superficies:
   --border-strong:  Borde con accent-1
 """
 
-from dash import html, dcc, register_page, callback, Output, Input, State
+from dash import html, dcc, register_page, callback, Output, Input, State, dash_table
 import dash_bootstrap_components as dbc
 from backend.classes.dataset import Dataset
 from app.components.SideBar import get_sideBar
@@ -36,6 +36,7 @@ import json
 import plotly.graph_objects as go
 import numpy as np
 from pathlib import Path
+import pandas as pd
 
 register_page(__name__, path="/dataset", name="Dataset")
 
@@ -53,6 +54,9 @@ QUALITY_SECTION = "dataset-quality-section"
 
 # Topomap IDs
 TOPOMAP_GRAPH = "topomap-graph"
+TOPOMAP_CLASS_DROPDOWN = "topomap-class-dropdown"
+TOPOMAP_TIME_SLIDER = "topomap-time-slider"
+TOPOMAP_ANIMATION_GRAPH = "topomap-animation-graph"
 HEATMAP_TOPOMAP = "heatmap-topomap"
 HEATMAP_CLASS_DROPDOWN = "heatmap-class-dropdown"
 HEATMAP_TIME_SLIDER = "heatmap-time-slider"
@@ -271,40 +275,48 @@ def update_stats_section(metadata):
         font=dict(color='#F9F6FF')  # var(--text)
     )
 
-    # Tabla de sesiones
+    # Tabla de sesiones con paginación
     sessions = metadata.get("sessions", [])
     if sessions:
-        session_rows = []
-        for i, sess in enumerate(sessions[:10]):  # Mostrar primeras 10
-            session_rows.append(html.Tr([
-                html.Td(sess.get("subject", "N/A")),
-                html.Td(sess.get("session", "N/A")),
-                html.Td(f"{sess.get('duration_sec', 0):.1f}s"),
-                html.Td(sess.get("n_events", 0)),
-                html.Td(sess.get("sampling_rate", 0)),
-            ]))
+        # Convertir a DataFrame para DataTable
+        session_data = []
+        for sess in sessions:
+            session_data.append({
+                "Subject": sess.get("subject", "N/A"),
+                "Session": sess.get("session", "N/A"),
+                "Duración": f"{sess.get('duration_sec', 0):.1f}s",
+                "Eventos": sess.get("n_events", 0),
+                "Freq. Muestreo": f"{sess.get('sampling_rate', 0)} Hz"
+            })
 
-        if len(sessions) > 10:
-            session_rows.append(html.Tr([
-                html.Td("...", colSpan=5, style={"textAlign": "center", "fontStyle": "italic"})
-            ]))
+        df_sessions = pd.DataFrame(session_data)
 
-        session_table = dbc.Table(
-            [
-                html.Thead(html.Tr([
-                    html.Th("Subject"),
-                    html.Th("Session"),
-                    html.Th("Duración"),
-                    html.Th("Eventos"),
-                    html.Th("Freq. Muestreo"),
-                ])),
-                html.Tbody(session_rows)
-            ],
-            bordered=True,
-            hover=True,
-            responsive=True,
-            striped=True,
-            style={"fontSize": "0.85rem"}
+        session_table = dash_table.DataTable(
+            data=df_sessions.to_dict('records'),
+            columns=[{"name": col, "id": col} for col in df_sessions.columns],
+            page_size=10,
+            page_action='native',
+            style_table={'overflowX': 'auto'},
+            style_cell={
+                'textAlign': 'left',
+                'padding': '10px',
+                'backgroundColor': 'rgba(10,1,36,0.3)',
+                'color': '#F9F6FF',
+                'border': '1px solid rgba(56, 255, 151, 0.2)',
+                'fontSize': '0.85rem'
+            },
+            style_header={
+                'backgroundColor': 'rgba(56, 255, 151, 0.2)',
+                'fontWeight': 'bold',
+                'color': '#38FF97',
+                'border': '1px solid #38FF97'
+            },
+            style_data_conditional=[
+                {
+                    'if': {'row_index': 'odd'},
+                    'backgroundColor': 'rgba(10,1,36,0.5)'
+                }
+            ]
         )
     else:
         session_table = html.Div("No hay información de sesiones", style={"color": "var(--text)"})
@@ -425,11 +437,262 @@ def update_spatial_section(metadata):
         font=dict(color='#F9F6FF')
     )
 
+    # Obtener clases disponibles
+    classes = metadata.get("classes", [])
+
     return html.Div([
         html.P(f"🎯 Montage detectado: {montage.get('type', 'unknown')} ({montage.get('matched_channels', 0)}/{montage.get('total_channels', 0)} canales)",
                style={"color": "var(--text)", "fontSize": "0.95rem", "marginBottom": "1rem"}),
-        dcc.Graph(figure=fig, id=TOPOMAP_GRAPH)
+
+        # Topomap estático (ubicación de electrodos)
+        dcc.Graph(figure=fig, id=TOPOMAP_GRAPH),
+
+        # Sección de animación temporal
+        html.Hr(style={"borderColor": "var(--accent-3)", "marginTop": "2rem", "marginBottom": "2rem"}),
+
+        html.H5("⚡ Visualización Temporal de Eventos",
+                style={"color": "var(--accent-3)", "marginBottom": "1.5rem"}),
+
+        html.P([
+            "Usa el ",
+            html.Strong("Sidebar izquierdo", style={"color": "var(--accent-2)"}),
+            " para seleccionar un archivo EEG. Luego selecciona la clase y el tiempo para ver la activación cerebral:"
+        ], style={"color": "var(--text)", "marginBottom": "1.5rem"}),
+
+        dbc.Row([
+            dbc.Col([
+                html.Label("🏷️ Clase:", style={"marginBottom": "0.5rem", "color": "var(--text)"}),
+                dcc.Dropdown(
+                    id=TOPOMAP_CLASS_DROPDOWN,
+                    options=[{"label": c, "value": c} for c in classes],
+                    value=classes[0] if classes else None,
+                    placeholder="Selecciona una clase",
+                    style={
+                        "backgroundColor": "rgba(10,1,36,0.9)",
+                        "color": "#F9F6FF"
+                    },
+                    className="custom-dropdown"
+                ),
+            ], width=12),
+        ], style={"marginBottom": "1.5rem"}),
+
+        html.Div([
+            html.Label("⏱️ Tiempo del evento (segundos):", style={"marginBottom": "0.5rem", "color": "var(--text)"}),
+            dcc.Slider(
+                id=TOPOMAP_TIME_SLIDER,
+                min=0,
+                max=3.2,
+                step=0.05,
+                value=0.3,
+                marks={i/10: f"{i/10:.1f}s" for i in range(0, 33, 5)},
+                tooltip={"placement": "bottom", "always_visible": True}
+            ),
+        ], style={"marginBottom": "2rem"}),
+
+        # Gráfico de animación
+        dcc.Loading(
+            id="loading-topomap-animation",
+            type="circle",
+            children=html.Div(id=TOPOMAP_ANIMATION_GRAPH)
+        )
     ])
+
+
+# ===== Callback: Animación Temporal del Topomap =====
+@callback(
+    Output(TOPOMAP_ANIMATION_GRAPH, "children"),
+    [Input("selected-file-path", "data"),  # 🔥 Usar el sidebar!
+     Input(TOPOMAP_CLASS_DROPDOWN, "value"),
+     Input(TOPOMAP_TIME_SLIDER, "value")],
+    State(SELECTED_DATASET_STORE, "data")
+)
+def update_topomap_animation(selected_file_path, class_name, time_point, metadata):
+    """Muestra activación cerebral en un punto temporal específico de un evento."""
+    if not metadata or not selected_file_path or not class_name or time_point is None:
+        return html.Div("Usa el sidebar para seleccionar un archivo EEG, luego elige clase y tiempo",
+                       style={"color": "var(--text)", "padding": "2rem", "textAlign": "center"})
+
+    montage = metadata.get("montage", {})
+    positions = montage.get("positions", {})
+
+    if not positions:
+        return html.Div("No hay posiciones de electrodos disponibles", style={"color": "var(--text)"})
+
+    dataset_name = metadata.get("dataset_name", "")
+
+    try:
+        # Extraer el path del sidebar (igual que en filtros.py)
+        if isinstance(selected_file_path, dict):
+            candidate = selected_file_path.get("path") or selected_file_path.get("file") or ""
+        else:
+            candidate = str(selected_file_path)
+
+        candidate = candidate.strip()
+        if not candidate:
+            return html.Div("Path inválido desde el sidebar", style={"color": "var(--text)"})
+
+        # Usar la función de Dataset para obtener eventos por clase (igual que filtros)
+        res = Dataset.get_events_by_class(candidate, class_name=class_name)
+        first_evt = res.get("first_event_file") if isinstance(res, dict) else None
+
+        if not first_evt:
+            return html.Div(f"No se encontraron eventos de clase '{class_name}' en el archivo seleccionado",
+                          style={"color": "var(--text)"})
+
+        # Cargar el evento
+        event_data = np.load(first_evt, allow_pickle=False)  # Shape: (n_channels, n_timepoints)
+
+        # Obtener la frecuencia de muestreo y nombres de canales desde metadata
+        try:
+            from shared.fileUtils import get_dataset_metadata
+            meta = get_dataset_metadata(candidate.split('/')[0])  # "nieto_inner_speech"
+            sfreq = meta.get("sampling_frequency_hz", 250.0)
+
+            # La key correcta es 'channel_names' (no 'channels')!
+            ch_names = meta.get("channel_names", metadata.get("channel_names", []))
+
+            print(f"[Topomap] Frecuencia: {sfreq} Hz, Canales encontrados: {len(ch_names) if ch_names else 0}")
+        except Exception as e:
+            print(f"[Topomap] Error obteniendo metadata: {e}")
+            sfreq = 250.0
+            ch_names = metadata.get("channel_names", [])
+
+        # Si aún no hay canales, simplemente usar índices basados en el shape del evento
+        if not ch_names or len(ch_names) == 0:
+            print(f"[Topomap] No hay channel_names, generando nombres genéricos para {event_data.shape[0]} canales")
+            ch_names = [f"Ch{i+1}" for i in range(event_data.shape[0])]
+
+        # Calcular el índice de muestra correspondiente al tiempo seleccionado
+        time_index = int(time_point * sfreq)
+
+        if time_index >= event_data.shape[1]:
+            time_index = event_data.shape[1] - 1
+
+        # Extraer valores de todos los canales en este punto temporal
+        channel_values = event_data[:, time_index]
+
+        # Verificar que el número de canales coincide
+        if len(ch_names) != len(channel_values):
+            # Ajustar: si hay más canales en metadata, usar solo los primeros N
+            if len(ch_names) > len(channel_values):
+                ch_names = ch_names[:len(channel_values)]
+                print(f"[Topomap] Ajustando canales: usando {len(channel_values)} canales")
+            else:
+                return html.Div(
+                    f"Error: El evento tiene {len(channel_values)} canales pero metadata solo tiene {len(ch_names)}",
+                    style={"color": "#FF235A"}
+                )
+
+        # Crear diccionario canal -> valor
+        channel_value_dict = {ch: val for ch, val in zip(ch_names, channel_values)}
+
+        # Crear topomap con valores
+        x_coords = []
+        y_coords = []
+        values = []
+        labels = []
+
+        for ch in ch_names:
+            if ch in positions and ch in channel_value_dict:
+                pos = positions[ch]
+                x_coords.append(pos["x"])
+                y_coords.append(pos["y"])
+                values.append(channel_value_dict[ch])
+                labels.append(ch)
+
+        # Normalizar valores para colormap
+        values = np.array(values)
+        v_min, v_max = values.min(), values.max()
+
+        # Crear figura
+        fig = go.Figure()
+
+        # Círculo de cabeza
+        theta = np.linspace(0, 2*np.pi, 100)
+        head_radius = 0.1
+        fig.add_trace(go.Scatter(
+            x=head_radius * np.cos(theta),
+            y=head_radius * np.sin(theta),
+            mode='lines',
+            line=dict(color='#00FFF0', width=2),
+            showlegend=False,
+            hoverinfo='skip'
+        ))
+
+        # Nariz
+        fig.add_trace(go.Scatter(
+            x=[0, -0.01, 0.01, 0],
+            y=[head_radius, head_radius + 0.015, head_radius + 0.015, head_radius],
+            mode='lines',
+            fill='toself',
+            fillcolor='#00FFF0',
+            line=dict(color='#00FFF0'),
+            showlegend=False,
+            hoverinfo='skip'
+        ))
+
+        # Electrodos con valores (colormap)
+        fig.add_trace(go.Scatter(
+            x=x_coords,
+            y=y_coords,
+            mode='markers+text',
+            marker=dict(
+                size=16,
+                color=values,
+                colorscale='RdBu_r',
+                cmin=v_min,
+                cmax=v_max,
+                showscale=True,
+                colorbar=dict(
+                    title=dict(
+                        text="Amplitud (V)",
+                        font=dict(color='#F9F6FF')
+                    ),
+                    tickfont=dict(color='#F9F6FF'),
+                    bgcolor='rgba(10,1,36,0.8)',
+                    bordercolor='#38FF97',
+                    borderwidth=1
+                ),
+                line=dict(color='#F9F6FF', width=1)
+            ),
+            text=labels,
+            textposition='top center',
+            textfont=dict(size=8, color='#F9F6FF'),
+            hovertemplate='<b>%{text}</b><br>Valor: %{marker.color:.2e} V<extra></extra>',
+            name='Electrodos'
+        ))
+
+        fig.update_layout(
+            title=dict(
+                text=f"🧠 Activación Cerebral - Clase: {class_name} - Tiempo: {time_point:.2f}s",
+                font=dict(color='#F9F6FF')
+            ),
+            xaxis=dict(
+                showgrid=False,
+                zeroline=False,
+                showticklabels=False,
+                range=[-0.15, 0.15]
+            ),
+            yaxis=dict(
+                showgrid=False,
+                zeroline=False,
+                showticklabels=False,
+                range=[-0.15, 0.15],
+                scaleanchor="x",
+                scaleratio=1
+            ),
+            template="plotly_dark",
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(10,1,36,0.2)',
+            height=600,
+            showlegend=False,
+            font=dict(color='#F9F6FF')
+        )
+
+        return dcc.Graph(figure=fig)
+
+    except Exception as e:
+        return html.Div(f"Error al cargar eventos: {str(e)}", style={"color": "#FF235A"})
 
 
 # ===== Callback: Sección de Análisis de Señal =====
@@ -447,40 +710,48 @@ def update_signal_section(metadata):
     if not channel_stats:
         return html.Div("No hay estadísticas de canales disponibles", style={"color": "var(--text)"})
 
-    # Crear tabla con estadísticas
-    rows = []
-    for ch, stats in list(channel_stats.items())[:20]:  # Primeros 20 canales
-        rows.append(html.Tr([
-            html.Td(ch),
-            html.Td(f"{stats['mean']:.2e}"),
-            html.Td(f"{stats['std']:.2e}"),
-            html.Td(f"{stats['min']:.2e}"),
-            html.Td(f"{stats['max']:.2e}"),
-            html.Td(f"{stats['rms']:.2e}"),
-        ]))
+    # Crear tabla con estadísticas usando DataTable con paginación
+    channel_data = []
+    for ch, stats in channel_stats.items():
+        channel_data.append({
+            "Canal": ch,
+            "Media (V)": f"{stats['mean']:.2e}",
+            "Desv. Std (V)": f"{stats['std']:.2e}",
+            "Mín (V)": f"{stats['min']:.2e}",
+            "Máx (V)": f"{stats['max']:.2e}",
+            "RMS (V)": f"{stats['rms']:.2e}"
+        })
 
-    if len(channel_stats) > 20:
-        rows.append(html.Tr([
-            html.Td("...", colSpan=6, style={"textAlign": "center", "fontStyle": "italic"})
-        ]))
+    df_channels = pd.DataFrame(channel_data)
 
-    table = dbc.Table(
-        [
-            html.Thead(html.Tr([
-                html.Th("Canal"),
-                html.Th("Media (V)"),
-                html.Th("Desv. Std (V)"),
-                html.Th("Mín (V)"),
-                html.Th("Máx (V)"),
-                html.Th("RMS (V)"),
-            ])),
-            html.Tbody(rows)
-        ],
-        bordered=True,
-        hover=True,
-        responsive=True,
-        striped=True,
-        style={"fontSize": "0.85rem"}
+    table = dash_table.DataTable(
+        data=df_channels.to_dict('records'),
+        columns=[{"name": col, "id": col} for col in df_channels.columns],
+        page_size=15,
+        page_action='native',
+        sort_action='native',
+        filter_action='native',
+        style_table={'overflowX': 'auto'},
+        style_cell={
+            'textAlign': 'left',
+            'padding': '10px',
+            'backgroundColor': 'rgba(10,1,36,0.3)',
+            'color': '#F9F6FF',
+            'border': '1px solid rgba(56, 255, 151, 0.2)',
+            'fontSize': '0.85rem'
+        },
+        style_header={
+            'backgroundColor': 'rgba(56, 255, 151, 0.2)',
+            'fontWeight': 'bold',
+            'color': '#38FF97',
+            'border': '1px solid #38FF97'
+        },
+        style_data_conditional=[
+            {
+                'if': {'row_index': 'odd'},
+                'backgroundColor': 'rgba(10,1,36,0.5)'
+            }
+        ]
     )
 
     return html.Div([
@@ -490,60 +761,35 @@ def update_signal_section(metadata):
     ])
 
 
-# ===== Callback: Sección de Heatmap Temporal ⭐ =====
+# ===== Callback: Sección ERP Promedio (antes Heatmap) ⭐ =====
 @callback(
     Output(HEATMAP_SECTION, "children"),
     Input(SELECTED_DATASET_STORE, "data"),
 )
 def update_heatmap_section(metadata):
-    """Sección de heatmap temporal (placeholder por ahora)."""
+    """
+    Muestra visualización ERP promedio por clase.
+    ERP = Event-Related Potential (potencial relacionado a eventos).
+    """
     if not metadata:
         return html.Div("Sin datos", style={"color": "var(--text)"})
 
-    classes = metadata.get("classes", [])
-    montage = metadata.get("montage", {})
-
-    if not montage.get("has_positions", False):
-        return html.Div([
-            html.P("⚠️ El heatmap temporal requiere posiciones de electrodos."),
-            html.P("No se pudo inferir el montage para este dataset.")
-        ], style={"color": "var(--text)", "padding": "1rem"})
-
     return html.Div([
-        html.P("🗺️ Esta sección mostrará la activación cerebral en tiempo real para cada clase.",
-               style={"marginBottom": "1rem", "color": "var(--text)", "fontSize": "1rem"}),
+        html.H5("📊 Análisis ERP (Event-Related Potential)",
+                style={"color": "var(--accent-3)", "marginBottom": "1.5rem"}),
 
-        dbc.Row([
-            dbc.Col([
-                html.Label("Selecciona una clase:", style={"marginBottom": "0.5rem", "color": "var(--accent-3)"}),
-                dcc.Dropdown(
-                    id=HEATMAP_CLASS_DROPDOWN,
-                    options=[{"label": c, "value": c} for c in classes],
-                    value=classes[0] if classes else None,
-                    style={"backgroundColor": "var(--surface-1)", "color": "var(--text)"}
-                ),
-            ], width=4),
-        ], style={"marginBottom": "1.5rem"}),
+        html.P([
+            "Esta visualización fue movida a la sección ",
+            html.Strong("🧠 Topomap", style={"color": "var(--accent-2)"}),
+            " donde puedes ver la activación cerebral espacialmente en tiempo real."
+        ], style={"color": "var(--text)", "marginBottom": "2rem", "fontSize": "1rem"}),
 
         html.Div([
-            html.Label("⏱️ Tiempo (desliza para ver animación):", style={"marginBottom": "0.5rem", "color": "var(--accent-3)"}),
-            dcc.Slider(
-                id=HEATMAP_TIME_SLIDER,
-                min=0,
-                max=3.2,
-                step=0.1,
-                value=0,
-                marks={i: f"{i}s" for i in np.arange(0, 3.3, 0.5)},
-                tooltip={"placement": "bottom", "always_visible": True}
-            ),
-        ], style={"marginBottom": "2rem"}),
-
-        dcc.Graph(id=HEATMAP_TOPOMAP),
-
-        html.Div([
-            html.P("💡 Próximamente:", style={"fontWeight": "bold", "marginTop": "2rem", "color": "var(--accent-2)"}),
+            html.P("💡 Análisis ERP Adicionales Disponibles:", style={"fontWeight": "bold", "color": "var(--accent-2)"}),
             html.Ul([
-                html.Li("Cálculo del promedio de eventos por clase", style={"color": "var(--text-muted)"}),
+                html.Li("Ver promedio temporal de eventos por clase en la sección 〰️ Señal Raw", style={"color": "var(--text)"}),
+                html.Li("Ver activación espacial dinámica en la sección 🧠 Topomap (scroll hacia abajo)", style={"color": "var(--text)"}),
+                html.Li("Ver distribución de potencia espectral en la sección 🌊 Frecuencias", style={"color": "var(--text)"}),
                 html.Li("Interpolación espacial de valores", style={"color": "var(--text-muted)"}),
                 html.Li("Animación automática con play button", style={"color": "var(--text-muted)"}),
             ])
@@ -734,7 +980,56 @@ def update_quality_section(metadata):
             ], width=4),
         ], style={"marginBottom": "2rem"}),
 
-        dcc.Graph(figure=fig_pie)
+        # Gráfico de pastel para balance de clases
+        dcc.Graph(figure=fig_pie),
+
+        # Información adicional de calidad de señal
+        html.Hr(style={"borderColor": "var(--accent-3)", "marginTop": "2rem", "marginBottom": "2rem"}),
+
+        html.H5("📡 Calidad de Señal por Canal",
+                style={"color": "var(--accent-3)", "marginBottom": "1.5rem"}),
+
+        html.Div([
+            html.P("💡 Métricas de Calidad:", style={"fontWeight": "bold", "color": "var(--text)", "marginBottom": "1rem"}),
+            dbc.Row([
+                dbc.Col([
+                    html.Div([
+                        html.Span("✓ ", style={"color": "#38FF97", "fontSize": "1.2rem"}),
+                        html.Span("RMS (Root Mean Square): ", style={"fontWeight": "bold", "color": "var(--text)"}),
+                        html.Span("Potencia promedio de la señal", style={"color": "var(--text-muted)"})
+                    ], style={"marginBottom": "0.5rem"}),
+                ], width=6),
+                dbc.Col([
+                    html.Div([
+                        html.Span("✓ ", style={"color": "#38FF97", "fontSize": "1.2rem"}),
+                        html.Span("Desv. Std: ", style={"fontWeight": "bold", "color": "var(--text)"}),
+                        html.Span("Variabilidad de la señal", style={"color": "var(--text-muted)"})
+                    ], style={"marginBottom": "0.5rem"}),
+                ], width=6),
+            ]),
+            dbc.Row([
+                dbc.Col([
+                    html.Div([
+                        html.Span("✓ ", style={"color": "#38FF97", "fontSize": "1.2rem"}),
+                        html.Span("Rango dinámico: ", style={"fontWeight": "bold", "color": "var(--text)"}),
+                        html.Span("Diferencia entre máximo y mínimo", style={"color": "var(--text-muted)"})
+                    ], style={"marginBottom": "0.5rem"}),
+                ], width=6),
+                dbc.Col([
+                    html.Div([
+                        html.Span("⚠ ", style={"color": "#FFD400", "fontSize": "1.2rem"}),
+                        html.Span("Bad channels: ", style={"fontWeight": "bold", "color": "var(--text)"}),
+                        html.Span("Canales con ruido excesivo o señal plana", style={"color": "var(--text-muted)"})
+                    ], style={"marginBottom": "0.5rem"}),
+                ], width=6),
+            ])
+        ], style={"padding": "1rem", "backgroundColor": "rgba(10,1,36,0.3)", "borderRadius": "8px", "marginBottom": "2rem"}),
+
+        # Gráfico de barras: RMS por canal (top 10)
+        html.Div([
+            html.P("📊 Puedes ver el RMS y otras estadísticas de cada canal en la pestaña '📊 Por Canal'",
+                   style={"color": "var(--text)", "fontSize": "0.9rem", "fontStyle": "italic"})
+        ])
     ])
 
 

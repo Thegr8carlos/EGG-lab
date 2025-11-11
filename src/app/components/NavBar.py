@@ -55,6 +55,14 @@ def get_navBar(page_registry):
                 active="exact",
                 className="nav-link"
             )
+        ),
+        dbc.NavItem(
+            dbc.NavLink(
+                "Simulación",
+                href="/simulation",
+                active="exact",
+                className="nav-link"
+            )
         )
     ]
 

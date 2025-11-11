@@ -131,6 +131,45 @@ def _aux_root_for(path_to_folder: str) -> str:
     return aux_root
 
 
+def _filter_largest_per_session(files):
+    """
+    Agrupa archivos por directorio (sesión) y retorna solo el más grande de cada sesión.
+
+    Args:
+        files: Lista de Path objects
+
+    Returns:
+        Lista filtrada con solo el archivo más grande por sesión
+    """
+    from collections import defaultdict
+
+    # Agrupar archivos por directorio padre
+    sessions = defaultdict(list)
+    for file_path in files:
+        session_dir = file_path.parent
+        sessions[session_dir].append(file_path)
+
+    # Por cada sesión, elegir el archivo más grande
+    filtered_files = []
+    for session_dir, session_files in sessions.items():
+        if len(session_files) == 1:
+            # Solo un archivo, usarlo directamente
+            filtered_files.append(session_files[0])
+        else:
+            # Múltiples archivos: elegir el más grande
+            largest = max(session_files, key=lambda f: f.stat().st_size)
+            skipped = [f for f in session_files if f != largest]
+
+            print(f"[SESSION] {session_dir.name}: {len(session_files)} archivos encontrados")
+            print(f"[SESSION] ✅ Usando: {largest.name} ({largest.stat().st_size / 1024:.1f} KB)")
+            for skipped_file in skipped:
+                print(f"[SESSION] ⏭️  Ignorando: {skipped_file.name} ({skipped_file.stat().st_size / 1024:.1f} KB)")
+
+            filtered_files.append(largest)
+
+    return filtered_files
+
+
 # ===== Utilidad para json.dump: castea objetos no serializables a str/isoformat =====
 def _json_fallback(o):
     try:
@@ -596,6 +635,12 @@ class Dataset:
 
         print("Okay so know we are getting the files ")
         files = get_files_by_extensions(path_to_folder, self.extensions_enabled)
+
+        # ======= FILTRAR: Solo el archivo más grande por sesión =======
+        print(f"\n[FILTER] Total archivos encontrados: {len(files)}")
+        files = _filter_largest_per_session(files)
+        print(f"[FILTER] Archivos después del filtrado: {len(files)}\n")
+
         for i in files:
             print(i)
         if len(files) == 0:
@@ -691,10 +736,74 @@ class Dataset:
                 raw_data = self.read_bdf(str(file))
                 print(f"se ha completado la lectura de {str(file)}, {raw_data.info.ch_names}")
 
-                # Extraer eventos
-                events = mne.find_events(
-                    raw_data, stim_channel="Status", shortest_event=1, verbose=True
-                )
+                # Extraer eventos - buscar canal de estímulo automáticamente
+                stim_channels = mne.pick_types(raw_data.info, stim=True, exclude=[])
+                print(f"[EVENTS] Canales de estímulo detectados: {[raw_data.ch_names[i] for i in stim_channels]}")
+
+                events = None
+
+                if len(stim_channels) == 0:
+                    # No hay canal de estímulo - intentar buscar 'Status' explícitamente
+                    if 'Status' in raw_data.ch_names:
+                        stim_channel = 'Status'
+                        print(f"[EVENTS] Usando canal de estímulo: {stim_channel}")
+                        events = mne.find_events(
+                            raw_data, stim_channel=stim_channel, shortest_event=1, verbose=True
+                        )
+                    else:
+                        # Intentar leer desde anotaciones
+                        print(f"[EVENTS] No hay canal de estímulo. Intentando leer desde anotaciones...")
+                        annotations = raw_data.annotations
+                        if annotations is not None and len(annotations) > 0:
+                            print(f"[EVENTS] Encontradas {len(annotations)} anotaciones")
+                            events, event_id = mne.events_from_annotations(raw_data)
+                            print(f"[EVENTS] Event IDs desde anotaciones: {event_id}")
+                        else:
+                            # Último intento: buscar archivo evt.bdf asociado
+                            evt_file = file.parent / "evt.bdf"
+                            if evt_file.exists():
+                                print(f"[EVENTS] Encontrado archivo de eventos asociado: {evt_file.name}")
+                                print(f"[EVENTS] Leyendo eventos desde {evt_file.name}...")
+                                try:
+                                    evt_raw = mne.io.read_raw_bdf(str(evt_file), verbose=True, infer_types=True)
+                                    print(f"[EVENTS] evt.bdf canales: {evt_raw.ch_names}")
+                                    print(f"[EVENTS] evt.bdf duración: {evt_raw.times[-1]:.2f}s")
+                                    print(f"[EVENTS] data.bdf duración: {raw_data.times[-1]:.2f}s")
+
+                                    evt_stim_channels = mne.pick_types(evt_raw.info, stim=True, exclude=[])
+                                    print(f"[EVENTS] evt.bdf canales stim: {[evt_raw.ch_names[i] for i in evt_stim_channels]}")
+
+                                    if len(evt_stim_channels) > 0:
+                                        evt_stim_channel = evt_raw.ch_names[evt_stim_channels[0]]
+                                        print(f"[EVENTS] Usando canal de estímulo de evt.bdf: {evt_stim_channel}")
+                                        events = mne.find_events(evt_raw, stim_channel=evt_stim_channel, shortest_event=1, verbose=True)
+                                    elif 'Status' in evt_raw.ch_names:
+                                        print(f"[EVENTS] Usando 'Status' de evt.bdf")
+                                        events = mne.find_events(evt_raw, stim_channel='Status', shortest_event=1, verbose=True)
+                                    else:
+                                        # Intentar desde anotaciones del evt.bdf
+                                        print(f"[EVENTS] Intentando leer anotaciones de evt.bdf...")
+                                        if evt_raw.annotations is not None and len(evt_raw.annotations) > 0:
+                                            print(f"[EVENTS] evt.bdf tiene {len(evt_raw.annotations)} anotaciones")
+                                            events, event_id = mne.events_from_annotations(evt_raw)
+                                            print(f"[EVENTS] Event IDs desde anotaciones de evt.bdf: {event_id}")
+                                except Exception as e:
+                                    print(f"[EVENTS] Error leyendo evt.bdf: {e}")
+                                    import traceback
+                                    traceback.print_exc()
+
+                            if events is None:
+                                print(f"[EVENTS] ⚠️ No se pudieron extraer eventos de {file.name}")
+                                print(f"[EVENTS] Canales disponibles: {raw_data.ch_names}")
+                                print(f"[EVENTS] ⚠️ Saltando archivo")
+                                continue
+                else:
+                    stim_channel = raw_data.ch_names[stim_channels[0]]
+                    print(f"[EVENTS] Usando canal de estímulo: {stim_channel}")
+                    events = mne.find_events(
+                        raw_data, stim_channel=stim_channel, shortest_event=1, verbose=True
+                    )
+
                 print(f"[BDF] Eventos encontrados: {len(events)}")
 
                 # Detectar tipo de dataset (Inner Speech vs genérico)
