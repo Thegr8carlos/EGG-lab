@@ -3,3 +3,59 @@ html, body, #app-container {
   margin: 0;
   background-color: var(--color-1);
 }
+
+/* Estilos para dropdowns personalizados */
+.custom-dropdown .Select-control {
+  background-color: rgba(10, 1, 36, 0.9) !important;
+  border: 1px solid var(--accent-3) !important;
+}
+
+.custom-dropdown .Select-menu-outer {
+  background-color: rgba(10, 1, 36, 0.95) !important;
+  border: 1px solid var(--accent-3) !important;
+}
+
+.custom-dropdown .Select-option {
+  background-color: rgba(10, 1, 36, 0.9) !important;
+  color: var(--text) !important;
+}
+
+.custom-dropdown .Select-option:hover {
+  background-color: rgba(56, 255, 151, 0.2) !important;
+  color: var(--accent-3) !important;
+}
+
+.custom-dropdown .Select-value-label {
+  color: var(--text) !important;
+}
+
+.custom-dropdown .Select-placeholder {
+  color: var(--text-muted) !important;
+}
+
+/* Estilos para Dash dcc.Dropdown moderno */
+.custom-dropdown .css-1wa3eu0-placeholder,
+.custom-dropdown .css-1uccc91-singleValue {
+  color: var(--text) !important;
+}
+
+.custom-dropdown .css-yk16xz-control,
+.custom-dropdown .css-1pahdxg-control {
+  background-color: rgba(10, 1, 36, 0.9) !important;
+  border: 1px solid var(--accent-3) !important;
+}
+
+.custom-dropdown .css-26l3qy-menu {
+  background-color: rgba(10, 1, 36, 0.95) !important;
+  border: 1px solid var(--accent-3) !important;
+}
+
+.custom-dropdown .css-1n7v3ny-option {
+  background-color: rgba(10, 1, 36, 0.9) !important;
+  color: var(--text) !important;
+}
+
+.custom-dropdown .css-1n7v3ny-option:hover {
+  background-color: rgba(56, 255, 151, 0.2) !important;
+  color: var(--accent-3) !important;
+}

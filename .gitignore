@@ -191,7 +191,7 @@ src/package-lock.json
 # Test data for ClasificationModel
 src/backend/classes/ClasificationModel/Test/
 
-
+x86_64
 src/test_classifier_instances.py
 src/test_classifier_instances_complete.json
 src/test_instances_results.json
