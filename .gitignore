@@ -182,7 +182,8 @@ notes.txt
 thingsToDo.txt
 src/backend/Experiments/*
 
-.claude
+.claude/*
+src/.claude/*
 node_modules/
 src/package.json
 src/package-lock.json
@@ -190,7 +191,7 @@ src/package-lock.json
 # Test data for ClasificationModel
 src/backend/classes/ClasificationModel/Test/
 
-
+x86_64
 src/test_classifier_instances.py
 src/test_classifier_instances_complete.json
 src/test_instances_results.json

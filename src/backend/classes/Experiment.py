@@ -654,35 +654,61 @@ class Experiment(BaseModel):
         cache_exists = os.path.exists(cache_file) and os.path.exists(metadata_file)
 
         if cache_exists and not force_recalculate:
-            # Load metadata to verify pipeline hash
-            with open(metadata_file, "r") as f:
-                cached_metadata = json.load(f)
+            try:
+                # Load metadata to verify pipeline hash
+                with open(metadata_file, "r") as f:
+                    cached_metadata = json.load(f)
 
-            # Hash actual config (filters + model transform)
-            current_config = {
-                "filters": experiment.filters,
-                "model_transform": model_transform_dict,
-                "model_type": model_type
-            }
-            current_hash = hashlib.md5(
-                json.dumps(current_config, sort_keys=True).encode()
-            ).hexdigest()
-
-            if cached_metadata.get("pipeline_hash") == current_hash:
-                # Valid cache found
-                if verbose:
-                    print(f"✅ Cache válido encontrado: {Path(cache_file).name}")
-
-                signal = np.load(cache_file, allow_pickle=False)
-                labels_path = cached_metadata.get("labels_file")
-
-                return {
-                    "signal": signal,
-                    "metadata": cached_metadata,
-                    "cache_used": True,
-                    "cache_path": cache_file,
-                    "labels_path": labels_path
+                # Hash actual config (filters + model transform)
+                current_config = {
+                    "filters": experiment.filters,
+                    "model_transform": model_transform_dict,
+                    "model_type": model_type
                 }
+                current_hash = hashlib.md5(
+                    json.dumps(current_config, sort_keys=True).encode()
+                ).hexdigest()
+
+                if cached_metadata.get("pipeline_hash") == current_hash:
+                    # ✨ NUEVO: Validar que el archivo de cache no esté corrupto
+                    if verbose:
+                        print(f"✅ Cache válido encontrado: {Path(cache_file).name}")
+
+                    try:
+                        signal = np.load(cache_file, allow_pickle=False)
+
+                        # ✨ NUEVO: Validar shape
+                        if signal.size == 0:
+                            if verbose:
+                                print(f"⚠️ Cache corrupto (señal vacía), recalculando...")
+                            raise ValueError("Cache con señal vacía")
+
+                        if verbose:
+                            print(f"   📊 Shape desde cache: {signal.shape}")
+
+                        labels_path = cached_metadata.get("labels_file")
+
+                        return {
+                            "signal": signal,
+                            "metadata": cached_metadata,
+                            "cache_used": True,
+                            "cache_path": cache_file,
+                            "labels_path": labels_path
+                        }
+                    except Exception as e:
+                        if verbose:
+                            print(f"⚠️ Error leyendo cache ({e}), recalculando...")
+                        # Fall through to recalculate
+                else:
+                    # ✨ NUEVO: Logging de invalidación de cache
+                    if verbose:
+                        print(f"⚠️ Cache invalidado (pipeline cambió)")
+                        print(f"   Hash esperado: {current_hash[:8]}...")
+                        print(f"   Hash en cache: {cached_metadata.get('pipeline_hash', 'N/A')[:8]}...")
+            except Exception as e:
+                # ✨ NUEVO: Manejo de errores al leer metadata
+                if verbose:
+                    print(f"⚠️ Error leyendo metadata de cache ({e}), recalculando...")
 
         # No valid cache - execute full pipeline
         if verbose:
@@ -763,10 +789,25 @@ class Experiment(BaseModel):
                             temp_output = output_files[0]
                             current_signal = np.load(str(temp_output), allow_pickle=False)
 
+                            # ✨ NUEVO: Validar que la señal se cargó correctamente
+                            if current_signal is None or current_signal.size == 0:
+                                if verbose:
+                                    print(f"    ⚠️ {filter_name} generó señal vacía")
+                                execution_log.append({
+                                    "step": step_count,
+                                    "type": "filter",
+                                    "name": filter_name,
+                                    "id": filter_id,
+                                    "status": "empty_output"
+                                })
+                                continue
+
                             # Save intermediate if requested
                             if save_intermediates:
                                 intermediate_file = intermediates_dir / f"step_{step_count:02d}_{filter_name}_{filter_id}.npy"
                                 np.save(str(intermediate_file), current_signal)
+                                if verbose:
+                                    print(f"    💾 Intermedio guardado: {intermediate_file.name}")
 
                             execution_log.append({
                                 "step": step_count,
@@ -802,12 +843,18 @@ class Experiment(BaseModel):
                             "status": "failed"
                         })
 
-                    # Cleanup temp files
+                    # ✨ NUEVO: Cleanup solo de temp files, NO de intermedios
+                    # Solo borramos el input temporal y el directorio de output temporal
+                    # Los intermedios se mantienen para debugging
                     if temp_input.exists():
                         temp_input.unlink()
+                        if verbose:
+                            print(f"    🗑️  Limpiado: {temp_input.name}")
                     if temp_output_dir.exists():
                         import shutil
                         shutil.rmtree(temp_output_dir)
+                        if verbose:
+                            print(f"    🗑️  Limpiado: {temp_output_dir.name}")
 
                 except Exception as e:
                     if verbose:
@@ -834,175 +881,227 @@ class Experiment(BaseModel):
                 from backend.classes.FeatureExtracture.TransformSchemaFactory import TransformSchemaFactory
                 transform_class = TransformSchemaFactory.available_transforms[transform_name]
 
-                # Save current signal to temp file
-                temp_input = intermediates_dir / f"temp_step_{step_count}_input.npy"
-                np.save(str(temp_input), current_signal)
-
-                temp_output_dir = intermediates_dir / "temp_output"
-                temp_output_dir.mkdir(exist_ok=True)
-
-                # Create temp labels (nombre debe coincidir con temp_input para que transform lo encuentre)
-                event_name = Path(file_path).stem
-                event_class = event_name.split('[')[0].strip() if '[' in event_name else event_name
-
-                temp_labels_dir = intermediates_dir / "temp_labels"
-                temp_labels_dir.mkdir(exist_ok=True)
-
-                # Determinar longitud de labels según dimensionalidad:
-                # - Para señales 2D (channels, time): usar la dimensión mayor (normalmente tiempo)
-                # - Para señales 3D ya venteadas: usar primera dim (frames)
-                if isinstance(current_signal, np.ndarray):
-                    if current_signal.ndim == 1:
-                        n_times = int(current_signal.shape[0])
-                    elif current_signal.ndim == 2:
-                        # En EEG 2D, típicamente (n_channels, n_times) o (n_times, n_channels)
-                        # Usar la dimensión mayor como tiempo
-                        n_times = int(max(current_signal.shape))
-                    elif current_signal.ndim == 3:
-                        # Ya venteado: (n_frames, feature_len, n_channels)
-                        n_times = int(current_signal.shape[0])
-                    else:
-                        n_times = int(current_signal.shape[0])
-                else:
-                    try:
-                        n_times = int(len(current_signal))
-                    except Exception:
-                        n_times = 0
-
-                labels_array = np.array([event_class] * n_times, dtype=str)
-                # CRÍTICO: El nombre debe ser temp_input.name para que transform lo encuentre
-                temp_labels_file = temp_labels_dir / temp_input.name
-                np.save(str(temp_labels_file), labels_array)
-
-                if verbose:
-                    print(f"    🏷️  Labels creadas: clase='{event_class}', n={n_times}, archivo={temp_labels_file.name}")
-
-                # Apply transform
-                try:
-                    success = transform_class.apply(
-                        transform_instance,
-                        file_path_in=str(temp_input),
-                        directory_path_out=str(temp_output_dir),
-                        labels_directory=str(temp_labels_dir),
-                        labels_out_path=str(temp_output_dir)
-                    )
-                except TypeError:
-                    # Try with dir_out_labels instead
-                    success = transform_class.apply(
-                        transform_instance,
-                        file_path_in=str(temp_input),
-                        directory_path_out=str(temp_output_dir),
-                        labels_directory=str(temp_labels_dir),
-                        dir_out_labels=str(temp_output_dir)
-                    )
-
-                if success:
-                    # Find output file
-                    output_files = sorted(
-                        [f for f in temp_output_dir.glob("*.npy") if "_labels" not in f.name],
-                        key=lambda x: x.stat().st_mtime,
-                        reverse=True
-                    )
-
-                    # Find labels file
-                    label_files = sorted(
-                        [f for f in temp_output_dir.glob("*_labels.npy")],
-                        key=lambda x: x.stat().st_mtime,
-                        reverse=True
-                    )
-
-                    if output_files:
-                        current_signal = np.load(str(output_files[0]), allow_pickle=False)
-
-                        # Save labels path if exists
-                        if label_files:
-                            current_labels_file = label_files[0]
-
-                        # Handle 3D arrays (windowed/features) → build viz payload and flatten for model
-                        if current_signal.ndim == 3:
-                            n_frames, feature_len, n_channels = current_signal.shape
-
-                            # Determine domain based on transform name
-                            domain = "unknown"
-                            if transform_name == "FFTTransform":
-                                domain = "time-freq"
-                            elif transform_name == "DCTTransform":
-                                domain = "coeffs"
-                            elif transform_name in ("WaveletTransform", "WindowingTransform"):
-                                domain = "window-time"
-
-                            # Limit payload size for UI responsiveness
-                            MAX_FRAMES = 128
-                            MAX_FEATURES = 256
-                            f_lim = min(feature_len, MAX_FEATURES)
-                            t_lim = min(n_frames, MAX_FRAMES)
-                            cube_limited = current_signal[:t_lim, :f_lim, :]
-
-                            viz_payload = {
-                                "domain": domain,
-                                "shape": [int(n_frames), int(feature_len), int(n_channels)],
-                                "cube": cube_limited.tolist(),  # (frames, feature_axis, channels)
-                                "frames_shown": int(t_lim),
-                                "features_shown": int(f_lim),
-                                "transform_name": transform_name
-                            }
-
-                            # Flatten to 2D for model consumption (channels, frames*feature_len)
-                            current_signal = current_signal.transpose(2, 0, 1).reshape(n_channels, n_frames * feature_len)
-
-                        # Save intermediate if requested
-                        if save_intermediates:
-                            intermediate_file = intermediates_dir / f"step_{step_count:02d}_{transform_name}_model.npy"
-                            np.save(str(intermediate_file), current_signal)
-
-                        execution_log.append({
-                            "step": step_count,
-                            "type": "model_transform",
-                            "name": transform_name,
-                            "model_type": model_type,
-                            "shape": list(current_signal.shape),
-                            "status": "success"
-                        })
-
-                        if verbose:
-                            print(f"    ✅ {transform_name} aplicada: {current_signal.shape}")
-
-                        step_count += 1
-                    else:
-                        if verbose:
-                            print(f"    ⚠️ {transform_name} no generó archivo de salida")
-                        execution_log.append({
-                            "step": step_count,
-                            "type": "model_transform",
-                            "name": transform_name,
-                            "model_type": model_type,
-                            "status": "no_output"
-                        })
-                else:
+                # ✨ NUEVO: Validar que current_signal tiene datos antes de guardar
+                if current_signal is None or current_signal.size == 0:
                     if verbose:
-                        print(f"    ❌ {transform_name} falló")
+                        print(f"  ❌ No hay señal para aplicar transformada (señal vacía después de filtros)")
                     execution_log.append({
                         "step": step_count,
-                        "type": "model_transform",
+                        "type": "transform",
                         "name": transform_name,
-                        "model_type": model_type,
-                        "status": "failed"
+                        "status": "no_input_signal"
                     })
+                else:
+                    # Save current signal to temp file
+                    temp_input = intermediates_dir / f"temp_step_{step_count}_input.npy"
+                    np.save(str(temp_input), current_signal)
 
-                # Cleanup temp files
-                import shutil
-                if temp_input.exists():
-                    temp_input.unlink()
-                if temp_output_dir.exists():
-                    shutil.rmtree(str(temp_output_dir))
-                if temp_labels_file.exists():
-                    temp_labels_file.unlink()
+                    # ✨ NUEVO: Validar que el archivo se creó correctamente
+                    if not temp_input.exists():
+                        if verbose:
+                            print(f"  ❌ Error: No se pudo crear archivo temporal {temp_input}")
+                        execution_log.append({
+                            "step": step_count,
+                            "type": "transform",
+                            "name": transform_name,
+                            "status": "failed_temp_file"
+                        })
+                    else:
+                        if verbose:
+                            print(f"  📝 Input de transformada: {temp_input.name} (shape: {current_signal.shape})")
+
+                        temp_output_dir = intermediates_dir / "temp_output"
+                        temp_output_dir.mkdir(exist_ok=True)
+
+                        # Create temp labels (nombre debe coincidir con temp_input para que transform lo encuentre)
+                        event_name = Path(file_path).stem
+                        event_class = event_name.split('[')[0].strip() if '[' in event_name else event_name
+
+                        temp_labels_dir = intermediates_dir / "temp_labels"
+                        temp_labels_dir.mkdir(exist_ok=True)
+
+                        # Determinar longitud de labels según dimensionalidad:
+                        # - Para señales 2D (channels, time): usar la dimensión mayor (normalmente tiempo)
+                        # - Para señales 3D ya venteadas: usar primera dim (frames)
+                        if isinstance(current_signal, np.ndarray):
+                            if current_signal.ndim == 1:
+                                n_times = int(current_signal.shape[0])
+                            elif current_signal.ndim == 2:
+                                # En EEG 2D, típicamente (n_channels, n_times) o (n_times, n_channels)
+                                # Usar la dimensión mayor como tiempo
+                                n_times = int(max(current_signal.shape))
+                            elif current_signal.ndim == 3:
+                                # Ya venteado: (n_frames, feature_len, n_channels)
+                                n_times = int(current_signal.shape[0])
+                            else:
+                                n_times = int(current_signal.shape[0])
+                        else:
+                            try:
+                                n_times = int(len(current_signal))
+                            except Exception:
+                                n_times = 0
+
+                        labels_array = np.array([event_class] * n_times, dtype=str)
+                        # CRÍTICO: El nombre debe ser temp_input.name para que transform lo encuentre
+                        temp_labels_file = temp_labels_dir / temp_input.name
+                        np.save(str(temp_labels_file), labels_array)
+
+                        # ✨ NUEVO: Validar que el archivo de labels se creó
+                        if not temp_labels_file.exists():
+                            if verbose:
+                                print(f"    ⚠️ No se pudo crear archivo de labels: {temp_labels_file}")
+
+                        if verbose:
+                            print(f"    🏷️  Labels creadas: clase='{event_class}', n={n_times}, archivo={temp_labels_file.name}")
+
+                        # Apply transform
+                        try:
+                            success = transform_class.apply(
+                                transform_instance,
+                                file_path_in=str(temp_input),
+                                directory_path_out=str(temp_output_dir),
+                                labels_directory=str(temp_labels_dir),
+                                labels_out_path=str(temp_output_dir)
+                            )
+                        except TypeError:
+                            # Try with dir_out_labels instead
+                            success = transform_class.apply(
+                                transform_instance,
+                                file_path_in=str(temp_input),
+                                directory_path_out=str(temp_output_dir),
+                                labels_directory=str(temp_labels_dir),
+                                dir_out_labels=str(temp_output_dir)
+                            )
+
+                        # ✨ NUEVO: Agregar manejo de errores y logging mejorado
+                        if success:
+                            # Find output file
+                            output_files = sorted(
+                                [f for f in temp_output_dir.glob("*.npy") if "_labels" not in f.name],
+                                key=lambda x: x.stat().st_mtime,
+                                reverse=True
+                            )
+
+                            # Find labels file
+                            label_files = sorted(
+                                [f for f in temp_output_dir.glob("*_labels.npy")],
+                                key=lambda x: x.stat().st_mtime,
+                                reverse=True
+                            )
+
+                            if output_files:
+                                if verbose:
+                                    print(f"    📂 Archivo de salida encontrado: {output_files[0].name}")
+                                current_signal = np.load(str(output_files[0]), allow_pickle=False)
+
+                                # Save labels path if exists
+                                if label_files:
+                                    current_labels_file = label_files[0]
+
+                                # Handle 3D arrays (windowed/features) → build viz payload and flatten for model
+                                if current_signal.ndim == 3:
+                                    n_frames, feature_len, n_channels = current_signal.shape
+
+                                    # Determine domain based on transform name
+                                    domain = "unknown"
+                                    if transform_name == "FFTTransform":
+                                        domain = "time-freq"
+                                    elif transform_name == "DCTTransform":
+                                        domain = "coeffs"
+                                    elif transform_name in ("WaveletTransform", "WindowingTransform"):
+                                        domain = "window-time"
+
+                                    # Limit payload size for UI responsiveness
+                                    MAX_FRAMES = 128
+                                    MAX_FEATURES = 256
+                                    f_lim = min(feature_len, MAX_FEATURES)
+                                    t_lim = min(n_frames, MAX_FRAMES)
+                                    cube_limited = current_signal[:t_lim, :f_lim, :]
+
+                                    viz_payload = {
+                                        "domain": domain,
+                                        "shape": [int(n_frames), int(feature_len), int(n_channels)],
+                                        "cube": cube_limited.tolist(),  # (frames, feature_axis, channels)
+                                        "frames_shown": int(t_lim),
+                                        "features_shown": int(f_lim),
+                                        "transform_name": transform_name
+                                    }
+
+                                    # Flatten to 2D for model consumption (channels, frames*feature_len)
+                                    current_signal = current_signal.transpose(2, 0, 1).reshape(n_channels, n_frames * feature_len)
+
+                                # Save intermediate if requested
+                                if save_intermediates:
+                                    intermediate_file = intermediates_dir / f"step_{step_count:02d}_{transform_name}_model.npy"
+                                    np.save(str(intermediate_file), current_signal)
+                                    if verbose:
+                                        print(f"    💾 Intermedio guardado: {intermediate_file.name}")
+
+                                execution_log.append({
+                                    "step": step_count,
+                                    "type": "model_transform",
+                                    "name": transform_name,
+                                    "model_type": model_type,
+                                    "shape": list(current_signal.shape),
+                                    "status": "success"
+                                })
+
+                                if verbose:
+                                    print(f"    ✅ {transform_name} aplicada: {current_signal.shape}")
+
+                                step_count += 1
+                            else:
+                                if verbose:
+                                    print(f"    ⚠️ {transform_name} no generó archivo de salida")
+                                execution_log.append({
+                                    "step": step_count,
+                                    "type": "model_transform",
+                                    "name": transform_name,
+                                    "model_type": model_type,
+                                    "status": "no_output"
+                                })
+                        else:
+                            if verbose:
+                                print(f"    ❌ {transform_name} falló")
+                            execution_log.append({
+                                "step": step_count,
+                                "type": "model_transform",
+                                "name": transform_name,
+                                "model_type": model_type,
+                                "status": "failed"
+                            })
+
+                        # ✨ NUEVO: Cleanup mejorado con logging
+                        import shutil
+                        if temp_input.exists():
+                            temp_input.unlink()
+                            if verbose:
+                                print(f"    🗑️  Limpiado input temporal: {temp_input.name}")
+                        if temp_output_dir.exists():
+                            shutil.rmtree(str(temp_output_dir))
+                            if verbose:
+                                print(f"    🗑️  Limpiado directorio de salida temporal")
+                        if temp_labels_file.exists():
+                            temp_labels_file.unlink()
+                            if verbose:
+                                print(f"    🗑️  Limpiado archivo de labels temporal")
+                        if temp_labels_dir.exists():
+                            shutil.rmtree(str(temp_labels_dir))
+                            if verbose:
+                                print(f"    🗑️  Limpiado directorio de labels temporal")
 
             except Exception as e:
                 if verbose:
                     print(f"  ❌ Error aplicando transformada {transform_name}: {e}")
                 import traceback
                 traceback.print_exc()
+                execution_log.append({
+                    "step": step_count,
+                    "type": "model_transform",
+                    "name": transform_name,
+                    "status": "exception",
+                    "error": str(e)
+                })
 
         # Save final result to cache
         np.save(cache_file, current_signal)

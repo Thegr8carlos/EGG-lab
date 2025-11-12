@@ -33,16 +33,89 @@ def _inner_speech_cues(events):
 
     in_inner_run = False
     cues = []
+    inner_speech_runs_count = 0
+
     for sample, _, eid in events:
         if eid == 15:  # start of run
             in_inner_run = False
         elif eid == 22:  # start of inner speech run
             in_inner_run = True
+            inner_speech_runs_count += 1
         elif eid == 16:  # end of run
             in_inner_run = False
         elif in_inner_run and eid in CUE_IDS:  # cue de clase dentro del run inner
             cues.append((int(sample), int(eid)))
+
+    print(f"[NIETO] Runs de inner speech detectados: {inner_speech_runs_count}")
+    print(f"[NIETO] Eventos extraídos de runs inner speech: {len(cues)}")
+
+    # Mostrar conteo por clase
+    class_counts = {label: 0 for label in LABELS.values()}
+    for _, eid in cues:
+        if eid in LABELS:
+            class_counts[LABELS[eid]] += 1
+    print(f"[NIETO] Distribución por clase: {class_counts}")
+
     return cues
+
+
+def _detect_dataset_type(events):
+    """
+    Detecta el tipo de dataset basándose en los event IDs encontrados.
+
+    Returns:
+        "inner_speech" si detecta markers de Inner Speech (15, 22, 31-34)
+        "generic" para cualquier otro dataset
+    """
+    event_ids = set(events[:, 2])
+
+    # Inner Speech tiene markers específicos: 15 (start run), 22 (inner speech run), 31-34 (clases)
+    inner_speech_markers = {15, 22, 31, 32, 33, 34}
+    if inner_speech_markers.issubset(event_ids):
+        print("=" * 80)
+        print("🧠 DATASET DE NIETO DETECTADO - Usando proceso específico de Inner Speech")
+        print("=" * 80)
+        print(f"[NIETO] Markers encontrados: {sorted(event_ids)}")
+        print(f"[NIETO] Usando mapeo de IDs: {LABELS}")
+        print(f"[NIETO] Filtrando eventos dentro de runs de inner speech (marker 22)")
+        print("=" * 80)
+        return "inner_speech"
+
+    print(f"[Dataset] Tipo detectado: Genérico (event IDs: {sorted(event_ids)})")
+    return "generic"
+
+
+def _generic_event_extraction(events, event_id_mapping=None):
+    """
+    Extrae eventos de datasets genéricos (todos los event IDs únicos).
+
+    Args:
+        events: array Nx3 de mne.find_events
+        event_id_mapping: dict opcional {event_id: "nombre_clase"}
+
+    Returns:
+        tuple: (cues, labels_dict)
+            - cues: lista de (sample, event_id)
+            - labels_dict: dict {event_id: "nombre_clase"}
+    """
+    # Limpiar eventos espurios comunes
+    events = events[events[:, 2] != 65536]
+    events = events[events[:, 2] != 0]
+
+    # Obtener todos los event IDs únicos
+    unique_ids = sorted(set(events[:, 2]))
+    print(f"[Dataset] Event IDs únicos encontrados: {unique_ids}")
+
+    # Si no hay mapping, crear nombres genéricos
+    if not event_id_mapping:
+        event_id_mapping = {int(eid): f"Evento_{eid}" for eid in unique_ids}
+        print(f"[Dataset] Mapping generado: {event_id_mapping}")
+
+    # Extraer todos los eventos (sin filtrado por runs como Inner Speech)
+    cues = [(int(sample), int(eid)) for sample, _, eid in events if eid in unique_ids]
+    print(f"[Dataset] Total de eventos extraídos: {len(cues)}")
+
+    return cues, event_id_mapping
 
 
 def _aux_root_for(path_to_folder: str) -> str:
@@ -56,6 +129,45 @@ def _aux_root_for(path_to_folder: str) -> str:
         aux_root = path_to_folder
     os.makedirs(aux_root, exist_ok=True)
     return aux_root
+
+
+def _filter_largest_per_session(files):
+    """
+    Agrupa archivos por directorio (sesión) y retorna solo el más grande de cada sesión.
+
+    Args:
+        files: Lista de Path objects
+
+    Returns:
+        Lista filtrada con solo el archivo más grande por sesión
+    """
+    from collections import defaultdict
+
+    # Agrupar archivos por directorio padre
+    sessions = defaultdict(list)
+    for file_path in files:
+        session_dir = file_path.parent
+        sessions[session_dir].append(file_path)
+
+    # Por cada sesión, elegir el archivo más grande
+    filtered_files = []
+    for session_dir, session_files in sessions.items():
+        if len(session_files) == 1:
+            # Solo un archivo, usarlo directamente
+            filtered_files.append(session_files[0])
+        else:
+            # Múltiples archivos: elegir el más grande
+            largest = max(session_files, key=lambda f: f.stat().st_size)
+            skipped = [f for f in session_files if f != largest]
+
+            print(f"[SESSION] {session_dir.name}: {len(session_files)} archivos encontrados")
+            print(f"[SESSION] ✅ Usando: {largest.name} ({largest.stat().st_size / 1024:.1f} KB)")
+            for skipped_file in skipped:
+                print(f"[SESSION] ⏭️  Ignorando: {skipped_file.name} ({skipped_file.stat().st_size / 1024:.1f} KB)")
+
+            filtered_files.append(largest)
+
+    return filtered_files
 
 
 # ===== Utilidad para json.dump: castea objetos no serializables a str/isoformat =====
@@ -80,11 +192,249 @@ def _json_fallback(o):
     return str(o)
 
 
+# ===== Funciones auxiliares para calcular metadata adicional =====
+
+def _calculate_channel_stats(raw_data):
+    """
+    Calcula estadísticas descriptivas por canal.
+
+    Args:
+        raw_data: objeto mne.io.Raw
+
+    Returns:
+        dict: {channel_name: {mean, std, min, max, variance, rms}}
+    """
+    data, _ = raw_data.get_data(return_times=True)
+    channel_names = raw_data.info['ch_names']
+
+    stats = {}
+    for i, ch_name in enumerate(channel_names):
+        ch_data = data[i, :]
+        stats[ch_name] = {
+            "mean": float(np.mean(ch_data)),
+            "std": float(np.std(ch_data)),
+            "min": float(np.min(ch_data)),
+            "max": float(np.max(ch_data)),
+            "variance": float(np.var(ch_data)),
+            "rms": float(np.sqrt(np.mean(ch_data**2)))
+        }
+
+    return stats
+
+
+def _infer_montage(channel_names):
+    """
+    Intenta inferir el montage estándar basándose en los nombres de canales.
+
+    Args:
+        channel_names: lista de nombres de canales
+
+    Returns:
+        dict: {
+            "type": tipo de montage ("standard_1020", "biosemi64", etc.) o "unknown",
+            "positions": {channel: {"x": float, "y": float, "z": float}},
+            "has_positions": bool
+        }
+    """
+    # Lista de montages estándar a probar
+    montage_names = [
+        "standard_1020",
+        "standard_1005",
+        "biosemi64",
+        "biosemi128",
+        "biosemi256",
+        "easycap-M1",
+        "easycap-M10"
+    ]
+
+    # Normalizar nombres de canales (uppercase, sin espacios)
+    ch_names_normalized = [ch.strip().upper() for ch in channel_names]
+
+    for montage_name in montage_names:
+        try:
+            montage = mne.channels.make_standard_montage(montage_name)
+            montage_ch_names = [ch.upper() for ch in montage.ch_names]
+
+            # Verificar cuántos canales coinciden
+            matches = sum(1 for ch in ch_names_normalized if ch in montage_ch_names)
+            match_ratio = matches / len(ch_names_normalized) if ch_names_normalized else 0
+
+            # Si al menos 50% de canales coinciden, usar este montage
+            if match_ratio >= 0.5:
+                positions = {}
+                for ch_name in channel_names:
+                    ch_normalized = ch_name.strip().upper()
+                    if ch_normalized in montage_ch_names:
+                        idx = montage_ch_names.index(ch_normalized)
+                        pos = montage.get_positions()['ch_pos'][montage.ch_names[idx]]
+                        positions[ch_name] = {
+                            "x": float(pos[0]),
+                            "y": float(pos[1]),
+                            "z": float(pos[2])
+                        }
+
+                return {
+                    "type": montage_name,
+                    "positions": positions,
+                    "has_positions": len(positions) > 0,
+                    "matched_channels": len(positions),
+                    "total_channels": len(channel_names)
+                }
+        except Exception as e:
+            continue
+
+    # Si no se encontró montage, retornar unknown
+    return {
+        "type": "unknown",
+        "positions": {},
+        "has_positions": False,
+        "matched_channels": 0,
+        "total_channels": len(channel_names)
+    }
+
+
+def _calculate_frequency_bands(raw_data, sfreq):
+    """
+    Calcula la potencia promedio en bandas de frecuencia clásicas.
+
+    Args:
+        raw_data: objeto mne.io.Raw o numpy array (channels × time)
+        sfreq: frecuencia de muestreo
+
+    Returns:
+        dict: {band_name: {"range": [low, high], "mean_power": float}}
+    """
+    # Definir bandas clásicas
+    bands = {
+        "delta": (0.5, 4),
+        "theta": (4, 8),
+        "alpha": (8, 13),
+        "beta": (13, 30),
+        "gamma": (30, min(100, sfreq / 2 - 1))  # No exceder Nyquist
+    }
+
+    # Obtener datos
+    if isinstance(raw_data, np.ndarray):
+        data = raw_data
+    else:
+        data, _ = raw_data.get_data(return_times=True)
+
+    # Calcular PSD usando Welch
+    from scipy import signal as scipy_signal
+
+    result = {}
+    for band_name, (low, high) in bands.items():
+        try:
+            # Calcular PSD por canal y promediar
+            band_powers = []
+            for ch_data in data:
+                freqs, psd = scipy_signal.welch(ch_data, fs=sfreq, nperseg=min(256, len(ch_data)))
+                # Integrar potencia en la banda
+                freq_mask = (freqs >= low) & (freqs <= high)
+                if np.any(freq_mask):
+                    band_power = np.trapz(psd[freq_mask], freqs[freq_mask])
+                    band_powers.append(band_power)
+
+            mean_power = float(np.mean(band_powers)) if band_powers else 0.0
+
+            result[band_name] = {
+                "range": [float(low), float(high)],
+                "mean_power": mean_power
+            }
+        except Exception as e:
+            result[band_name] = {
+                "range": [float(low), float(high)],
+                "mean_power": 0.0,
+                "error": str(e)
+            }
+
+    return result
+
+
+def _detect_bad_channels(raw_data, threshold_std=3.0):
+    """
+    Detecta canales potencialmente ruidosos basándose en varianza extrema.
+
+    Args:
+        raw_data: objeto mne.io.Raw
+        threshold_std: número de desviaciones estándar para considerar outlier
+
+    Returns:
+        list: nombres de canales detectados como malos
+    """
+    data, _ = raw_data.get_data(return_times=True)
+    channel_names = raw_data.info['ch_names']
+
+    # Calcular varianza por canal
+    variances = np.var(data, axis=1)
+
+    # Detectar outliers (canales con varianza muy alta o muy baja)
+    mean_var = np.mean(variances)
+    std_var = np.std(variances)
+
+    bad_channels = []
+    for i, ch_name in enumerate(channel_names):
+        if abs(variances[i] - mean_var) > threshold_std * std_var:
+            bad_channels.append(ch_name)
+
+    return bad_channels
+
+
+def _calculate_session_stats(raw, events, labels_dict, file_path, sfreq):
+    """
+    Calcula estadísticas para una sesión individual.
+
+    Args:
+        raw: objeto mne.io.Raw
+        events: array de eventos (N × 3)
+        labels_dict: diccionario {event_id: label_name}
+        file_path: path al archivo
+        sfreq: frecuencia de muestreo
+
+    Returns:
+        dict con estadísticas de la sesión
+    """
+    from pathlib import Path
+
+    path_parts = Path(file_path).parts
+
+    # Extraer subject y session del path
+    subject = "unknown"
+    session = "unknown"
+    for i, part in enumerate(path_parts):
+        if part.startswith("sub-"):
+            subject = part
+        if part.startswith("ses-"):
+            session = part
+
+    # Contar eventos por clase
+    events_per_class = {label: 0 for label in set(labels_dict.values())}
+    for _, _, eid in events:
+        if eid in labels_dict:
+            events_per_class[labels_dict[eid]] += 1
+
+    # Duración en segundos
+    n_times = raw.n_times
+    duration_sec = n_times / sfreq
+
+    return {
+        "subject": subject,
+        "session": session,
+        "file_path": str(file_path),
+        "duration_sec": float(duration_sec),
+        "n_events": int(len(events)),
+        "events_per_class": events_per_class,
+        "sampling_rate": float(sfreq),
+        "n_channels": int(len(raw.info['ch_names'])),
+        "n_samples": int(n_times)
+    }
+
+
 class Dataset:
     def __init__(self, path, name):
         self.path = path
         self.name = name
-        self.extensions_enabled = [".bdf", ".edf"]
+        self.extensions_enabled = [".bdf", ".edf", ".vhdr"]  # Agregado soporte BrainVision
 
     def get_events_by_class(path_to_folder, class_name=None):
         """
@@ -285,6 +635,12 @@ class Dataset:
 
         print("Okay so know we are getting the files ")
         files = get_files_by_extensions(path_to_folder, self.extensions_enabled)
+
+        # ======= FILTRAR: Solo el archivo más grande por sesión =======
+        print(f"\n[FILTER] Total archivos encontrados: {len(files)}")
+        files = _filter_largest_per_session(files)
+        print(f"[FILTER] Archivos después del filtrado: {len(files)}\n")
+
         for i in files:
             print(i)
         if len(files) == 0:
@@ -297,12 +653,21 @@ class Dataset:
         all_entries = []
 
         # ======= Acumuladores para METADATA GLOBAL (solo 1 JSON al final) =======
-        class_names = list(LABELS.values())
-        total_class_counts = Counter({k: 0 for k in class_names})
+        # Iniciar vacío - se acumularán clases detectadas dinámicamente
+        total_class_counts = Counter()
         unique_sfreqs = set()
         union_channels = set()
         ch_types_total = Counter()
         total_duration_sec = 0.0
+
+        # ======= Nuevos acumuladores para metadata extendida =======
+        all_sessions = []  # Lista de dicts con stats por sesión
+        channel_stats_accumulated = {}  # Estadísticas por canal (se promediarán al final)
+        montage_info = None  # Se inferirá del primer archivo
+        frequency_bands_accumulated = {}  # Se promediarán al final
+        all_bad_channels = set()  # Set de bad channels detectados
+        total_files_processed = 0
+        first_raw_for_analysis = None  # Guardar primer raw para análisis completo
 
         # Metadata "general" tomada de UN BDF (si existe), incluso si se hace skip pesado
         sampled_meta_done = False
@@ -371,12 +736,88 @@ class Dataset:
                 raw_data = self.read_bdf(str(file))
                 print(f"se ha completado la lectura de {str(file)}, {raw_data.info.ch_names}")
 
-                # Eventos y cues de inner-speech (dentro de runs tag 22)
-                events = mne.find_events(
-                    raw_data, stim_channel="Status", shortest_event=1, verbose=True
-                )
-                inner_cues = _inner_speech_cues(events)  # (sample, eid) con eid en {31,32,33,34}
-                print(f"[BDF] inner_speech_cues (run 22) encontrados: {len(inner_cues)}")
+                # Extraer eventos - buscar canal de estímulo automáticamente
+                stim_channels = mne.pick_types(raw_data.info, stim=True, exclude=[])
+                print(f"[EVENTS] Canales de estímulo detectados: {[raw_data.ch_names[i] for i in stim_channels]}")
+
+                events = None
+
+                if len(stim_channels) == 0:
+                    # No hay canal de estímulo - intentar buscar 'Status' explícitamente
+                    if 'Status' in raw_data.ch_names:
+                        stim_channel = 'Status'
+                        print(f"[EVENTS] Usando canal de estímulo: {stim_channel}")
+                        events = mne.find_events(
+                            raw_data, stim_channel=stim_channel, shortest_event=1, verbose=True
+                        )
+                    else:
+                        # Intentar leer desde anotaciones
+                        print(f"[EVENTS] No hay canal de estímulo. Intentando leer desde anotaciones...")
+                        annotations = raw_data.annotations
+                        if annotations is not None and len(annotations) > 0:
+                            print(f"[EVENTS] Encontradas {len(annotations)} anotaciones")
+                            events, event_id = mne.events_from_annotations(raw_data)
+                            print(f"[EVENTS] Event IDs desde anotaciones: {event_id}")
+                        else:
+                            # Último intento: buscar archivo evt.bdf asociado
+                            evt_file = file.parent / "evt.bdf"
+                            if evt_file.exists():
+                                print(f"[EVENTS] Encontrado archivo de eventos asociado: {evt_file.name}")
+                                print(f"[EVENTS] Leyendo eventos desde {evt_file.name}...")
+                                try:
+                                    evt_raw = mne.io.read_raw_bdf(str(evt_file), verbose=True, infer_types=True)
+                                    print(f"[EVENTS] evt.bdf canales: {evt_raw.ch_names}")
+                                    print(f"[EVENTS] evt.bdf duración: {evt_raw.times[-1]:.2f}s")
+                                    print(f"[EVENTS] data.bdf duración: {raw_data.times[-1]:.2f}s")
+
+                                    evt_stim_channels = mne.pick_types(evt_raw.info, stim=True, exclude=[])
+                                    print(f"[EVENTS] evt.bdf canales stim: {[evt_raw.ch_names[i] for i in evt_stim_channels]}")
+
+                                    if len(evt_stim_channels) > 0:
+                                        evt_stim_channel = evt_raw.ch_names[evt_stim_channels[0]]
+                                        print(f"[EVENTS] Usando canal de estímulo de evt.bdf: {evt_stim_channel}")
+                                        events = mne.find_events(evt_raw, stim_channel=evt_stim_channel, shortest_event=1, verbose=True)
+                                    elif 'Status' in evt_raw.ch_names:
+                                        print(f"[EVENTS] Usando 'Status' de evt.bdf")
+                                        events = mne.find_events(evt_raw, stim_channel='Status', shortest_event=1, verbose=True)
+                                    else:
+                                        # Intentar desde anotaciones del evt.bdf
+                                        print(f"[EVENTS] Intentando leer anotaciones de evt.bdf...")
+                                        if evt_raw.annotations is not None and len(evt_raw.annotations) > 0:
+                                            print(f"[EVENTS] evt.bdf tiene {len(evt_raw.annotations)} anotaciones")
+                                            events, event_id = mne.events_from_annotations(evt_raw)
+                                            print(f"[EVENTS] Event IDs desde anotaciones de evt.bdf: {event_id}")
+                                except Exception as e:
+                                    print(f"[EVENTS] Error leyendo evt.bdf: {e}")
+                                    import traceback
+                                    traceback.print_exc()
+
+                            if events is None:
+                                print(f"[EVENTS] ⚠️ No se pudieron extraer eventos de {file.name}")
+                                print(f"[EVENTS] Canales disponibles: {raw_data.ch_names}")
+                                print(f"[EVENTS] ⚠️ Saltando archivo")
+                                continue
+                else:
+                    stim_channel = raw_data.ch_names[stim_channels[0]]
+                    print(f"[EVENTS] Usando canal de estímulo: {stim_channel}")
+                    events = mne.find_events(
+                        raw_data, stim_channel=stim_channel, shortest_event=1, verbose=True
+                    )
+
+                print(f"[BDF] Eventos encontrados: {len(events)}")
+
+                # Detectar tipo de dataset (Inner Speech vs genérico)
+                dataset_type = _detect_dataset_type(events)
+
+                if dataset_type == "inner_speech":
+                    # Usar extracción específica de Inner Speech
+                    inner_cues = _inner_speech_cues(events)
+                    labels_dict = LABELS  # {31: "arriba", 32: "abajo", ...}
+                    print(f"[BDF] Usando extracción Inner Speech: {len(inner_cues)} cues")
+                else:
+                    # Extracción genérica: TODOS los event IDs
+                    inner_cues, labels_dict = _generic_event_extraction(events)
+                    print(f"[BDF] Usando extracción genérica: {len(inner_cues)} eventos, clases: {list(labels_dict.values())}")
 
                 # Data raw
                 data, _ = raw_data.get_data(return_times=True)  # (n_channels, n_times)
@@ -391,7 +832,7 @@ class Dataset:
                 for sample_idx, eid in inner_cues:
                     start = sample_idx
                     end = min(sample_idx + label_duration_samples, data.shape[1])
-                    label_array[0, start:end] = LABELS[eid]
+                    label_array[0, start:end] = labels_dict[eid]
 
                 label_array = label_array.astype(str)
 
@@ -410,10 +851,10 @@ class Dataset:
                     np.save(auxLabelPath, label_array)
 
                 # Conteo por clase (para metadata agregada)
-                counts = {LABELS[k]: 0 for k in LABELS}
+                counts = {labels_dict[k]: 0 for k in labels_dict}
                 for _, eid in inner_cues:
-                    counts[LABELS[eid]] += 1
-                print(f"Inner-speech en {Path(file).name}: {counts}")
+                    counts[labels_dict[eid]] += 1
+                print(f"[BDF] Eventos por clase en {Path(file).name}: {counts}")
                 total_class_counts.update(counts)
 
                 # ===== Un archivo .npy por evento en Events/ con formato <clase>[ini]{fin}.npy =====
@@ -421,7 +862,7 @@ class Dataset:
                 prefer_action_tags = True  # usa 44-45 si existen; si no, cae a 3.2s desde el cue
 
                 for (cue_sample, eid) in inner_cues:
-                    class_name = LABELS[eid]
+                    class_name = labels_dict[eid]
 
                     # Delimitación del evento
                     start_sample = cue_sample
@@ -475,6 +916,50 @@ class Dataset:
                 union_channels.update(ch_names)
                 ch_types_total.update(ch_types_count)
                 total_duration_sec += duration_sec
+
+                # ===== Calcular y acumular METADATA EXTENDIDA =====
+                try:
+                    # Guardar primer raw para inferir montage una sola vez
+                    if first_raw_for_analysis is None:
+                        first_raw_for_analysis = raw_data
+                        # Inferir montage del primer archivo
+                        montage_info = _infer_montage(ch_names)
+                        print(f"[META] Montage detectado: {montage_info['type']} ({montage_info['matched_channels']}/{montage_info['total_channels']} canales)")
+
+                    # Calcular estadísticas de sesión
+                    session_stats = _calculate_session_stats(raw_data, events, labels_dict, str(file), sfreq)
+                    all_sessions.append(session_stats)
+                    print(f"[META] Sesión: {session_stats['subject']}/{session_stats['session']}, duración: {session_stats['duration_sec']:.1f}s, eventos: {session_stats['n_events']}")
+
+                    # Detectar bad channels
+                    bad_chans = _detect_bad_channels(raw_data)
+                    if bad_chans:
+                        all_bad_channels.update(bad_chans)
+                        print(f"[META] Bad channels detectados: {bad_chans}")
+
+                    # Calcular estadísticas por canal (solo primeros 3 archivos para no sobrecargar)
+                    if total_files_processed < 3:
+                        ch_stats = _calculate_channel_stats(raw_data)
+                        # Acumular para promediar después
+                        for ch, stats in ch_stats.items():
+                            if ch not in channel_stats_accumulated:
+                                channel_stats_accumulated[ch] = []
+                            channel_stats_accumulated[ch].append(stats)
+
+                    # Calcular bandas de frecuencia (solo primeros 2 archivos para no sobrecargar)
+                    if total_files_processed < 2:
+                        freq_bands = _calculate_frequency_bands(raw_data, sfreq)
+                        # Acumular para promediar después
+                        for band, band_data in freq_bands.items():
+                            if band not in frequency_bands_accumulated:
+                                frequency_bands_accumulated[band] = []
+                            frequency_bands_accumulated[band].append(band_data['mean_power'])
+                        print(f"[META] Bandas de frecuencia calculadas")
+
+                    total_files_processed += 1
+
+                except Exception as e:
+                    print(f"[META] Error calculando metadata extendida: {e}")
 
             # ===================== EDF (mismo patrón de skip Data/Labels) =====================
             if ext == ".edf":
@@ -552,6 +1037,196 @@ class Dataset:
                 ch_types_total.update(ch_types_count)
                 total_duration_sec += duration_sec
 
+            # ===================== BRAINVISION (.vhdr) =====================
+            if ext == ".vhdr":
+                print(f"[VHDR] Procesando archivo BrainVision: {file}")
+
+                # --- SKIP temprano si ya existen derivados ---
+                auxFilePath  = get_Data_filePath(str(file))
+                auxLabelPath = get_Label_filePath(str(file))
+                labels_dir   = os.path.dirname(auxLabelPath)
+                events_dir   = os.path.join(os.path.dirname(labels_dir), "Events")
+
+                data_exists  = os.path.exists(auxFilePath)
+                labels_exist = os.path.exists(auxLabelPath)
+                events_ready = os.path.isdir(events_dir) and any(
+                    fn.endswith(".npy") for fn in os.listdir(events_dir)
+                )
+
+                if data_exists and labels_exist and events_ready:
+                    print(f"[SKIP-VHDR] Derivados ya existen para {file}. Saltando lectura.")
+                    # Muestrear metadata si es necesario
+                    if not sampled_meta_done:
+                        try:
+                            raw_hdr = self.read_brainvision(str(file))
+                            sampled_sfreq = float(raw_hdr.info["sfreq"])
+                            sampled_ch_names = list(raw_hdr.info["ch_names"])
+                            sampled_ch_types_count = dict(Counter(raw_hdr.get_channel_types()))
+                            sampled_meta_done = True
+                            unique_sfreqs.add(sampled_sfreq)
+                            union_channels.update(sampled_ch_names)
+                            ch_types_total.update(sampled_ch_types_count)
+                            print(f"[META] Sampled (skip branch VHDR): sfreq={sampled_sfreq}, n_channels={len(sampled_ch_names)}")
+                        except Exception as e:
+                            print(f"[META] Error sampling VHDR on skip: {e}")
+                    continue
+
+                # --- Procesamiento normal ---
+                raw_data = self.read_brainvision(str(file))
+                print(f"[VHDR] Leído archivo BrainVision: {str(file)}")
+                print(f"[VHDR] Canales: {raw_data.info.ch_names}")
+
+                # Extraer eventos desde annotations (.vmrk markers)
+                events, event_id_dict = mne.events_from_annotations(raw_data, verbose=True)
+                print(f"[VHDR] Eventos encontrados: {len(events)}")
+                print(f"[VHDR] Event ID mapping desde annotations: {event_id_dict}")
+
+                # Crear mapping inverso: ID numérico → nombre limpio
+                # "Comment/Down" → "Down", "Stimulus/S  1" → "S1"
+                vhdr_mapping = {}
+                for annotation_name, numeric_id in event_id_dict.items():
+                    clean_name = str(annotation_name).split('/')[-1].strip().replace(' ', '')
+                    vhdr_mapping[int(numeric_id)] = clean_name
+                print(f"[VHDR] Mapping limpio: {vhdr_mapping}")
+
+                # Detectar tipo de dataset (Inner Speech vs genérico)
+                dataset_type = _detect_dataset_type(events)
+
+                if dataset_type == "inner_speech":
+                    # Usar extracción específica de Inner Speech
+                    cues = _inner_speech_cues(events)
+                    labels_dict = LABELS  # {31: "arriba", 32: "abajo", ...}
+                    print(f"[VHDR] Usando extracción Inner Speech: {len(cues)} cues")
+                else:
+                    # Extracción genérica: usar nombres de annotations
+                    cues, labels_dict = _generic_event_extraction(events, event_id_mapping=vhdr_mapping)
+                    print(f"[VHDR] Usando extracción genérica: {len(cues)} eventos, clases: {list(labels_dict.values())}")
+
+                # Extraer datos
+                data, _ = raw_data.get_data(return_times=True)
+                sfreq = float(raw_data.info["sfreq"])
+                print(f"[VHDR] Data shape: {data.shape}, sfreq: {sfreq} Hz")
+
+                # ===== Etiquetas por muestra =====
+                label_array = np.zeros((1, data.shape[1]), dtype=object)
+                label_duration_sec = 3.2
+                label_duration_samples = int(label_duration_sec * sfreq)
+
+                for sample_idx, eid in cues:
+                    start = sample_idx
+                    end = min(sample_idx + label_duration_samples, data.shape[1])
+                    label_array[0, start:end] = labels_dict[eid]
+
+                label_array = label_array.astype(str)
+
+                # ===== Guardar Data/Labels =====
+                os.makedirs(os.path.dirname(auxFilePath), exist_ok=True)
+                os.makedirs(os.path.dirname(auxLabelPath), exist_ok=True)
+
+                if os.path.exists(auxFilePath):
+                    print(f"[SKIP] Data ya existe: {auxFilePath}")
+                else:
+                    np.save(auxFilePath, data)
+                    print(f"[VHDR] Guardado raw data: {auxFilePath}")
+
+                if os.path.exists(auxLabelPath):
+                    print(f"[SKIP] Labels ya existe: {auxLabelPath}")
+                else:
+                    np.save(auxLabelPath, label_array)
+                    print(f"[VHDR] Guardado labels: {auxLabelPath}")
+
+                # Conteo por clase
+                counts = {labels_dict[k]: 0 for k in labels_dict}
+                for _, eid in cues:
+                    counts[labels_dict[eid]] += 1
+                print(f"[VHDR] Eventos por clase en {Path(file).name}: {counts}")
+                total_class_counts.update(counts)
+
+                # ===== Generar archivos individuales en Events/ =====
+                os.makedirs(events_dir, exist_ok=True)
+
+                for (cue_sample, eid) in cues:
+                    class_name = labels_dict[eid]
+
+                    # Delimitación del evento
+                    start_sample = cue_sample
+                    end_sample = min(cue_sample + label_duration_samples, data.shape[1])
+
+                    # Extraer segmento
+                    X_event = data[:, start_sample:end_sample]
+
+                    # Calcular tiempos
+                    start_time = start_sample / sfreq
+                    end_time = end_sample / sfreq
+
+                    # Nombre del archivo: clase[inicio]{fin}.npy
+                    safe_class = re.sub(r'[\\/:*?"<>|]', "_", class_name)
+                    out_name = f"{safe_class}[{start_time:.3f}]{{{end_time:.3f}}}.npy"
+                    out_path = os.path.join(events_dir, out_name)
+
+                    # SKIP si ya existe
+                    if os.path.exists(out_path):
+                        print(f"[SKIP] Event ya existe: {out_path}")
+                        continue
+
+                    np.save(out_path, X_event)
+                    print(f"[VHDR] Guardado evento: {out_path} | clase={class_name} | shape={X_event.shape}")
+
+                # ===== Acumular metadata global =====
+                ch_names = list(raw_data.info["ch_names"])
+                ch_types = raw_data.get_channel_types()
+                ch_types_count = dict(Counter(ch_types))
+                duration_sec = float(data.shape[1] / sfreq)
+
+                unique_sfreqs.add(float(sfreq))
+                union_channels.update(ch_names)
+                ch_types_total.update(ch_types_count)
+                total_duration_sec += duration_sec
+
+                # ===== Calcular y acumular METADATA EXTENDIDA (VHDR) =====
+                try:
+                    # Guardar primer raw para inferir montage una sola vez
+                    if first_raw_for_analysis is None:
+                        first_raw_for_analysis = raw_data
+                        # Inferir montage del primer archivo
+                        montage_info = _infer_montage(ch_names)
+                        print(f"[META] Montage detectado: {montage_info['type']} ({montage_info['matched_channels']}/{montage_info['total_channels']} canales)")
+
+                    # Calcular estadísticas de sesión
+                    session_stats = _calculate_session_stats(raw_data, events, labels_dict, str(file), sfreq)
+                    all_sessions.append(session_stats)
+                    print(f"[META] Sesión: {session_stats['subject']}/{session_stats['session']}, duración: {session_stats['duration_sec']:.1f}s, eventos: {session_stats['n_events']}")
+
+                    # Detectar bad channels
+                    bad_chans = _detect_bad_channels(raw_data)
+                    if bad_chans:
+                        all_bad_channels.update(bad_chans)
+                        print(f"[META] Bad channels detectados: {bad_chans}")
+
+                    # Calcular estadísticas por canal (solo primeros 3 archivos para no sobrecargar)
+                    if total_files_processed < 3:
+                        ch_stats = _calculate_channel_stats(raw_data)
+                        # Acumular para promediar después
+                        for ch, stats in ch_stats.items():
+                            if ch not in channel_stats_accumulated:
+                                channel_stats_accumulated[ch] = []
+                            channel_stats_accumulated[ch].append(stats)
+
+                    # Calcular bandas de frecuencia (solo primeros 2 archivos para no sobrecargar)
+                    if total_files_processed < 2:
+                        freq_bands = _calculate_frequency_bands(raw_data, sfreq)
+                        # Acumular para promediar después
+                        for band, band_data in freq_bands.items():
+                            if band not in frequency_bands_accumulated:
+                                frequency_bands_accumulated[band] = []
+                            frequency_bands_accumulated[band].append(band_data['mean_power'])
+                        print(f"[META] Bandas de frecuencia calculadas")
+
+                    total_files_processed += 1
+
+                except Exception as e:
+                    print(f"[META] Error calculando metadata extendida: {e}")
+
         print("ending")
 
         # ====== ESCRIBIR JSON GLOBAL (una sola vez) EN LA RAÍZ Aux/ ======
@@ -561,10 +1236,57 @@ class Dataset:
         channel_names_out = (sampled_ch_names if sampled_meta_done else sorted(union_channels))
         channel_types_out = (sampled_ch_types_count if sampled_meta_done else dict(ch_types_total))
 
+        # Usar clases detectadas dinámicamente (de total_class_counts) en lugar de LABELS hardcodeado
+        detected_classes = sorted(total_class_counts.keys())
+
+        # ===== Procesar metadata extendida acumulada =====
+        # Promediar estadísticas de canales
+        channel_stats_final = {}
+        for ch, stats_list in channel_stats_accumulated.items():
+            if stats_list:
+                channel_stats_final[ch] = {
+                    "mean": float(np.mean([s["mean"] for s in stats_list])),
+                    "std": float(np.mean([s["std"] for s in stats_list])),
+                    "min": float(np.min([s["min"] for s in stats_list])),
+                    "max": float(np.max([s["max"] for s in stats_list])),
+                    "variance": float(np.mean([s["variance"] for s in stats_list])),
+                    "rms": float(np.mean([s["rms"] for s in stats_list]))
+                }
+
+        # Promediar bandas de frecuencia
+        frequency_bands_final = {}
+
+        # Definir rangos predefinidos
+        ranges = {
+            "delta": [0.5, 4],
+            "theta": [4, 8],
+            "alpha": [8, 13],
+            "beta": [13, 30],
+            "gamma": [30, min(100, sampling_frequency_hz / 2 - 1) if sampling_frequency_hz else 100]
+        }
+
+        for band, powers in frequency_bands_accumulated.items():
+            if powers:
+                frequency_bands_final[band] = {
+                    "range": ranges.get(band, [0, 100]),
+                    "mean_power": float(np.mean(powers))
+                }
+
+        # Calcular métricas de calidad
+        quality_metrics = {
+            "total_bad_channels": len(all_bad_channels),
+            "bad_channels_list": sorted(list(all_bad_channels)),
+            "n_events_total": sum(total_class_counts.values()),
+            "n_sessions": len(all_sessions),
+            "events_balance": "balanced" if (max(total_class_counts.values()) / min(total_class_counts.values()) if total_class_counts and min(total_class_counts.values()) > 0 else 1) <= 1.5 else "imbalanced",
+            "class_imbalance_ratio": float(max(total_class_counts.values()) / min(total_class_counts.values()) if total_class_counts and min(total_class_counts.values()) > 0 else 1.0)
+        }
+
         metadata = {
+            # ===== Metadata básica (ya existente) =====
             "dataset_name": self.name,
-            "num_classes": len(LABELS),
-            "classes": class_names,
+            "num_classes": len(detected_classes),
+            "classes": detected_classes,
             "sampling_frequency_hz": sampling_frequency_hz,
             "n_channels": n_channels,
             "channel_names": channel_names_out,
@@ -572,7 +1294,24 @@ class Dataset:
             "total_duration_sec": round(total_duration_sec, 6),
             "class_counts_total": dict(total_class_counts),
             "eeg_unit": "V",
+
+            # ===== Nueva metadata extendida =====
+            "sessions": all_sessions,
+            "montage": montage_info if montage_info else {"type": "unknown", "positions": {}, "has_positions": False},
+            "channel_stats": channel_stats_final,
+            "frequency_bands": frequency_bands_final,
+            "quality_metrics": quality_metrics,
+            "total_files": len(files),
+            "files_processed": total_files_processed
         }
+
+        print(f"[META] ✅ Metadata extendida calculada:")
+        print(f"  - Sesiones: {len(all_sessions)}")
+        print(f"  - Montage: {montage_info['type'] if montage_info else 'unknown'}")
+        print(f"  - Canales con estadísticas: {len(channel_stats_final)}")
+        print(f"  - Bandas de frecuencia: {len(frequency_bands_final)}")
+        print(f"  - Bad channels: {len(all_bad_channels)}")
+        print(f"  - Calidad: {quality_metrics['events_balance']}")
 
         meta_out = os.path.join(aux_root, "dataset_metadata.json")
         try:
@@ -608,6 +1347,23 @@ class Dataset:
         if not file_path.exists():
             raise FileNotFoundError(f"El archivo '{file_path}' no existe.")
         raw = mne.io.read_raw_edf(str(file_path), verbose=True, infer_types=True, preload=True)
+        return raw
+
+    def read_brainvision(self, path):
+        """
+        Lee archivos BrainVision (.vhdr + .eeg + .vmrk).
+
+        Args:
+            path: Ruta al archivo .vhdr (MNE busca automáticamente .eeg y .vmrk)
+
+        Returns:
+            raw: Objeto Raw de MNE con los datos EEG
+        """
+        file_path = Path(path)
+        if not file_path.exists():
+            raise FileNotFoundError(f"El archivo '{file_path}' no existe.")
+        # MNE lee el .vhdr y automáticamente busca .eeg y .vmrk en el mismo directorio
+        raw = mne.io.read_raw_brainvision(str(file_path), verbose=True, preload=True)
         return raw
 
     def load_signal_data(selected_file_path):

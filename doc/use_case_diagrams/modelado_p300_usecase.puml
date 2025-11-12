@@ -1,0 +1,128 @@
+@startuml
+title Casos de Uso - Pagina Modelado P300 (modelado_p300.py)
+
+' Actor
+actor "Usuario\nInvestigador" as user #lightblue
+
+' Sistema boundary
+rectangle "Sistema EGG-lab\n(Modelado P300)" {
+
+  ' Casos de uso principales
+  usecase "Seleccionar Dataset\ny Archivo" as UC1 #lightgreen
+  usecase "Configurar\nTransformacion" as UC2 #lightblue
+  usecase "Visualizar Señal\nOriginal/Transformada" as UC3 #yellow
+  usecase "Seleccionar Modelo\nde Clasificacion" as UC4 #orange
+  usecase "Configurar\nHiperparametros" as UC5 #pink
+  usecase "Entrenar\nModelo" as UC6 #lavender
+  usecase "Ver Metricas\nde Entrenamiento" as UC7 #lightcyan
+  usecase "Navegar entre\nPasos (Transform/Modelo)" as UC8 #lightyellow
+
+  ' Casos de uso secundarios
+  usecase "Aplicar Pipeline\nde Transformacion" as UC9 #lightyellow
+  usecase "Validar\nConfiguracion" as UC10 #lightyellow
+  usecase "Guardar Modelo\nEntrenado" as UC11 #lightgray
+}
+
+' Sistemas externos
+rectangle "Backend" {
+  usecase "ClassifierSchemaFactory\n.get_all_schemas()" as BACK1 #lavender
+  usecase "Experiment.apply_history_pipeline()" as BACK2 #lavender
+  usecase "Model.train()" as BACK3 #lavender
+  usecase "Model.evaluate()" as BACK4 #lavender
+  usecase "Dataset.load_event_with_channels()" as BACK5 #lavender
+}
+
+' Relaciones usuario -> casos de uso
+user --> UC1 : "Seleccionar desde Sidebar"
+user --> UC2 : "Aplicar filtros/transformadas"
+user --> UC4 : "Clic en card de modelo"
+user --> UC5 : "Ajustar parametros"
+user --> UC6 : "Clic en Entrenar"
+user --> UC8 : "Navegar paso 1/2"
+
+' Relaciones include
+UC1 ..> BACK5 : <<include>>
+UC1 ..> UC3 : <<include>>
+
+UC2 ..> UC9 : <<include>>
+UC2 ..> UC3 : update
+
+UC3 ..> BACK2 : <<include>>
+
+UC4 ..> BACK1 : <<include>>
+UC4 ..> UC5 : trigger
+
+UC5 ..> UC10 : <<include>>
+
+UC6 ..> UC10 : <<include>>
+UC6 ..> BACK3 : <<include>>
+UC6 ..> UC7 : trigger
+
+UC7 ..> BACK4 : <<include>>
+
+UC8 ..> UC2 : navegar a paso 1
+UC8 ..> UC4 : navegar a paso 2
+
+UC9 ..> BACK2 : <<include>>
+
+UC11 ..> BACK3 : <<include>>
+
+' Notas
+note right of UC2
+  Flujo Paso 1 - Transformacion:
+  1. Usuario aplica transformadas
+     desde RightColumn
+  2. Sistema ejecuta pipeline
+  3. Visualiza señal original y
+     transformada en dos columnas
+  4. Valida que se haya aplicado
+     transformacion antes de paso 2
+end note
+
+note right of UC4
+  Flujo Paso 2 - Modelo:
+  1. Muestra cards de modelos disponibles
+     (LSTM, GRU, SVM, etc)
+  2. Usuario selecciona modelo
+  3. Carga schema con hiperparametros
+  4. Renderiza controles de configuracion
+end note
+
+note bottom of UC6
+  Flujo de Entrenamiento:
+  1. Valida configuracion completa
+  2. Valida que haya transformacion
+  3. Inicia entrenamiento asincronico
+  4. Actualiza metricas en tiempo real
+     (loss, accuracy, epoch)
+  5. Guarda modelo al finalizar
+end note
+
+note bottom of UC8
+  Sistema de Pasos:
+  - Paso 1: Transformacion (siempre activo)
+  - Paso 2: Modelo (solo si hay transformacion)
+  - Usuario navega entre pasos con
+    indicadores visuales
+  - No puede configurar modelo sin
+    completar transformacion
+end note
+
+' Estilos
+skinparam usecase {
+  BackgroundColor lightblue
+  BorderColor darkblue
+  ArrowColor darkblue
+}
+
+skinparam actor {
+  BackgroundColor lightblue
+  BorderColor darkblue
+}
+
+skinparam note {
+  BackgroundColor lightyellow
+  BorderColor orange
+}
+
+@enduml

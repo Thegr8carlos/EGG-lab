@@ -1,0 +1,273 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" contentStyleType="text/css" height="978px" preserveAspectRatio="none" style="width:2659px;height:978px;background:#FFFFFF;" version="1.1" viewBox="0 0 2659 978" width="2659px" zoomAndPan="magnify"><defs/><g><rect fill="none" height="26.2969" id="_title" style="stroke:none;stroke-width:1.0;" width="415" x="1115" y="5"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="405" x="1120" y="22.9951">Casos de Uso - Pagina Extractores (extractores.py)</text><!--MD5=[402d8f08a4f556b6681edac9993857ec]
+cluster Sistema EGG-lab\n(Pagina Extractores)--><g id="cluster_Sistema EGG-lab\n(Pagina Extractores)"><rect fill="none" height="571" rx="2.5" ry="2.5" style="stroke:#181818;stroke-width:1.0;" width="1430" x="7" y="198.7969"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="129" x="657.5" y="213.792">Sistema EGG-lab</text><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="160" x="642" y="230.0889">(Pagina Extractores)</text></g><!--MD5=[b4e09d266be9964199f2622adcc056fa]
+cluster Backend--><g id="cluster_Backend"><rect fill="none" height="116" rx="2.5" ry="2.5" style="stroke:#181818;stroke-width:1.0;" width="1231" x="1422" y="845.7969"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="67" x="2004" y="860.792">Backend</text></g><g id="elem_UC1"><ellipse cx="130.0887" cy="276.0341" fill="#90EE90" rx="107.0887" ry="26.2373" style="stroke:#00008B;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="134" x="60.0887" y="271.6333">Seleccionar Archivo</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="29" x="112.5887" y="287.9301">EEG</text></g><g id="elem_UC2"><ellipse cx="329.2401" cy="275.8441" fill="#ADD8E6" rx="56.7401" ry="26.0473" style="stroke:#00008B;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="64" x="297.2401" y="270.5424">Filtrar por</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="38" x="310.2401" y="286.8393">Clase</text></g><g id="elem_UC3"><ellipse cx="489.0538" cy="275.8441" fill="#FFFF00" rx="68.0538" ry="26.0473" style="stroke:#00008B;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="80" x="449.0538" y="270.5424">Seleccionar</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="55" x="461.5538" y="286.8393">Canales</text></g><g id="elem_UC4"><ellipse cx="329.2406" cy="429.4276" fill="#FFC0CB" rx="86.7406" ry="26.1307" style="stroke:#00008B;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="106" x="273.2406" y="425.0267">Visualizar Señal</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="51" x="300.7406" y="441.3236">Original</text></g><g id="elem_UC5"><ellipse cx="1301.2406" cy="727.9276" fill="#E6E6FA" rx="86.7406" ry="26.1307" style="stroke:#00008B;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="106" x="1245.2406" y="723.5267">Visualizar Señal</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="95" x="1250.7406" y="739.8236">Transformada</text></g><g id="elem_UC6"><ellipse cx="660.7609" cy="275.8441" fill="#E0FFFF" rx="68.7609" ry="26.0473" style="stroke:#00008B;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="81" x="620.2609" y="270.5424">Ver Historial</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="76" x="622.7609" y="286.8393">de Pipeline</text></g><g id="elem_UC7"><ellipse cx="871.8619" cy="276.031" fill="#FFFFE0" rx="106.3619" ry="26.2342" style="stroke:#00008B;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="133" x="802.3619" y="271.6302">Toggle Auto-aplicar</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="103" x="817.3619" y="287.927">Transformadas</text></g><g id="elem_UC8"><ellipse cx="1120.9447" cy="275.8441" fill="#FFFFE0" rx="106.9447" ry="26.0473" style="stroke:#00008B;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="97" x="1072.4447" y="270.5424">Navegar entre</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="135" x="1053.4447" y="286.8393">Paginas de Canales</text></g><g id="elem_UC9"><ellipse cx="1300.7693" cy="573.6507" fill="#FFFFE0" rx="119.7693" ry="26.3539" style="stroke:#00008B;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="152" x="1221.7693" y="569.2499">Aplicar Transformadas</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="79" x="1258.2693" y="585.5467">del Pipeline</text></g><g id="elem_UC10"><ellipse cx="1342.1604" cy="275.8441" fill="#D3D3D3" rx="78.6604" ry="26.0473" style="stroke:#00008B;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="82" x="1301.1604" y="270.5424">Ver JSON de</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="95" x="1294.6604" y="286.8393">Transformada</text></g><g id="elem_BACK1"><ellipse cx="1868.241" cy="913.4451" fill="#E6E6FA" rx="121.241" ry="26.6482" style="stroke:#00008B;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="210" x="1763.241" y="916.2917">Dataset.get_events_by_class()</text></g><g id="elem_BACK2"><ellipse cx="2163.2348" cy="913.5438" fill="#E6E6FA" rx="139.2348" ry="30.247" style="stroke:#00008B;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="248" x="2039.2348" y="916.3905">Dataset.load_event_with_channels()</text></g><g id="elem_BACK3"><ellipse cx="1574.8751" cy="913.4719" fill="#E6E6FA" rx="136.3751" ry="29.675" style="stroke:#00008B;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="242" x="1453.8751" y="916.3186">Experiment.apply_history_pipeline()</text></g><g id="elem_BACK4"><ellipse cx="2486.7683" cy="913.1505" fill="#E6E6FA" rx="149.7683" ry="32.3537" style="stroke:#00008B;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="270" x="2351.7683" y="915.9972">Experiment.get_experiment_summary()</text></g><!--MD5=[8fc3522a43f8c7199df5e09e5bb0188e]
+entity user--><g id="elem_user"><ellipse cx="741" cy="51.2969" fill="#ADD8E6" rx="8" ry="8" style="stroke:#00008B;stroke-width:0.5;"/><path d="M741,59.2969 L741,86.2969 M728,67.2969 L754,67.2969 M741,86.2969 L728,101.2969 M741,86.2969 L754,101.2969 " fill="none" style="stroke:#00008B;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="52" x="699" y="115.792">Usuario</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="84" x="699" y="132.0889">Investigador</text></g><g id="elem_GMN2222"><path d="M1455.5,225.2969 L1455.5,326.0938 L1698.5,326.0938 L1698.5,235.2969 L1688.5,225.2969 L1455.5,225.2969 " fill="#FFFFE0" style="stroke:#181818;stroke-width:0.5;"/><path d="M1688.5,225.2969 L1688.5,235.2969 L1698.5,235.2969 L1688.5,225.2969 " fill="#FFFFE0" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="33" x="1461.5" y="242.3638">Flujo:</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="208" x="1461.5" y="257.4966">1. Selecciona archivo en Sidebar</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="197" x="1461.5" y="272.6294">2. Carga metadata del dataset</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="205" x="1461.5" y="287.7622">3. Carga primer evento de clase</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="198" x="1461.5" y="302.895">4. Renderiza graficos originales</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="222" x="1461.5" y="318.0278">5. Si auto-apply ON, aplica pipeline</text></g><g id="elem_GMN2226"><path d="M1733.5,225.2969 L1733.5,326.0938 L1950.5,326.0938 L1950.5,235.2969 L1940.5,225.2969 L1733.5,225.2969 " fill="#FFFFE0" style="stroke:#181818;stroke-width:0.5;"/><path d="M1940.5,225.2969 L1940.5,235.2969 L1950.5,235.2969 L1940.5,225.2969 " fill="#FFFFE0" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="33" x="1739.5" y="242.3638">Flujo:</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="166" x="1739.5" y="257.4966">1. Lista clases del dataset</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="181" x="1739.5" y="272.6294">2. Usuario hace clic en clase</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="164" x="1739.5" y="287.7622">3. Filtra eventos por clase</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="196" x="1739.5" y="302.895">4. Carga primer evento filtrado</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="173" x="1739.5" y="318.0278">5. Actualiza visualizaciones</text></g><g id="elem_GMN2229"><path d="M1986,225.2969 L1986,326.0938 L2238,326.0938 L2238,235.2969 L2228,225.2969 L1986,225.2969 " fill="#FFFFE0" style="stroke:#181818;stroke-width:0.5;"/><path d="M2228,225.2969 L2228,235.2969 L2238,235.2969 L2228,225.2969 " fill="#FFFFE0" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="33" x="1992" y="242.3638">Flujo:</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="188" x="1992" y="257.4966">1. Carga nombres de canales</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="231" x="1992" y="272.6294">2. Usuario marca/desmarca canales</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="212" x="1992" y="287.7622">3. Carga evento solo con canales</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="90" x="2004" y="302.895">seleccionados</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="135" x="1992" y="318.0278">4. Actualiza contador</text></g><g id="elem_GMN2232"><path d="M1160.5,855.2969 L1160.5,971.2266 A0,0 0 0 0 1160.5,971.2266 L1403.5,971.2266 A0,0 0 0 0 1403.5,971.2266 L1403.5,865.2969 L1393.5,855.2969 L1291.93,855.2969 L1298.4,753.9269 L1283.93,855.2969 L1160.5,855.2969 A0,0 0 0 0 1160.5,855.2969 " fill="#FFFFE0" style="stroke:#181818;stroke-width:0.5;"/><path d="M1393.5,855.2969 L1393.5,865.2969 L1403.5,865.2969 L1393.5,855.2969 " fill="#FFFFE0" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="33" x="1166.5" y="872.3638">Flujo:</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="201" x="1166.5" y="887.4966">1. Verifica datos transformados</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="222" x="1166.5" y="902.6294">2. Si auto-apply ON, aplica pipeline</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="165" x="1166.5" y="917.7622">3. Usa cache si disponible</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="191" x="1166.5" y="932.895">4. Detecta y aplana arrays 3D</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="194" x="1166.5" y="948.0278">5. Renderiza columna derecha</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="213" x="1166.5" y="963.1606">6. Muestra indicadores de estado</text></g><g id="elem_GMN2235"><path d="M1453,677.2969 L1453,778.0938 A0,0 0 0 0 1453,778.0938 L1689,778.0938 A0,0 0 0 0 1689,778.0938 L1689,687.2969 L1679,677.2969 L1486.97,677.2969 L1343.48,598.7169 L1478.97,677.2969 L1453,677.2969 A0,0 0 0 0 1453,677.2969 " fill="#FFFFE0" style="stroke:#181818;stroke-width:0.5;"/><path d="M1679,677.2969 L1679,687.2969 L1689,687.2969 L1679,677.2969 " fill="#FFFFE0" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="33" x="1459" y="694.3638">Flujo:</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="201" x="1459" y="709.4966">1. Lee historial del experimento</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="213" x="1459" y="724.6294">2. Aplica transformadas en orden</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="165" x="1459" y="739.7622">3. Usa cache si disponible</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="215" x="1459" y="754.895">4. Guarda intermedios opcionales</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="195" x="1459" y="770.0278">5. Retorna señal transformada</text></g><!--MD5=[e71913910ae60f5842a843a20d6ecd39]
+link user to UC1--><g id="link_user_UC1"><path d="M698.86,89.6269 C612.79,89.7869 412.25,98.1069 262,165.7969 C219.9,184.7669 180.29,220.8569 155.64,246.2969 " fill="none" id="user-to-UC1" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="152.12,249.9669,161.239,246.246,155.5833,246.3605,155.4688,240.7048,152.12,249.9669" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="147" x="263" y="178.8638">Seleccionar en Sidebar</text></g><!--MD5=[20aeaa20d1880359803c0703a4b24425]
+link user to UC2--><g id="link_user_UC2"><path d="M698.92,93.5069 C630.6,100.6169 494.01,122.8769 403,190.7969 C382.18,206.3369 362.93,228.5469 349.28,246.2269 " fill="none" id="user-to-UC2" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="345.93,250.6169,354.56,245.871,348.9551,246.6358,348.1902,241.0309,345.93,250.6169" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="120" x="436" y="178.8638">Clic en boton clase</text></g><!--MD5=[17d4c6462e07b4f1b5dbb0e87d08d5e6]
+link user to UC3--><g id="link_user_UC3"><path d="M698.73,112.0769 C663.85,130.8869 613.81,159.8569 574,190.7969 C552.22,207.7169 530.14,229.7169 513.94,246.9569 " fill="none" id="user-to-UC3" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="510.37,250.7869,519.4356,246.9379,513.7821,247.1321,513.5879,241.4786,510.37,250.7869" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="97" x="610" y="178.8638">Marcar canales</text></g><!--MD5=[efda522a7868aa178a844f5aef0f93b9]
+link user to UC8--><g id="link_user_UC8"><path d="M783.3,103.8169 C834.91,121.0169 924.17,153.0769 996,190.7969 C1027.62,207.4069 1061.09,230.2069 1085.42,247.8569 " fill="none" id="user-to-UC8" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="1089.55,250.8669,1084.6276,242.3363,1085.5076,247.9243,1079.9196,248.8042,1089.55,250.8669" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="127" x="978" y="178.8638">Navegar paginacion</text></g><!--MD5=[42a9aa1c05961f1dbfed44d6070980e5]
+link user to UC7--><g id="link_user_UC7"><path d="M773.38,135.9069 C797.79,170.2769 830.53,216.3869 851.45,245.8469 " fill="none" id="user-to-UC7" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="854.45,250.0769,852.5251,240.418,851.5655,245.9928,845.9906,245.0332,854.45,250.0769" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="94" x="808" y="178.8638">Toggle ON/OFF</text></g><!--MD5=[44efd070a84d534a4938f938f6bd398b]
+link user to UC10--><g id="link_user_UC10"><path d="M783.13,91.5069 C872.69,95.5669 1086.73,113.3169 1245,190.7969 C1272.95,204.4769 1299.28,228.2369 1317.43,247.0069 " fill="none" id="user-to-UC10" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="1320.95,250.6869,1317.6196,241.4182,1317.4939,247.0737,1311.8384,246.948,1320.95,250.6869" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="78" x="1221" y="178.8638">Clic en JSON</text></g><!--MD5=[aca4be05126b783a6a2213ba86f9360e]
+link UC1 to BACK1--><g id="link_UC1_BACK1"><path d="M176.67,299.3269 C199.71,309.3969 228.24,320.3169 255,326.2969 C343.01,345.9769 1875,338.1169 1875,428.2969 C1875,428.2969 1875,428.2969 1875,728.7969 C1875,782.5769 1871.96,845.1669 1869.89,881.5969 " fill="none" id="UC1-to-BACK1" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="1869.59,886.7769,1874.0984,878.0205,1869.8761,881.7851,1866.1115,877.5628,1869.59,886.7769" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="61" x="1876" y="578.3638">«include»</text></g><!--MD5=[41a13eddb1eb4ad2a8fa357668cebe40]
+link UC1 to UC4--><g id="link_UC1_UC4"><path d="M161.53,300.8069 C197.7,328.3369 256.81,373.3369 294.26,401.8469 " fill="none" id="UC1-to-UC4" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="298.27,404.8969,293.5241,396.2669,294.2889,401.8718,288.684,402.6366,298.27,404.8969" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="61" x="255" y="369.3638">«include»</text></g><!--MD5=[b3515fe4c43b488c52beca0c3a99fd8c]
+link UC2 to BACK1--><g id="link_UC2_BACK1"><path d="M354.48,299.1469 C367.94,309.5069 385.31,320.7269 403,326.2969 C561.8,376.2569 1742.26,306.1169 1901,356.2969 C1955.65,373.5769 2008,370.9769 2008,428.2969 C2008,428.2969 2008,428.2969 2008,728.7969 C2008,795.0469 1949.61,852.2569 1908.25,884.4769 " fill="none" id="UC2-to-BACK1" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="1904.05,887.7069,1913.6229,885.3916,1908.0137,884.659,1908.7463,879.0498,1904.05,887.7069" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="61" x="2009" y="578.3638">«include»</text></g><!--MD5=[70fd0aa021e0672eb21bacda73a77dec]
+link UC2 to UC4--><g id="link_UC2_UC4"><path d="M329,301.8169 C329,328.2369 329,369.9069 329,398.1369 " fill="none" id="UC2-to-UC4" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="329,403.2469,333,394.2469,329,398.2469,325,394.2469,329,403.2469" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="61" x="330" y="369.3638">«include»</text></g><!--MD5=[c730013b87383b301bef85656f68e29d]
+link UC3 to BACK2--><g id="link_UC3_BACK2"><path d="M519.17,299.4169 C534.7,309.7069 554.44,320.7869 574,326.2969 C721.95,367.9669 1805.93,327.9869 1957,356.2969 C2049.04,373.5469 2155,334.6569 2155,428.2969 C2155,428.2969 2155,428.2969 2155,728.7969 C2155,780.7669 2158.24,840.9469 2160.6,877.8069 " fill="none" id="UC3-to-BACK2" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="2160.94,883.0769,2164.3659,873.8431,2160.6254,878.0868,2156.3817,874.3464,2160.94,883.0769" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="61" x="2156" y="578.3638">«include»</text></g><!--MD5=[553f9b986593943f6e01085dcf166857]
+link UC4 to UC9--><g id="link_UC4_UC9"><path d="M405.68,441.5369 C579.08,466.9569 1001.51,528.8869 1197.71,557.6569 " fill="none" id="UC4-to-UC9" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="1202.87,558.4069,1194.5495,553.1372,1197.9234,557.6778,1193.3829,561.0517,1202.87,558.4069" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="60" x="927" y="498.3638">«extend»</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="106" x="904" y="513.4966">si auto-apply ON</text></g><!--MD5=[142734b1a5792c8d4f33b6a2a022c3de]
+link UC5 to BACK3--><g id="link_UC5_BACK3"><path d="M1335.42,751.8469 C1384.73,784.8769 1475.52,845.6769 1530.07,882.2069 " fill="none" id="UC5-to-BACK3" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="1534.26,885.0069,1529.0101,876.6739,1530.1063,882.2235,1524.5567,883.3197,1534.26,885.0069" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="61" x="1439" y="821.3638">«include»</text></g><!--MD5=[169776382ebe0e8d1e524b2be0fc29a9]
+link UC6 to BACK4--><g id="link_UC6_BACK4"><path d="M691.56,299.1569 C707.53,309.5069 727.9,320.7369 748,326.2969 C889.28,365.3969 1922.01,334.6869 2067,356.2969 C2184.32,373.7869 2324,309.6769 2324,428.2969 C2324,428.2969 2324,428.2969 2324,728.7969 C2324,794.7669 2383.62,848.0669 2430.75,879.8869 " fill="none" id="UC6-to-BACK4" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="2434.98,882.7069,2429.7103,874.3864,2430.8197,879.9334,2425.2727,881.0428,2434.98,882.7069" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="61" x="2325" y="578.3638">«include»</text></g><!--MD5=[dbbe660e89f4f1f2817420d04b410200]
+link UC9 to BACK3--><g id="link_UC9_BACK3"><path d="M1405.93,586.7069 C1513.57,601.3369 1670.31,630.1969 1707,677.2969 C1734.58,712.7069 1724.02,736.7569 1707,778.2969 C1689.4,821.2369 1650.66,857.7969 1619.68,881.8269 " fill="none" id="UC9-to-BACK3" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="1615.55,884.9969,1625.1269,882.6983,1619.519,881.9559,1620.2613,876.348,1615.55,884.9969" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="61" x="1724" y="732.3638">«include»</text></g><!--MD5=[3a3c313b7a487e5371f19a5440836b38]
+link UC9 to UC5--><g id="link_UC9_UC5"><path d="M1301,600.5769 C1301,627.1369 1301,668.4869 1301,696.5669 " fill="none" id="UC9-to-UC5" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="1301,701.6469,1305,692.6469,1301,696.6469,1297,692.6469,1301,701.6469" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="42" x="1302" y="643.3638">trigger</text></g><!--MD5=[95fa8fec5fc05df9b8e371ddfb1f9cc7]
+link UC10 to BACK4--><g id="link_UC10_BACK4"><path d="M1376.5,299.3269 C1394.14,309.5869 1416.4,320.6769 1438,326.2969 C1634.25,377.3469 2154.99,300.6969 2350,356.2969 C2411.66,373.8769 2475,364.1869 2475,428.2969 C2475,428.2969 2475,428.2969 2475,728.7969 C2475,779.6169 2479.64,838.1769 2483.15,875.2069 " fill="none" id="UC10-to-BACK4" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="2483.66,880.5169,2486.7659,871.1706,2483.1738,875.5406,2478.8038,871.9485,2483.66,880.5169" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="61" x="2476" y="578.3638">«include»</text></g><!--MD5=[0b07e75ad3fac85c77a8be5012197fac]
+link UC1 to GMN2222--><g id="link_UC1_GMN2222"><path d="M152.13,250.2269 C177.83,222.6669 223.07,180.4569 272.5,163.2969 C332.7,142.3969 1358.82,143.8469 1419.5,163.2969 C1458.22,175.7069 1495.52,201.5169 1524.1,225.2869 " fill="none" id="UC1-GMN2222" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/></g><!--MD5=[b14b248a2cf9f6da122737f52e79ef9a]
+link UC2 to GMN2226--><g id="link_UC2_GMN2226"><path d="M341.25,250.0169 C355.82,222.7169 382.99,181.1369 420.5,163.2969 C484.62,132.7969 1631.39,140.1269 1698.5,163.2969 C1734.56,175.7469 1768.46,201.3969 1794.26,225.0669 " fill="none" id="UC2-GMN2226" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/></g><!--MD5=[22f5f8f7ed74dee6761e31e98f866449]
+link UC3 to GMN2229--><g id="link_UC3_GMN2229"><path d="M503.53,249.9369 C520.57,222.5569 551.62,180.9169 591.5,163.2969 C660.56,132.7869 1878.47,140.6769 1950.5,163.2969 C1989.95,175.6869 2028.18,201.4969 2057.54,225.2669 " fill="none" id="UC3-GMN2229" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/></g><!--MD5=[f6cb0e9e9f8b79e1b06db60b4f1e3d83]
+@startuml
+title Casos de Uso - Pagina Extractores (extractores.py)
+
+' Actor
+actor "Usuario\nInvestigador" as user #lightblue
+
+' Sistema boundary
+rectangle "Sistema EGG-lab\n(Pagina Extractores)" {
+
+  ' Casos de uso principales
+  usecase "Seleccionar Archivo\nEEG" as UC1 #lightgreen
+  usecase "Filtrar por\nClase" as UC2 #lightblue
+  usecase "Seleccionar\nCanales" as UC3 #yellow
+  usecase "Visualizar Señal\nOriginal" as UC4 #pink
+  usecase "Visualizar Señal\nTransformada" as UC5 #lavender
+  usecase "Ver Historial\nde Pipeline" as UC6 #lightcyan
+  usecase "Toggle Auto-aplicar\nTransformadas" as UC7 #lightyellow
+
+  ' Casos de uso de navegacion
+  usecase "Navegar entre\nPaginas de Canales" as UC8 #lightyellow
+  usecase "Aplicar Transformadas\ndel Pipeline" as UC9 #lightyellow
+  usecase "Ver JSON de\nTransformada" as UC10 #lightgray
+}
+
+' Sistemas externos
+rectangle "Backend" {
+  usecase "Dataset.get_events_by_class()" as BACK1 #lavender
+  usecase "Dataset.load_event_with_channels()" as BACK2 #lavender
+  usecase "Experiment.apply_history_pipeline()" as BACK3 #lavender
+  usecase "Experiment.get_experiment_summary()" as BACK4 #lavender
+}
+
+' Relaciones usuario -> casos de uso
+user - -> UC1 : "Seleccionar en Sidebar"
+user - -> UC2 : "Clic en boton clase"
+user - -> UC3 : "Marcar canales"
+user - -> UC8 : "Navegar paginacion"
+user - -> UC7 : "Toggle ON/OFF"
+user - -> UC10 : "Clic en JSON"
+
+' Relaciones include
+UC1 ..> BACK1 : <<include>>
+UC1 ..> UC4 : <<include>>
+
+UC2 ..> BACK1 : <<include>>
+UC2 ..> UC4 : <<include>>
+
+UC3 ..> BACK2 : <<include>>
+
+UC4 ..> UC9 : <<extend>>\nsi auto-apply ON
+
+UC5 ..> BACK3 : <<include>>
+
+UC6 ..> BACK4 : <<include>>
+
+UC9 ..> BACK3 : <<include>>
+UC9 ..> UC5 : trigger
+
+UC10 ..> BACK4 : <<include>>
+
+' Notas
+note right of UC1
+  Flujo:
+  1. Selecciona archivo en Sidebar
+  2. Carga metadata del dataset
+  3. Carga primer evento de clase
+  4. Renderiza graficos originales
+  5. Si auto-apply ON, aplica pipeline
+end note
+
+note right of UC2
+  Flujo:
+  1. Lista clases del dataset
+  2. Usuario hace clic en clase
+  3. Filtra eventos por clase
+  4. Carga primer evento filtrado
+  5. Actualiza visualizaciones
+end note
+
+note right of UC3
+  Flujo:
+  1. Carga nombres de canales
+  2. Usuario marca/desmarca canales
+  3. Carga evento solo con canales
+     seleccionados
+  4. Actualiza contador
+end note
+
+note bottom of UC5
+  Flujo:
+  1. Verifica datos transformados
+  2. Si auto-apply ON, aplica pipeline
+  3. Usa cache si disponible
+  4. Detecta y aplana arrays 3D
+  5. Renderiza columna derecha
+  6. Muestra indicadores de estado
+end note
+
+note bottom of UC9
+  Flujo:
+  1. Lee historial del experimento
+  2. Aplica transformadas en orden
+  3. Usa cache si disponible
+  4. Guarda intermedios opcionales
+  5. Retorna señal transformada
+end note
+
+' Estilos
+skinparam usecase {
+  BackgroundColor lightblue
+  BorderColor darkblue
+  ArrowColor darkblue
+}
+
+skinparam actor {
+  BackgroundColor lightblue
+  BorderColor darkblue
+}
+
+skinparam note {
+  BackgroundColor lightyellow
+  BorderColor orange
+}
+@enduml
+
+@startuml
+title Casos de Uso - Pagina Extractores (extractores.py)
+
+actor "Usuario\nInvestigador" as user #lightblue
+
+rectangle "Sistema EGG-lab\n(Pagina Extractores)" {
+
+  usecase "Seleccionar Archivo\nEEG" as UC1 #lightgreen
+  usecase "Filtrar por\nClase" as UC2 #lightblue
+  usecase "Seleccionar\nCanales" as UC3 #yellow
+  usecase "Visualizar Señal\nOriginal" as UC4 #pink
+  usecase "Visualizar Señal\nTransformada" as UC5 #lavender
+  usecase "Ver Historial\nde Pipeline" as UC6 #lightcyan
+  usecase "Toggle Auto-aplicar\nTransformadas" as UC7 #lightyellow
+
+  usecase "Navegar entre\nPaginas de Canales" as UC8 #lightyellow
+  usecase "Aplicar Transformadas\ndel Pipeline" as UC9 #lightyellow
+  usecase "Ver JSON de\nTransformada" as UC10 #lightgray
+}
+
+rectangle "Backend" {
+  usecase "Dataset.get_events_by_class()" as BACK1 #lavender
+  usecase "Dataset.load_event_with_channels()" as BACK2 #lavender
+  usecase "Experiment.apply_history_pipeline()" as BACK3 #lavender
+  usecase "Experiment.get_experiment_summary()" as BACK4 #lavender
+}
+
+user - -> UC1 : "Seleccionar en Sidebar"
+user - -> UC2 : "Clic en boton clase"
+user - -> UC3 : "Marcar canales"
+user - -> UC8 : "Navegar paginacion"
+user - -> UC7 : "Toggle ON/OFF"
+user - -> UC10 : "Clic en JSON"
+
+UC1 ..> BACK1 : <<include>>
+UC1 ..> UC4 : <<include>>
+
+UC2 ..> BACK1 : <<include>>
+UC2 ..> UC4 : <<include>>
+
+UC3 ..> BACK2 : <<include>>
+
+UC4 ..> UC9 : <<extend>>\nsi auto-apply ON
+
+UC5 ..> BACK3 : <<include>>
+
+UC6 ..> BACK4 : <<include>>
+
+UC9 ..> BACK3 : <<include>>
+UC9 ..> UC5 : trigger
+
+UC10 ..> BACK4 : <<include>>
+
+note right of UC1
+  Flujo:
+  1. Selecciona archivo en Sidebar
+  2. Carga metadata del dataset
+  3. Carga primer evento de clase
+  4. Renderiza graficos originales
+  5. Si auto-apply ON, aplica pipeline
+end note
+
+note right of UC2
+  Flujo:
+  1. Lista clases del dataset
+  2. Usuario hace clic en clase
+  3. Filtra eventos por clase
+  4. Carga primer evento filtrado
+  5. Actualiza visualizaciones
+end note
+
+note right of UC3
+  Flujo:
+  1. Carga nombres de canales
+  2. Usuario marca/desmarca canales
+  3. Carga evento solo con canales
+     seleccionados
+  4. Actualiza contador
+end note
+
+note bottom of UC5
+  Flujo:
+  1. Verifica datos transformados
+  2. Si auto-apply ON, aplica pipeline
+  3. Usa cache si disponible
+  4. Detecta y aplana arrays 3D
+  5. Renderiza columna derecha
+  6. Muestra indicadores de estado
+end note
+
+note bottom of UC9
+  Flujo:
+  1. Lee historial del experimento
+  2. Aplica transformadas en orden
+  3. Usa cache si disponible
+  4. Guarda intermedios opcionales
+  5. Retorna señal transformada
+end note
+
+skinparam usecase {
+  BackgroundColor lightblue
+  BorderColor darkblue
+  ArrowColor darkblue
+}
+
+skinparam actor {
+  BackgroundColor lightblue
+  BorderColor darkblue
+}
+
+skinparam note {
+  BackgroundColor lightyellow
+  BorderColor orange
+}
+@enduml
+
+PlantUML version 1.2022.7(Mon Aug 22 17:01:30 UTC 2022)
+(GPL source distribution)
+Java Runtime: OpenJDK Runtime Environment
+JVM: OpenJDK 64-Bit Server VM
+Default Encoding: UTF-8
+Language: en
+Country: null
+--></g></svg>

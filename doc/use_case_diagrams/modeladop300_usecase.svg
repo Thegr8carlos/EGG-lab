@@ -1,0 +1,285 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" contentStyleType="text/css" height="1016px" preserveAspectRatio="none" style="width:2683px;height:1016px;background:#FFFFFF;" version="1.1" viewBox="0 0 2683 1016" width="2683px" zoomAndPan="magnify"><defs/><g><rect fill="none" height="26.2969" id="_title" style="stroke:none;stroke-width:1.0;" width="477" x="1096" y="5"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="467" x="1101" y="22.9951">Casos de Uso - Pagina Modelado P300 (modelado_p300.py)</text><!--MD5=[6b6ff2079984169812085aeff35c478b]
+cluster Sistema EGG-lab\n(Modelado P300)--><g id="cluster_Sistema EGG-lab\n(Modelado P300)"><rect fill="none" height="622" rx="2.5" ry="2.5" style="stroke:#181818;stroke-width:1.0;" width="870" x="949" y="198.7969"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="129" x="1319.5" y="213.792">Sistema EGG-lab</text><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="133" x="1317.5" y="230.0889">(Modelado P300)</text></g><!--MD5=[b4e09d266be9964199f2622adcc056fa]
+cluster Backend--><g id="cluster_Backend"><rect fill="none" height="111" rx="2.5" ry="2.5" style="stroke:#181818;stroke-width:1.0;" width="1266" x="7" y="899.7969"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="67" x="606.5" y="914.792">Backend</text></g><g id="elem_UC1"><ellipse cx="1689.9957" cy="449.5461" fill="#90EE90" rx="109.9957" ry="26.2493" style="stroke:#00008B;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="138" x="1617.9957" y="445.1453">Seleccionar Dataset</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="61" x="1656.4957" y="461.4421">y Archivo</text></g><g id="elem_UC2"><ellipse cx="1458.1457" cy="449.3441" fill="#ADD8E6" rx="87.1457" ry="26.0473" style="stroke:#00008B;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="71" x="1422.6457" y="444.0424">Configurar</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="107" x="1404.6457" y="460.3393">Transformacion</text></g><g id="elem_UC3"><ellipse cx="1685.2474" cy="617.8463" fill="#FFFF00" rx="118.2474" ry="26.0495" style="stroke:#00008B;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="106" x="1632.2474" y="612.5446">Visualizar Señal</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="151" x="1609.7474" y="628.8415">Original/Transformada</text></g><g id="elem_UC4"><ellipse cx="1227.8154" cy="449.5372" fill="#FFA500" rx="107.8154" ry="26.2403" style="stroke:#00008B;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="135" x="1157.3154" y="445.1363">Seleccionar Modelo</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="106" x="1171.8154" y="461.4332">de Clasificacion</text></g><g id="elem_UC5"><ellipse cx="1297.8026" cy="617.8441" fill="#FFC0CB" rx="92.8026" ry="26.0473" style="stroke:#00008B;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="71" x="1262.3026" y="612.5424">Configurar</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="115" x="1240.3026" y="628.8393">Hiperparametros</text></g><g id="elem_UC6"><ellipse cx="1479.2046" cy="617.8441" fill="#E6E6FA" rx="53.2046" ry="26.0473" style="stroke:#00008B;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="59" x="1449.7046" y="612.5424">Entrenar</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="51" x="1453.7046" y="628.8393">Modelo</text></g><g id="elem_UC7"><ellipse cx="1328.1665" cy="778.8441" fill="#E0FFFF" rx="99.1665" ry="26.0473" style="stroke:#00008B;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="85" x="1285.6665" y="773.5424">Ver Metricas</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="124" x="1266.1665" y="789.8393">de Entrenamiento</text></g><g id="elem_UC8"><ellipse cx="1311.1835" cy="278.1336" fill="#FFFFE0" rx="129.6835" ry="28.3367" style="stroke:#00008B;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="97" x="1262.6835" y="272.8318">Navegar entre</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="182" x="1220.1835" y="289.1287">Pasos (Transform/Modelo)</text></g><g id="elem_UC9"><ellipse cx="1067.2021" cy="617.8441" fill="#FFFFE0" rx="102.7021" ry="26.0473" style="stroke:#00008B;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="103" x="1015.7021" y="612.5424">Aplicar Pipeline</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="129" x="1002.7021" y="628.8393">de Transformacion</text></g><g id="elem_UC10"><ellipse cx="1115.1604" cy="778.8441" fill="#FFFFE0" rx="78.6604" ry="26.0473" style="stroke:#00008B;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="45" x="1092.6604" y="773.5424">Validar</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="95" x="1067.6604" y="789.8393">Configuracion</text></g><g id="elem_UC11"><ellipse cx="1055.1473" cy="278.4457" fill="#D3D3D3" rx="89.6473" ry="26.1489" style="stroke:#00008B;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="110" x="997.1473" y="274.0449">Guardar Modelo</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="72" x="1016.1473" y="290.3417">Entrenado</text></g><g id="elem_BACK1"><ellipse cx="147.9685" cy="964.6906" fill="#E6E6FA" rx="124.9685" ry="27.3937" style="stroke:#00008B;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="167" x="61.4685" y="960.2897">ClassifierSchemaFactory</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="128" x="80.9685" y="976.5866">.get_all_schemas()</text></g><g id="elem_BACK2"><ellipse cx="1119.8751" cy="964.9719" fill="#E6E6FA" rx="136.3751" ry="29.675" style="stroke:#00008B;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="242" x="998.8751" y="967.8186">Experiment.apply_history_pipeline()</text></g><g id="elem_BACK3"><ellipse cx="689.0233" cy="964.7015" fill="#E6E6FA" rx="67.5233" ry="15.9047" style="stroke:#00008B;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="86" x="643.0233" y="968.4491">Model.train()</text></g><g id="elem_BACK4"><ellipse cx="870.1551" cy="964.8279" fill="#E6E6FA" rx="78.1551" ry="18.031" style="stroke:#00008B;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="114" x="810.7659" y="968.4134">Model.evaluate()</text></g><g id="elem_BACK5"><ellipse cx="447.2348" cy="965.0438" fill="#E6E6FA" rx="139.2348" ry="30.247" style="stroke:#00008B;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="248" x="323.2348" y="967.8905">Dataset.load_event_with_channels()</text></g><!--MD5=[8fc3522a43f8c7199df5e09e5bb0188e]
+entity user--><g id="elem_user"><ellipse cx="1859" cy="51.2969" fill="#ADD8E6" rx="8" ry="8" style="stroke:#00008B;stroke-width:0.5;"/><path d="M1859,59.2969 L1859,86.2969 M1846,67.2969 L1872,67.2969 M1859,86.2969 L1846,101.2969 M1859,86.2969 L1872,101.2969 " fill="none" style="stroke:#00008B;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="52" x="1817" y="115.792">Usuario</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="84" x="1817" y="132.0889">Investigador</text></g><g id="elem_GMN115"><path d="M2152.5,383.7969 L2152.5,514.8594 L2389.5,514.8594 L2389.5,393.7969 L2379.5,383.7969 L2152.5,383.7969 " fill="#FFFFE0" style="stroke:#181818;stroke-width:0.5;"/><path d="M2379.5,383.7969 L2379.5,393.7969 L2389.5,393.7969 L2379.5,383.7969 " fill="#FFFFE0" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="192" x="2158.5" y="400.8638">Flujo Paso 1 - Transformacion:</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="204" x="2158.5" y="415.9966">1. Usuario aplica transformadas</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="124" x="2170.5" y="431.1294">desde RightColumn</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="173" x="2158.5" y="446.2622">2. Sistema ejecuta pipeline</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="171" x="2158.5" y="461.395">3. Visualiza señal original y</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="200" x="2170.5" y="476.5278">transformada en dos columnas</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="194" x="2158.5" y="491.6606">4. Valida que se haya aplicado</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="204" x="2170.5" y="506.7935">transformacion antes de paso 2</text></g><g id="elem_GMN172"><path d="M1835,398.7969 L1835,499.5938 L2117,499.5938 L2117,408.7969 L2107,398.7969 L1835,398.7969 " fill="#FFFFE0" style="stroke:#181818;stroke-width:0.5;"/><path d="M2107,398.7969 L2107,408.7969 L2117,408.7969 L2107,398.7969 " fill="#FFFFE0" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="139" x="1841" y="415.8638">Flujo Paso 2 - Modelo:</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="261" x="1841" y="430.9966">1. Muestra cards de modelos disponibles</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="145" x="1853" y="446.1294">(LSTM, GRU, SVM, etc)</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="188" x="1841" y="461.2622">2. Usuario selecciona modelo</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="247" x="1841" y="476.395">3. Carga schema con hiperparametros</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="251" x="1841" y="491.5278">4. Renderiza controles de configuracion</text></g><g id="elem_GMN175"><path d="M681,720.7969 L681,836.7266 L933,836.7266 L933,730.7969 L923,720.7969 L681,720.7969 " fill="#FFFFE0" style="stroke:#181818;stroke-width:0.5;"/><path d="M923,720.7969 L923,730.7969 L933,730.7969 L923,720.7969 " fill="#FFFFE0" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="152" x="687" y="737.8638">Flujo de Entrenamiento:</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="208" x="687" y="752.9966">1. Valida configuracion completa</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="219" x="687" y="768.1294">2. Valida que haya transformacion</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="223" x="687" y="783.2622">3. Inicia entrenamiento asincronico</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="231" x="687" y="798.395">4. Actualiza metricas en tiempo real</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="147" x="699" y="813.5278">(loss, accuracy, epoch)</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="183" x="687" y="828.6606">5. Guarda modelo al finalizar</text></g><g id="elem_GMN178"><path d="M624.5,391.2969 L624.5,507.2266 L933.5,507.2266 L933.5,401.2969 L923.5,391.2969 L624.5,391.2969 " fill="#FFFFE0" style="stroke:#181818;stroke-width:0.5;"/><path d="M923.5,391.2969 L923.5,401.2969 L933.5,401.2969 L923.5,391.2969 " fill="#FFFFE0" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="119" x="630.5" y="408.3638">Sistema de Pasos:</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="267" x="630.5" y="423.4966">- Paso 1: Transformacion (siempre activo)</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="288" x="630.5" y="438.6294">- Paso 2: Modelo (solo si hay transformacion)</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="216" x="630.5" y="453.7622">- Usuario navega entre pasos con</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="128" x="638.5" y="468.895">indicadores visuales</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="213" x="630.5" y="484.0278">- No puede configurar modelo sin</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="166" x="638.5" y="499.1606">completar transformacion</text></g><!--MD5=[e71913910ae60f5842a843a20d6ecd39]
+link user to UC1--><g id="link_user_UC1"><path d="M1895.73,135.8969 C1906.73,152.2469 1917.36,171.4369 1923,190.7969 C1937.42,240.2969 1948.28,261.8669 1923,306.7969 C1912.6,325.2769 1802.59,387.2169 1737.52,422.7169 " fill="none" id="user-to-UC1" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="1732.92,425.2269,1742.7374,424.44,1737.3122,422.8376,1738.9146,417.4125,1732.92,425.2269" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="170" x="1939" y="282.8638">Seleccionar desde Sidebar</text></g><!--MD5=[20aeaa20d1880359803c0703a4b24425]
+link user to UC2--><g id="link_user_UC2"><path d="M1816.77,117.3769 C1790.39,135.7969 1756.99,161.9769 1733,190.7969 C1695.6,235.7269 1710.32,263.5369 1671,306.7969 C1657.51,321.6469 1556.84,386.0969 1498.86,422.6769 " fill="none" id="user-to-UC2" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="1494.41,425.4769,1504.1552,424.0517,1498.6371,422.8064,1499.8824,417.2883,1494.41,425.4769" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="180" x="1734" y="282.8638">Aplicar filtros/transformadas</text></g><!--MD5=[b2cfa0738cc752f103aa40c770997175]
+link user to UC4--><g id="link_user_UC4"><path d="M1816.77,96.8069 C1733.91,110.4769 1554.61,144.7469 1515,190.7969 C1467.33,246.2169 1542.62,300.1169 1493,353.7969 C1450.1,400.2069 1413.52,362.5469 1354,383.7969 C1325.58,393.9469 1295.43,409.1969 1271.75,422.3269 " fill="none" id="user-to-UC4" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="1267.1,424.9169,1276.9065,424.0046,1271.4613,422.4717,1272.9942,417.0265,1267.1,424.9169" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="146" x="1516" y="282.8638">Clic en card de modelo</text></g><!--MD5=[96bbf347eb6577790aa042b4af8d13f7]
+link user to UC5--><g id="link_user_UC5"><path d="M1901.25,102.2169 C2057.72,148.2369 2586.05,321.3969 2407,514.7969 C2331.44,596.4069 1518.98,575.2569 1409,591.7969 C1396.58,593.6669 1383.49,596.1469 1370.82,598.8169 " fill="none" id="user-to-UC5" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="1365.8,599.8969,1375.4424,601.9031,1370.6869,598.8395,1373.7505,594.084,1365.8,599.8969" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="124" x="2408" y="349.8638">Ajustar parametros</text></g><!--MD5=[25a3ad4d0be805c5841d244648c395ae]
+link user to UC6--><g id="link_user_UC6"><path d="M1901.06,90.7669 C2023.18,92.8669 2375.07,104.2269 2469,165.7969 C2548.33,217.7969 2591.26,261.3569 2570,353.7969 C2546.97,453.9469 2555.2,505.8469 2469,561.7969 C2383.3,617.4169 1650.41,572.9469 1550,591.7969 C1541.22,593.4469 1532.07,595.9969 1523.37,598.8469 " fill="none" id="user-to-UC6" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="1518.59,600.4569,1528.3973,601.3612,1523.3262,598.8543,1525.8331,593.7832,1518.59,600.4569" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="101" x="2574" y="349.8638">Clic en Entrenar</text></g><!--MD5=[efda522a7868aa178a844f5aef0f93b9]
+link user to UC8--><g id="link_user_UC8"><path d="M1816.71,92.2169 C1712.32,97.6669 1445.64,116.2069 1374,165.7969 C1346.92,184.5369 1330.09,218.9269 1320.71,244.5669 " fill="none" id="user-to-UC8" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="1318.93,249.5769,1325.7075,242.4309,1320.6008,244.8643,1318.1674,239.7576,1318.93,249.5769" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="113" x="1375" y="178.8638">Navegar paso 1/2</text></g><!--MD5=[e86ca496d34e9762bd5af90f0496340a]
+link UC1 to BACK5--><g id="link_UC1_BACK5"><path d="M1652.91,473.7869 C1628.36,488.1369 1594.92,505.4669 1563,514.7969 C1433.54,552.6469 1394.85,528.1369 1261,544.7969 C954.01,582.9969 816.82,478.3769 577,673.7969 C495.46,740.2369 463.27,868.5469 452.15,929.7369 " fill="none" id="UC1-to-BACK5" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="451.26,934.7269,456.7659,926.5608,452.1306,929.8032,448.8881,925.1679,451.26,934.7269" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="61" x="578" y="686.8638">«include»</text></g><!--MD5=[a1d4b06a7f08f673ba6551d9d9d7a186]
+link UC1 to UC3--><g id="link_UC1_UC3"><path d="M1689.24,475.5869 C1688.35,505.2569 1686.87,554.4169 1685.92,586.2069 " fill="none" id="UC1-to-UC3" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="1685.76,591.5469,1690.0154,582.6648,1685.9028,586.5489,1682.0187,582.4363,1685.76,591.5469" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="61" x="1688" y="557.8638">«include»</text></g><!--MD5=[f0be2fb77127b088597f947fa9e3d650]
+link UC2 to UC9--><g id="link_UC2_UC9"><path d="M1436.02,474.7569 C1411.5,500.4669 1369.41,540.1269 1325,561.7969 C1320.94,563.7769 1223.66,584.2569 1149.75,599.6469 " fill="none" id="UC2-to-UC9" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="1144.47,600.7469,1154.0952,602.834,1149.3656,599.7305,1152.469,595.001,1144.47,600.7469" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="61" x="1354" y="557.8638">«include»</text></g><!--MD5=[594891eb4838d876d29f7ff5a36f2080]
+link UC2 to UC3--><g id="link_UC2_UC3"><path d="M1490.04,473.7969 C1531.6,504.2769 1603.95,557.3469 1647.86,589.5569 " fill="none" id="UC2-to-UC3" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="1652.02,592.6069,1647.1318,584.0567,1647.9893,589.6482,1642.3979,590.5058,1652.02,592.6069" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="45" x="1606" y="557.8638">update</text></g><!--MD5=[c730013b87383b301bef85656f68e29d]
+link UC3 to BACK2--><g id="link_UC3_BACK2"><path d="M1678.71,643.8469 C1663.25,699.3669 1617.56,831.9469 1523,883.7969 C1441.75,928.3469 1339.2,948.2769 1257.88,957.1169 " fill="none" id="UC3-to-BACK2" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="1252.55,957.6769,1261.9225,960.7029,1257.522,957.1482,1261.0767,952.7478,1252.55,957.6769" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="61" x="1652" y="783.3638">«include»</text></g><!--MD5=[d6606caa6a5e4c170d2a8994cee485fa]
+link UC4 to BACK1--><g id="link_UC4_BACK1"><path d="M1159.44,469.4969 C1103.74,484.3069 1022.91,504.0269 951,514.7969 C758.47,543.6269 704.64,505.3369 514,544.7969 C452.61,557.5069 429.93,552.5969 381,591.7969 C261.94,687.1869 186.6,860.8769 159.42,932.0669 " fill="none" id="UC4-to-BACK1" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="157.54,937.0169,164.4899,930.0384,159.3253,932.3465,157.0173,927.1819,157.54,937.0169" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="61" x="299" y="686.8638">«include»</text></g><!--MD5=[daf714cc2b0df3c5c19ea576b0489a5d]
+link UC4 to UC5--><g id="link_UC4_UC5"><path d="M1238.48,475.2269 C1251.01,505.0169 1271.95,554.8469 1285.36,586.7369 " fill="none" id="UC4-to-UC5" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="1287.45,591.6969,1287.6591,581.8502,1285.5168,587.0857,1280.2813,584.9434,1287.45,591.6969" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="42" x="1274" y="557.8638">trigger</text></g><!--MD5=[c5253a994e4596ea8c99fba8c18960d1]
+link UC5 to UC10--><g id="link_UC5_UC10"><path d="M1232.09,636.1469 C1209.42,644.6169 1185.19,656.7769 1167,673.7969 C1145.4,694.0169 1131.49,725.1769 1123.54,748.1169 " fill="none" id="UC5-to-UC10" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="1121.93,752.8869,1128.597,745.6377,1123.5283,748.1492,1121.0167,743.0805,1121.93,752.8869" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="61" x="1168" y="686.8638">«include»</text></g><!--MD5=[9a788c9e6602029ec61ef080766f23ff]
+link UC6 to UC10--><g id="link_UC6_UC10"><path d="M1437.02,633.8669 C1372.75,657.0969 1253.09,701.0469 1212,720.7969 C1192.53,730.1569 1171.77,742.0769 1154.47,752.5869 " fill="none" id="UC6-to-UC10" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="1150.15,755.2269,1159.9176,753.9641,1154.421,752.6271,1155.758,747.1306,1150.15,755.2269" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="61" x="1324" y="686.8638">«include»</text></g><!--MD5=[219cfe20acd2585196bd57df7d8a3c05]
+link UC6 to BACK3--><g id="link_UC6_BACK3"><path d="M1483.8,643.7769 C1490.98,689.5169 1498.48,786.5969 1445,836.7969 C1390.19,888.2469 1184.92,877.6669 1110,883.7969 C1072.89,886.8369 809.84,878.6669 775,891.7969 C746.2,902.6469 720.18,927.5469 704.49,945.0069 " fill="none" id="UC6-to-BACK3" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="701.11,948.8369,710.0712,944.7506,704.4247,945.0935,704.0818,939.4471,701.11,948.8369" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="61" x="1489" y="783.3638">«include»</text></g><!--MD5=[f92658300d5adc4fe1f3be64a23e2cf6]
+link UC6 to UC7--><g id="link_UC6_UC7"><path d="M1457.37,641.5769 C1430.25,670.1269 1383.8,719.0369 1354.56,749.8269 " fill="none" id="UC6-to-UC7" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="1351.08,753.4969,1360.1764,749.7212,1354.5215,749.8697,1354.373,744.2148,1351.08,753.4969" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="42" x="1426" y="686.8638">trigger</text></g><!--MD5=[8c9158457200f48fe899b6dd60d6e378]
+link UC7 to BACK4--><g id="link_UC7_BACK4"><path d="M1287.31,802.5269 C1265.26,814.0869 1237.23,827.6069 1211,836.7969 C1105.68,873.7069 1067.34,845.0569 966,891.7969 C937.68,904.8569 909.66,927.2569 891.27,943.6169 " fill="none" id="UC7-to-BACK4" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="887.27,947.2169,896.6413,944.1872,890.9928,943.8791,891.3009,938.2307,887.27,947.2169" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="61" x="1040" y="879.8638">«include»</text></g><!--MD5=[63c2b427cc5afce8276c512608413f28]
+link UC8 to UC2--><g id="link_UC8_UC2"><path d="M1334.62,306.4469 C1361.65,337.5269 1405.72,388.1869 1433.22,419.8169 " fill="none" id="UC8-to-UC2" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="1436.83,423.9569,1433.9543,414.5372,1433.5537,420.1798,1427.9111,419.7793,1436.83,423.9569" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="111" x="1376" y="349.8638">navegar a paso 1</text></g><!--MD5=[4c615e873a560f1ef5fcee2fd1e87d80]
+link UC8 to UC4--><g id="link_UC8_UC4"><path d="M1255.09,304.0269 C1242.28,312.4869 1230.3,323.3169 1223,336.7969 C1209.48,361.7769 1213.08,394.7069 1218.63,418.2869 " fill="none" id="UC8-to-UC4" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="1219.84,423.1769,1221.5646,413.4802,1218.6408,418.3228,1213.7981,415.399,1219.84,423.1769" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="111" x="1224" y="349.8638">navegar a paso 2</text></g><!--MD5=[f9d8e23373818737367156e9b7966635]
+link UC9 to BACK2--><g id="link_UC9_BACK2"><path d="M969.68,626.0669 C846.94,637.4869 646.37,664.4269 601,720.7969 C568.68,760.9569 567.37,797.7169 601,836.7969 C654.51,898.9669 887.48,868.0669 966,891.7969 C1001.13,902.4169 1038.47,919.7069 1067.58,934.6769 " fill="none" id="UC9-to-BACK2" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="1072.18,937.0569,1066.0264,929.367,1067.7397,934.7582,1062.3486,936.4715,1072.18,937.0569" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="61" x="602" y="783.3638">«include»</text></g><!--MD5=[13d8291acff3cf2c0f41c0168f56eaa4]
+link UC11 to BACK3--><g id="link_UC11_BACK3"><path d="M967.92,284.4269 C794.82,297.0369 424,337.0169 424,448.2969 C424,448.2969 424,448.2969 424,683.2969 C424,718.9469 607.16,889.1869 668.93,945.5969 " fill="none" id="UC11-to-BACK3" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="672.82,949.1469,668.879,940.1209,669.1307,945.7721,663.4794,946.0238,672.82,949.1469" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="61" x="425" y="622.3638">«include»</text></g><!--MD5=[c03fa65968c3f301a6b8909d4837d4e0]
+link UC2 to GMN115--><g id="link_UC2_GMN115"><path d="M1478.26,423.8269 C1500.29,398.3869 1538.08,360.8769 1580.5,345.2969 C1692.52,304.1569 2003.42,310.2869 2117.5,345.2969 C2144.12,353.4669 2170.27,367.9869 2193.24,383.6369 " fill="none" id="UC2-GMN115" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/></g><!--MD5=[fa2982128be44962646f7a080bad0835]
+link UC4 to GMN172--><g id="link_UC4_GMN172"><path d="M1252.66,423.7469 C1279.22,398.2369 1324.09,360.6669 1371.5,345.2969 C1462.4,315.8269 1709.37,319.9269 1801.5,345.2969 C1840.26,355.9669 1879.11,377.7669 1910.27,398.6569 " fill="none" id="UC4-GMN172" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/></g><!--MD5=[38113607d233514685a678ce926b5d25]
+link UC6 to GMN175--><g id="link_UC6_GMN175"><path d="M1438.76,634.9469 C1429.13,638.3169 1418.81,641.5269 1409,643.7969 C1293.53,670.5769 1260.73,653.2069 1144,673.7969 C1056.21,689.2869 1033.92,693.6769 949,720.7969 C943.81,722.4569 938.54,724.2069 933.24,726.0369 " fill="none" id="UC6-GMN175" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/></g><!--MD5=[a05ef5ab9ac41999ecaffdc55cca53ba]
+link UC8 to GMN178--><g id="link_UC8_GMN178"><path d="M1229.9,300.6669 C1156.15,320.5869 1044.56,351.9369 949,383.7969 C941.81,386.1969 934.48,388.7069 927.09,391.2969 " fill="none" id="UC8-GMN178" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/></g><!--MD5=[e1514b964eaa4a4a7e15aeb6eae0a411]
+@startuml
+title Casos de Uso - Pagina Modelado P300 (modelado_p300.py)
+
+' Actor
+actor "Usuario\nInvestigador" as user #lightblue
+
+' Sistema boundary
+rectangle "Sistema EGG-lab\n(Modelado P300)" {
+
+  ' Casos de uso principales
+  usecase "Seleccionar Dataset\ny Archivo" as UC1 #lightgreen
+  usecase "Configurar\nTransformacion" as UC2 #lightblue
+  usecase "Visualizar Señal\nOriginal/Transformada" as UC3 #yellow
+  usecase "Seleccionar Modelo\nde Clasificacion" as UC4 #orange
+  usecase "Configurar\nHiperparametros" as UC5 #pink
+  usecase "Entrenar\nModelo" as UC6 #lavender
+  usecase "Ver Metricas\nde Entrenamiento" as UC7 #lightcyan
+  usecase "Navegar entre\nPasos (Transform/Modelo)" as UC8 #lightyellow
+
+  ' Casos de uso secundarios
+  usecase "Aplicar Pipeline\nde Transformacion" as UC9 #lightyellow
+  usecase "Validar\nConfiguracion" as UC10 #lightyellow
+  usecase "Guardar Modelo\nEntrenado" as UC11 #lightgray
+}
+
+' Sistemas externos
+rectangle "Backend" {
+  usecase "ClassifierSchemaFactory\n.get_all_schemas()" as BACK1 #lavender
+  usecase "Experiment.apply_history_pipeline()" as BACK2 #lavender
+  usecase "Model.train()" as BACK3 #lavender
+  usecase "Model.evaluate()" as BACK4 #lavender
+  usecase "Dataset.load_event_with_channels()" as BACK5 #lavender
+}
+
+' Relaciones usuario -> casos de uso
+user - -> UC1 : "Seleccionar desde Sidebar"
+user - -> UC2 : "Aplicar filtros/transformadas"
+user - -> UC4 : "Clic en card de modelo"
+user - -> UC5 : "Ajustar parametros"
+user - -> UC6 : "Clic en Entrenar"
+user - -> UC8 : "Navegar paso 1/2"
+
+' Relaciones include
+UC1 ..> BACK5 : <<include>>
+UC1 ..> UC3 : <<include>>
+
+UC2 ..> UC9 : <<include>>
+UC2 ..> UC3 : update
+
+UC3 ..> BACK2 : <<include>>
+
+UC4 ..> BACK1 : <<include>>
+UC4 ..> UC5 : trigger
+
+UC5 ..> UC10 : <<include>>
+
+UC6 ..> UC10 : <<include>>
+UC6 ..> BACK3 : <<include>>
+UC6 ..> UC7 : trigger
+
+UC7 ..> BACK4 : <<include>>
+
+UC8 ..> UC2 : navegar a paso 1
+UC8 ..> UC4 : navegar a paso 2
+
+UC9 ..> BACK2 : <<include>>
+
+UC11 ..> BACK3 : <<include>>
+
+' Notas
+note right of UC2
+  Flujo Paso 1 - Transformacion:
+  1. Usuario aplica transformadas
+     desde RightColumn
+  2. Sistema ejecuta pipeline
+  3. Visualiza señal original y
+     transformada en dos columnas
+  4. Valida que se haya aplicado
+     transformacion antes de paso 2
+end note
+
+note right of UC4
+  Flujo Paso 2 - Modelo:
+  1. Muestra cards de modelos disponibles
+     (LSTM, GRU, SVM, etc)
+  2. Usuario selecciona modelo
+  3. Carga schema con hiperparametros
+  4. Renderiza controles de configuracion
+end note
+
+note bottom of UC6
+  Flujo de Entrenamiento:
+  1. Valida configuracion completa
+  2. Valida que haya transformacion
+  3. Inicia entrenamiento asincronico
+  4. Actualiza metricas en tiempo real
+     (loss, accuracy, epoch)
+  5. Guarda modelo al finalizar
+end note
+
+note bottom of UC8
+  Sistema de Pasos:
+  - Paso 1: Transformacion (siempre activo)
+  - Paso 2: Modelo (solo si hay transformacion)
+  - Usuario navega entre pasos con
+    indicadores visuales
+  - No puede configurar modelo sin
+    completar transformacion
+end note
+
+' Estilos
+skinparam usecase {
+  BackgroundColor lightblue
+  BorderColor darkblue
+  ArrowColor darkblue
+}
+
+skinparam actor {
+  BackgroundColor lightblue
+  BorderColor darkblue
+}
+
+skinparam note {
+  BackgroundColor lightyellow
+  BorderColor orange
+}
+@enduml
+
+@startuml
+title Casos de Uso - Pagina Modelado P300 (modelado_p300.py)
+
+actor "Usuario\nInvestigador" as user #lightblue
+
+rectangle "Sistema EGG-lab\n(Modelado P300)" {
+
+  usecase "Seleccionar Dataset\ny Archivo" as UC1 #lightgreen
+  usecase "Configurar\nTransformacion" as UC2 #lightblue
+  usecase "Visualizar Señal\nOriginal/Transformada" as UC3 #yellow
+  usecase "Seleccionar Modelo\nde Clasificacion" as UC4 #orange
+  usecase "Configurar\nHiperparametros" as UC5 #pink
+  usecase "Entrenar\nModelo" as UC6 #lavender
+  usecase "Ver Metricas\nde Entrenamiento" as UC7 #lightcyan
+  usecase "Navegar entre\nPasos (Transform/Modelo)" as UC8 #lightyellow
+
+  usecase "Aplicar Pipeline\nde Transformacion" as UC9 #lightyellow
+  usecase "Validar\nConfiguracion" as UC10 #lightyellow
+  usecase "Guardar Modelo\nEntrenado" as UC11 #lightgray
+}
+
+rectangle "Backend" {
+  usecase "ClassifierSchemaFactory\n.get_all_schemas()" as BACK1 #lavender
+  usecase "Experiment.apply_history_pipeline()" as BACK2 #lavender
+  usecase "Model.train()" as BACK3 #lavender
+  usecase "Model.evaluate()" as BACK4 #lavender
+  usecase "Dataset.load_event_with_channels()" as BACK5 #lavender
+}
+
+user - -> UC1 : "Seleccionar desde Sidebar"
+user - -> UC2 : "Aplicar filtros/transformadas"
+user - -> UC4 : "Clic en card de modelo"
+user - -> UC5 : "Ajustar parametros"
+user - -> UC6 : "Clic en Entrenar"
+user - -> UC8 : "Navegar paso 1/2"
+
+UC1 ..> BACK5 : <<include>>
+UC1 ..> UC3 : <<include>>
+
+UC2 ..> UC9 : <<include>>
+UC2 ..> UC3 : update
+
+UC3 ..> BACK2 : <<include>>
+
+UC4 ..> BACK1 : <<include>>
+UC4 ..> UC5 : trigger
+
+UC5 ..> UC10 : <<include>>
+
+UC6 ..> UC10 : <<include>>
+UC6 ..> BACK3 : <<include>>
+UC6 ..> UC7 : trigger
+
+UC7 ..> BACK4 : <<include>>
+
+UC8 ..> UC2 : navegar a paso 1
+UC8 ..> UC4 : navegar a paso 2
+
+UC9 ..> BACK2 : <<include>>
+
+UC11 ..> BACK3 : <<include>>
+
+note right of UC2
+  Flujo Paso 1 - Transformacion:
+  1. Usuario aplica transformadas
+     desde RightColumn
+  2. Sistema ejecuta pipeline
+  3. Visualiza señal original y
+     transformada en dos columnas
+  4. Valida que se haya aplicado
+     transformacion antes de paso 2
+end note
+
+note right of UC4
+  Flujo Paso 2 - Modelo:
+  1. Muestra cards de modelos disponibles
+     (LSTM, GRU, SVM, etc)
+  2. Usuario selecciona modelo
+  3. Carga schema con hiperparametros
+  4. Renderiza controles de configuracion
+end note
+
+note bottom of UC6
+  Flujo de Entrenamiento:
+  1. Valida configuracion completa
+  2. Valida que haya transformacion
+  3. Inicia entrenamiento asincronico
+  4. Actualiza metricas en tiempo real
+     (loss, accuracy, epoch)
+  5. Guarda modelo al finalizar
+end note
+
+note bottom of UC8
+  Sistema de Pasos:
+  - Paso 1: Transformacion (siempre activo)
+  - Paso 2: Modelo (solo si hay transformacion)
+  - Usuario navega entre pasos con
+    indicadores visuales
+  - No puede configurar modelo sin
+    completar transformacion
+end note
+
+skinparam usecase {
+  BackgroundColor lightblue
+  BorderColor darkblue
+  ArrowColor darkblue
+}
+
+skinparam actor {
+  BackgroundColor lightblue
+  BorderColor darkblue
+}
+
+skinparam note {
+  BackgroundColor lightyellow
+  BorderColor orange
+}
+@enduml
+
+PlantUML version 1.2022.7(Mon Aug 22 17:01:30 UTC 2022)
+(GPL source distribution)
+Java Runtime: OpenJDK Runtime Environment
+JVM: OpenJDK 64-Bit Server VM
+Default Encoding: UTF-8
+Language: en
+Country: null
+--></g></svg>
