@@ -1,0 +1,141 @@
+/* ===== Fondo de página del Playground ===== */
+.pg-wrap {
+  background:
+    radial-gradient(circle at 1px 1px, var(--grid-dot) 1px, transparent 1px) 0 0 / var(--grid-size) var(--grid-size),
+    linear-gradient(0deg, var(--grid-line) 1px, transparent 1px) 0 0 / var(--grid-size) var(--grid-size),
+    linear-gradient(180deg, var(--surface-0) 0%, var(--surface-1) 100%);
+  border-radius: var(--radius-xl);
+  padding: 12px 12px 24px;
+  color: var(--text);
+}
+
+/* Título y descripción */
+.page-title {
+  color: var(--text);
+  letter-spacing: 0.3px;
+  font-weight: 700;
+  margin: 8px 0 4px 0;
+  position: relative;
+}
+.page-title::after {
+  content: "";
+  display: block;
+  width: 56px;
+  height: 3px;
+  margin-top: 8px;
+  background: linear-gradient(90deg, var(--accent-1), var(--accent-2));
+  border-radius: 999px;
+}
+.page-description {
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+/* ===== Tarjetas reutilizables ===== */
+.pg-card {
+  position: relative;
+  background: var(--card-bg);
+  border: 1px solid var(--border-weak);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-1);
+  padding: 14px 16px 16px;
+  color: var(--text);
+  overflow: hidden;
+  backdrop-filter: blur(6px) saturate(110%);
+  -webkit-backdrop-filter: blur(6px) saturate(110%);
+}
+
+/* Borde de acento superior sutil */
+.pg-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--accent-2), var(--accent-1), var(--accent-3));
+  opacity: 0.35;
+}
+
+/* Resaltes internos ligeros (todo con color-mix) */
+.pg-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(1200px 600px at 120% -10%, color-mix(in srgb, var(--accent-2) 20%, transparent), transparent 60%),
+    radial-gradient(800px 400px at -20% 110%, color-mix(in srgb, var(--accent-1) 12%, transparent), transparent 60%);
+  pointer-events: none;
+}
+
+/* Título interno de tarjeta */
+.pg-card__title {
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  margin-bottom: 8px;
+  font-size: 0.95rem;
+  color: var(--text);
+  opacity: 0.95;
+}
+
+/* Cuerpo de la tarjeta */
+.pg-card__body {
+  color: var(--text);
+  line-height: 1.45;
+}
+
+/* Zona de plot */
+.pg-card__body--plot {
+  min-height: 420px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  opacity: 0.9;
+}
+
+/* Específicos por tipo */
+.pg-card--meta   { min-height: 220px; }
+.pg-card--custom { min-height: 220px; }
+.pg-card--plot {
+  min-height: 460px;
+  padding-top: 10px;
+  border: 1px solid var(--border-strong);
+  box-shadow: var(--shadow-2);
+  background: linear-gradient(180deg, var(--card-bg-strong), var(--card-bg));
+}
+
+/* Hover/Focus accesibles */
+.pg-card:focus-within,
+.pg-card:hover {
+  border-color: var(--border-strong);
+  box-shadow: 0 0 0 1px var(--border-strong), var(--shadow-1);
+}
+
+/* Utilidades */
+.h-100 { height: 100%; }
+.w-100 { width: 100%; }
+
+/* ===== Multi-plot list ===== */
+.plots-list {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+
+/* Contenedor de plots con scroll */
+.plots-scroll-container {
+  max-height: 600px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 4px;
+}
+
+.plot-item {
+  flex: 0 0 auto;
+  height: 320px;
+  min-height: 240px;
+  width: 100%;
+}

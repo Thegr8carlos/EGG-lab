@@ -1,0 +1,44 @@
+/* assets/PageContainer.css */
+
+.page-container {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 1rem;
+  box-sizing: border-box;
+  background-color: var(--color-1);
+  color: var(--color-3);
+}
+
+  
+  .page-title {
+    text-align: center;
+    margin-top: 0;
+  }
+  
+  .page-description {
+    text-align: center;
+  }
+  
+html, body {
+  height: 100%;
+}
+
+body {
+  overflow: hidden;            /* ← bloquea el scroll global */
+}
+
+/* Estructura general: header/nav arriba, contenido central con scroll */
+#app-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Aquí vive el page_container - SIN scroll global */
+#main-content-wrapper {
+  flex: 1 1 auto;
+  overflow: auto;
+  height: 0;                   /* ← fuerza al flex item a respetar flex-basis */
+}
