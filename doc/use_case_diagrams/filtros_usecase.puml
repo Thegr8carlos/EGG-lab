@@ -1,0 +1,225 @@
+@startuml
+title Casos de Uso - Pagina Filtros (filtros.py)
+
+' Actor
+actor "Usuario\nInvestigador" as user #lightblue
+
+' Sistema boundary
+rectangle "Sistema EGG-lab\n(Pagina Filtros)" {
+
+  ' Casos de uso principales
+  usecase "Seleccionar Archivo\nEEG desde Sidebar" as UC1 #lightgreen
+  usecase "Filtrar por Clase\nde Evento" as UC2 #lightblue
+  usecase "Seleccionar Canales\nEspecificos" as UC3 #yellow
+  usecase "Navegar entre\nPaginas de Canales" as UC4 #orange
+  usecase "Visualizar Señal\nOriginal" as UC5 #pink
+  usecase "Visualizar Señal\nFiltrada" as UC6 #lavender
+  usecase "Ver Historial\nde Pipeline" as UC7 #lightcyan
+  usecase "Toggle Auto-aplicar\nPipeline" as UC8 #lightyellow
+  usecase "Ver JSON de\nFiltro/Transformada" as UC9 #lightgray
+
+  ' Casos de uso de navegacion
+  usecase "Navegar Canales\nAnteriores" as UC10 #lightyellow
+  usecase "Navegar Canales\nSiguientes" as UC11 #lightyellow
+  usecase "Seleccionar Todos\nlos Canales" as UC12 #lightyellow
+  usecase "Limpiar Seleccion\nde Canales" as UC13 #lightyellow
+  usecase "Seleccionar Solo\nCanales EEG" as UC14 #lightyellow
+
+  ' Casos de uso de datos
+  usecase "Cargar Evento\nde Clase" as UC15 #lightyellow
+  usecase "Aplicar Pipeline\nde Filtros" as UC16 #lightyellow
+  usecase "Renderizar Graficos\nWebGL/SVG" as UC17 #lightyellow
+  usecase "Actualizar Metadata\nde Dataset" as UC18 #lightyellow
+}
+
+' Sistemas externos
+rectangle "Backend y Sistema de Archivos" {
+  usecase "Dataset.get_events_by_class()" as BACK1 #lavender
+  usecase "Dataset.load_event_with_channels()" as BACK2 #lavender
+  usecase "Dataset.get_all_channel_names()" as BACK3 #lavender
+  usecase "Experiment.apply_history_pipeline()" as BACK4 #lavender
+  usecase "Experiment.get_experiment_summary()" as BACK5 #lavender
+  usecase "get_dataset_metadata()" as BACK6 #lavender
+  usecase "Cargar archivos\n.npy de eventos" as EXT1 #lightgray
+}
+
+' Componentes UI
+rectangle "Componentes de UI" {
+  usecase "PlayGround\n(container principal)" as UI1 #lightpink
+  usecase "RightColumn\n(controles filtros)" as UI2 #lightpink
+  usecase "SideBar\n(selector archivos)" as UI3 #lightpink
+  usecase "Callbacks Clientside\n(renders rapidos)" as UI4 #lightpink
+}
+
+' Relaciones usuario -> casos de uso principales
+user --> UC1 : "Seleccionar archivo\nen Sidebar"
+user --> UC2 : "Clic en boton\nde clase"
+user --> UC3 : "Marcar canales\nen checklist"
+user --> UC10 : "Clic en\nAnteriores"
+user --> UC11 : "Clic en\nSiguientes"
+user --> UC12 : "Clic en boton\nTodos"
+user --> UC13 : "Clic en boton\nLimpiar"
+user --> UC14 : "Clic en boton\nSolo EEG"
+user --> UC8 : "Toggle ON/OFF\nauto-apply"
+user --> UC9 : "Clic en boton\nJSON"
+
+' Relaciones include
+UC1 ..> UC15 : <<include>>
+UC1 ..> UC18 : <<include>>
+
+UC2 ..> UC15 : <<include>>
+
+UC3 ..> BACK3 : <<include>>
+UC3 ..> UC15 : <<include>>
+
+UC4 ..> UC10 : <<include>>
+UC4 ..> UC11 : <<include>>
+
+UC5 ..> UC17 : <<include>>
+UC6 ..> UC17 : <<include>>
+
+UC7 ..> BACK5 : <<include>>
+
+UC9 ..> BACK5 : <<include>>
+
+UC12 ..> BACK3 : <<include>>
+UC13 ..> BACK3 : <<include>>
+UC14 ..> BACK3 : <<include>>
+
+UC15 ..> BACK1 : <<include>>
+UC15 ..> BACK2 : <<include>>
+UC15 ..> EXT1 : <<include>>
+UC15 ..> UC16 : <<extend>>\nsi auto-apply ON
+
+UC16 ..> BACK4 : <<include>>
+
+UC17 ..> UI4 : <<include>>
+
+UC18 ..> BACK6 : <<include>>
+
+' Triggers
+UC1 --> UC5 : trigger\nrender original
+UC15 --> UC6 : trigger\nrender filtrada
+UC16 --> UC6 : update\nseñal filtrada
+
+' Notas explicativas
+note right of UC1
+  Flujo:
+  1. Usuario selecciona archivo en Sidebar
+  2. Sistema extrae path del archivo
+  3. Valida que sea path valido
+  4. Carga metadata del dataset
+  5. Dispara carga de evento
+  6. Renderiza graficos originales
+end note
+
+note right of UC2
+  Flujo:
+  1. Sistema lista clases del dataset
+  2. Usuario hace clic en boton de clase
+  3. Sistema filtra eventos por clase
+  4. Carga primer evento de clase
+  5. Actualiza graficos con nueva clase
+  6. Botones muestran estado activo
+end note
+
+note right of UC3
+  Flujo:
+  1. Sistema carga nombres de canales
+  2. Llena checklist con opciones
+  3. Usuario marca/desmarca canales
+  4. Sistema guarda seleccion en store
+  5. Carga evento solo con canales
+     seleccionados
+  6. Actualiza contador de canales
+end note
+
+note bottom of UC4
+  Flujo:
+  1. Sistema muestra 8 canales por pagina
+  2. Usuario navega con botones
+  3. Calcula nuevo rango de canales
+  4. Actualiza graficos con nuevos canales
+  5. Habilita/deshabilita botones
+     segun posicion
+  6. Actualiza texto informativo
+end note
+
+note bottom of UC5
+  Flujo:
+  1. Sistema recibe datos de evento
+  2. Extrae matriz de señal raw
+  3. Aplica downsampling si configurado
+  4. Crea graficos Plotly (WebGL o SVG)
+  5. Renderiza columna izquierda
+  6. Usa color segun clase del evento
+end note
+
+note bottom of UC6
+  Flujo:
+  1. Sistema verifica si hay datos filtrados
+  2. Si auto-apply ON, aplica pipeline
+  3. Carga datos desde cache si existe
+  4. Detecta y aplana arrays 3D (wavelets)
+  5. Renderiza columna derecha
+  6. Muestra indicadores de estado
+end note
+
+note bottom of UC7
+  Flujo:
+  1. Carga experimento activo
+  2. Lee filtros y transformadas aplicadas
+  3. Muestra lista compacta de pasos
+  4. Cada paso tiene boton JSON
+  5. Actualiza al cambiar pipeline
+  6. Muestra ID de experimento
+end note
+
+note bottom of UC8
+  Flujo:
+  1. Usuario hace clic en toggle
+  2. Cambia estado ON/OFF
+  3. Actualiza estilo del boton
+  4. Si ON: aplica pipeline automatico
+  5. Si OFF: solo muestra señal original
+  6. Guarda estado en store
+end note
+
+note bottom of UC16
+  Flujo:
+  1. Lee historial del experimento
+  2. Aplica filtros en orden
+  3. Aplica transformadas en orden
+  4. Usa cache si disponible
+  5. Guarda intermedios opcionales
+  6. Retorna señal procesada
+end note
+
+note bottom of UC17
+  Flujo clientside:
+  1. Recibe datos de stores
+  2. Configura WebGL o SVG
+  3. Aplica downsampling si habilitado
+  4. Crea graficos para cada canal
+  5. Limpia contextos WebGL previos
+  6. Renderiza dos columnas (orig/filt)
+end note
+
+' Estilos
+skinparam usecase {
+  BackgroundColor lightblue
+  BorderColor darkblue
+  ArrowColor darkblue
+}
+
+skinparam actor {
+  BackgroundColor lightblue
+  BorderColor darkblue
+}
+
+skinparam note {
+  BackgroundColor lightyellow
+  BorderColor orange
+}
+
+@enduml

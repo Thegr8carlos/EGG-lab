@@ -1,0 +1,266 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" contentStyleType="text/css" height="931px" preserveAspectRatio="none" style="width:2586px;height:931px;background:#FFFFFF;" version="1.1" viewBox="0 0 2586 931" width="2586px" zoomAndPan="magnify"><defs/><g><rect fill="none" height="26.2969" id="_title" style="stroke:none;stroke-width:1.0;" width="371" x="1100.75" y="5"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="361" x="1105.75" y="22.9951">Dataset Class - EEG Signal Processing System</text><!--MD5=[5a2410db90e1daa71a2ad10ebdce9e31]
+cluster Helper Functions--><g id="cluster_Helper Functions"><path d="M359.1341,498.9837 C393.4041,437.49 435.0595,435.2646 478.9974,488.9199 C507.9124,437.1722 556.3866,436.4737 587.1106,487.0078 C620.5002,441.9922 666.8882,438.9402 696.8461,490.8915 C725.946,444.842 764.8814,447.0903 795.6917,488.9687 C829.2982,437.6484 888.57,436.8255 917.7927,493.9065 C939.9901,435.5813 996.6019,437.2554 1029.6726,482.1172 C1057.089,436.0363 1105.844,428.7008 1136.3183,478.724 C1182.8581,435.0373 1218.7497,436.7068 1254.7453,491.4149 C1285.7673,439.5816 1334.511,443.3045 1363.3656,493.7174 C1393.7236,441.3359 1441.5477,429.4212 1478.2101,487.1414 C1510.1684,432.9062 1562.9799,430.6476 1589.4951,492.3655 C1625.7866,452.2653 1670.7271,446.7641 1697.0132,503.4773 C1728.38,448.8174 1780.5235,447.034 1809.4373,505.9064 C1829.929,452.5073 1879.8149,448.2551 1910,496.2969 C1912.3029,493.5457 1915.5349,493.4883 1917.0351,497.1742 C1935.7738,511.317 1934.5254,528.1377 1915.2299,540.7033 C1933.4156,545.8314 1941.3902,563.808 1926.3106,578.6498 C1942.2776,593.6794 1940.7514,610.4119 1919.2742,618.8948 C1936.3327,640.1402 1930.0653,657.5962 1903,662.2969 C1911.3292,659.757 1915.7477,663.5829 1915.4826,672.0465 C1888.6425,723.8348 1844.3788,722.9648 1810.9801,679.2209 C1769.95,744.6939 1731.3996,730.9762 1688.0179,681.7418 C1661.37,729.8584 1617.3038,727.8321 1589.7922,682.6512 C1558.8415,738.462 1514.1899,739.7431 1478.4393,687.6023 C1438.1261,744.5887 1401.8472,735.2049 1365.3075,683.6685 C1321.2539,744.3419 1275.3697,728.7328 1238.9015,675.2678 C1208.2921,717.4933 1173.1731,725.6274 1141.5323,676.3655 C1108.4221,739.3972 1068.2025,746.0912 1021.646,689.8849 C987.8489,731.1107 946.1478,737.8042 921.4475,680.6225 C889.9586,745.4804 831.3499,737.3645 793.5969,687.61 C761.682,734.1141 725.9837,723.7846 701.6306,679.9149 C665.9722,739.8558 610.8215,732.8527 573.6563,681.6499 C535.257,722.9184 503.8689,726.7823 470.9825,675.532 C430.1432,724.4524 364.3398,724.2963 342,655.2969 C347.0976,652.758 349.7254,655.1327 349.6214,660.3851 C325.6623,655.3592 326.2732,636.7989 338.9564,621.6772 C317.3451,611.5282 317.2455,598.8262 332.318,582.4665 C312.6671,566.9057 311.074,546.3645 337.6351,536.1034 C322.3705,516.4989 322.465,498.7522 349,489.2969 C355.8187,487.5272 361.7815,490.8502 359.1341,498.9837 " fill="none" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="134" x="1059" y="507.292">Helper Functions</text></g><!--MD5=[7f8134b78695bef3e790eae6add485b3]
+cluster External Dependencies--><g id="cluster_External Dependencies"><path d="M1783,729.2969 C1783,719.2969 2133.5,719.2969 2133.5,719.2969 C2133.5,719.2969 2484,719.2969 2484,729.2969 L2484,904.2969 C2484,914.2969 2133.5,914.2969 2133.5,914.2969 C2133.5,914.2969 1783,914.2969 1783,904.2969 L1783,729.2969 " fill="none" style="stroke:#181818;stroke-width:1.0;"/><path d="M1783,729.2969 C1783,739.2969 2133.5,739.2969 2133.5,739.2969 C2133.5,739.2969 2484,739.2969 2484,729.2969 " fill="none" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="182" x="2042.5" y="754.292">External Dependencies</text></g><!--MD5=[5e76f22326bcb47477de973d3b6e6f99]
+cluster Constants--><g id="cluster_Constants"><rect fill="none" height="132" rx="2.5" ry="2.5" style="stroke:#181818;stroke-width:1.0;" width="552" x="7" y="758.2969"/><path d="M97,758.2969 L97,767.5938 L87,777.5938 L7,777.5938 " fill="none" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="80" x="10" y="772.292">Constants</text></g><!--MD5=[e19ed69c82cf85b94af4ae54e57fc08b]
+class InnerSpeechProcessing--><g id="elem_InnerSpeechProcessing"><rect codeLine="28" fill="#F1F1F1" height="105.1563" id="InnerSpeechProcessing" rx="2.5" ry="2.5" style="stroke:#181818;stroke-width:0.5;" width="542" x="350" y="532.7969"/><ellipse cx="534.25" cy="552.9297" fill="#ADD1B2" rx="11" ry="11" style="stroke:#181818;stroke-width:1.0;"/><path d="M537.2188,558.5703 Q536.6406,558.8672 536,559.0078 Q535.3594,559.1641 534.6563,559.1641 Q532.1563,559.1641 530.8281,557.5234 Q529.5156,555.8672 529.5156,552.7422 Q529.5156,549.6172 530.8281,547.9609 Q532.1563,546.3047 534.6563,546.3047 Q535.3594,546.3047 536,546.4609 Q536.6563,546.6172 537.2188,546.9141 L537.2188,549.6328 Q536.5938,549.0547 536,548.7891 Q535.4063,548.5078 534.7813,548.5078 Q533.4375,548.5078 532.75,549.5859 Q532.0625,550.6484 532.0625,552.7422 Q532.0625,554.8359 532.75,555.9141 Q533.4375,556.9766 534.7813,556.9766 Q535.4063,556.9766 536,556.7109 Q536.5938,556.4297 537.2188,555.8516 L537.2188,558.5703 Z " fill="#000000"/><text fill="#000000" font-family="sans-serif" font-size="12" font-style="italic" lengthAdjust="spacing" textLength="47" x="613.75" y="548.9355">«utility»</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="165" x="554.75" y="564.7607">InnerSpeechProcessing</text><line style="stroke:#181818;stroke-width:0.5;" x1="351" x2="891" y1="573.0625" y2="573.0625"/><line style="stroke:#181818;stroke-width:0.5;" x1="351" x2="891" y1="581.0625" y2="581.0625"/><ellipse cx="361" cy="594.7109" fill="#84BE84" rx="3" ry="3" style="stroke:#038048;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" text-decoration="underline" textLength="299" x="370" y="598.0576">_inner_speech_cues(events: NDArray) : List</text><ellipse cx="361" cy="611.0078" fill="#84BE84" rx="3" ry="3" style="stroke:#038048;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" text-decoration="underline" textLength="300" x="370" y="614.3545">_detect_dataset_type(events: NDArray) : str</text><ellipse cx="361" cy="627.3047" fill="#84BE84" rx="3" ry="3" style="stroke:#038048;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" text-decoration="underline" textLength="516" x="370" y="630.6514">_generic_event_extraction(events: NDArray, event_id_mapping: dict) : tuple</text></g><!--MD5=[499a7af3543a2634f90c5c82a21caec3]
+class FileSystemHelpers--><g id="elem_FileSystemHelpers"><rect codeLine="34" fill="#F1F1F1" height="137.75" id="FileSystemHelpers" rx="2.5" ry="2.5" style="stroke:#181818;stroke-width:0.5;" width="394" x="927" y="516.2969"/><ellipse cx="1056.25" cy="536.4297" fill="#ADD1B2" rx="11" ry="11" style="stroke:#181818;stroke-width:1.0;"/><path d="M1059.2188,542.0703 Q1058.6406,542.3672 1058,542.5078 Q1057.3594,542.6641 1056.6563,542.6641 Q1054.1563,542.6641 1052.8281,541.0234 Q1051.5156,539.3672 1051.5156,536.2422 Q1051.5156,533.1172 1052.8281,531.4609 Q1054.1563,529.8047 1056.6563,529.8047 Q1057.3594,529.8047 1058,529.9609 Q1058.6563,530.1172 1059.2188,530.4141 L1059.2188,533.1328 Q1058.5938,532.5547 1058,532.2891 Q1057.4063,532.0078 1056.7813,532.0078 Q1055.4375,532.0078 1054.75,533.0859 Q1054.0625,534.1484 1054.0625,536.2422 Q1054.0625,538.3359 1054.75,539.4141 Q1055.4375,540.4766 1056.7813,540.4766 Q1057.4063,540.4766 1058,540.2109 Q1058.5938,539.9297 1059.2188,539.3516 L1059.2188,542.0703 Z " fill="#000000"/><text fill="#000000" font-family="sans-serif" font-size="12" font-style="italic" lengthAdjust="spacing" textLength="47" x="1116.75" y="532.4355">«utility»</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="127" x="1076.75" y="548.2607">FileSystemHelpers</text><line style="stroke:#181818;stroke-width:0.5;" x1="928" x2="1320" y1="556.5625" y2="556.5625"/><line style="stroke:#181818;stroke-width:0.5;" x1="928" x2="1320" y1="564.5625" y2="564.5625"/><ellipse cx="938" cy="578.2109" fill="#84BE84" rx="3" ry="3" style="stroke:#038048;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" text-decoration="underline" textLength="257" x="947" y="581.5576">_aux_root_for(path_to_folder: str) : str</text><ellipse cx="938" cy="594.5078" fill="#84BE84" rx="3" ry="3" style="stroke:#038048;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" text-decoration="underline" textLength="368" x="947" y="597.8545">_filter_largest_per_session(files: List[Path]) : List[Path]</text><ellipse cx="938" cy="610.8047" fill="#84BE84" rx="3" ry="3" style="stroke:#038048;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" text-decoration="underline" textLength="185" x="947" y="614.1514">_json_fallback(o: Any) : Any</text><ellipse cx="938" cy="627.1016" fill="#84BE84" rx="3" ry="3" style="stroke:#038048;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" text-decoration="underline" textLength="216" x="947" y="630.4482">_assert_npy_path(p: str) : None</text><ellipse cx="938" cy="643.3984" fill="#84BE84" rx="3" ry="3" style="stroke:#038048;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" text-decoration="underline" textLength="348" x="947" y="646.7451">_load_and_concat(paths: Sequence[str]) : NDArray</text></g><!--MD5=[d230686d49c1c157d539c4ba189f8be7]
+class SignalAnalysis--><g id="elem_SignalAnalysis"><rect codeLine="42" fill="#F1F1F1" height="137.75" id="SignalAnalysis" rx="2.5" ry="2.5" style="stroke:#181818;stroke-width:0.5;" width="546" x="1356" y="516.2969"/><ellipse cx="1576.75" cy="536.4297" fill="#ADD1B2" rx="11" ry="11" style="stroke:#181818;stroke-width:1.0;"/><path d="M1579.7188,542.0703 Q1579.1406,542.3672 1578.5,542.5078 Q1577.8594,542.6641 1577.1563,542.6641 Q1574.6563,542.6641 1573.3281,541.0234 Q1572.0156,539.3672 1572.0156,536.2422 Q1572.0156,533.1172 1573.3281,531.4609 Q1574.6563,529.8047 1577.1563,529.8047 Q1577.8594,529.8047 1578.5,529.9609 Q1579.1563,530.1172 1579.7188,530.4141 L1579.7188,533.1328 Q1579.0938,532.5547 1578.5,532.2891 Q1577.9063,532.0078 1577.2813,532.0078 Q1575.9375,532.0078 1575.25,533.0859 Q1574.5625,534.1484 1574.5625,536.2422 Q1574.5625,538.3359 1575.25,539.4141 Q1575.9375,540.4766 1577.2813,540.4766 Q1577.9063,540.4766 1578.5,540.2109 Q1579.0938,539.9297 1579.7188,539.3516 L1579.7188,542.0703 Z " fill="#000000"/><text fill="#000000" font-family="sans-serif" font-size="12" font-style="italic" lengthAdjust="spacing" textLength="47" x="1621.75" y="532.4355">«utility»</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="96" x="1597.25" y="548.2607">SignalAnalysis</text><line style="stroke:#181818;stroke-width:0.5;" x1="1357" x2="1901" y1="556.5625" y2="556.5625"/><line style="stroke:#181818;stroke-width:0.5;" x1="1357" x2="1901" y1="564.5625" y2="564.5625"/><ellipse cx="1367" cy="578.2109" fill="#84BE84" rx="3" ry="3" style="stroke:#038048;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" text-decoration="underline" textLength="369" x="1376" y="581.5576">_calculate_channel_stats(raw_data: mne.io.Raw) : dict</text><ellipse cx="1367" cy="594.5078" fill="#84BE84" rx="3" ry="3" style="stroke:#038048;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" text-decoration="underline" textLength="323" x="1376" y="597.8545">_infer_montage(channel_names: List[str]) : dict</text><ellipse cx="1367" cy="610.8047" fill="#84BE84" rx="3" ry="3" style="stroke:#038048;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" text-decoration="underline" textLength="473" x="1376" y="614.1514">_calculate_frequency_bands(raw_data: mne.io.Raw, sfreq: float) : dict</text><ellipse cx="1367" cy="627.1016" fill="#84BE84" rx="3" ry="3" style="stroke:#038048;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" text-decoration="underline" textLength="520" x="1376" y="630.4482">_detect_bad_channels(raw_data: mne.io.Raw, threshold_std: float) : List[str]</text><ellipse cx="1367" cy="643.3984" fill="#84BE84" rx="3" ry="3" style="stroke:#038048;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" text-decoration="underline" textLength="230" x="1376" y="646.7451">_calculate_session_stats(...) : dict</text></g><!--MD5=[18f70ecb6de8a4db50be368defa82a45]
+class MNE--><g id="elem_MNE"><rect codeLine="52" fill="#F1F1F1" height="129.4844" id="MNE" rx="2.5" ry="2.5" style="stroke:#181818;stroke-width:0.5;" width="210" x="1799" y="769.2969"/><ellipse cx="1884.25" cy="785.2969" fill="#ADD1B2" rx="11" ry="11" style="stroke:#181818;stroke-width:1.0;"/><path d="M1887.2188,790.9375 Q1886.6406,791.2344 1886,791.375 Q1885.3594,791.5313 1884.6563,791.5313 Q1882.1563,791.5313 1880.8281,789.8906 Q1879.5156,788.2344 1879.5156,785.1094 Q1879.5156,781.9844 1880.8281,780.3281 Q1882.1563,778.6719 1884.6563,778.6719 Q1885.3594,778.6719 1886,778.8281 Q1886.6563,778.9844 1887.2188,779.2813 L1887.2188,782 Q1886.5938,781.4219 1886,781.1563 Q1885.4063,780.875 1884.7813,780.875 Q1883.4375,780.875 1882.75,781.9531 Q1882.0625,783.0156 1882.0625,785.1094 Q1882.0625,787.2031 1882.75,788.2813 Q1883.4375,789.3438 1884.7813,789.3438 Q1885.4063,789.3438 1886,789.0781 Q1886.5938,788.7969 1887.2188,788.2188 L1887.2188,790.9375 Z " fill="#000000"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="31" x="1904.75" y="790.1436">MNE</text><line style="stroke:#181818;stroke-width:0.5;" x1="1800" x2="2008" y1="801.2969" y2="801.2969"/><line style="stroke:#181818;stroke-width:0.5;" x1="1800" x2="2008" y1="809.2969" y2="809.2969"/><ellipse cx="1810" cy="822.9453" fill="#84BE84" rx="3" ry="3" style="stroke:#038048;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="117" x="1819" y="826.292">io.read_raw_bdf()</text><ellipse cx="1810" cy="839.2422" fill="#84BE84" rx="3" ry="3" style="stroke:#038048;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="117" x="1819" y="842.5889">io.read_raw_edf()</text><ellipse cx="1810" cy="855.5391" fill="#84BE84" rx="3" ry="3" style="stroke:#038048;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="168" x="1819" y="858.8857">io.read_raw_brainvision()</text><ellipse cx="1810" cy="871.8359" fill="#84BE84" rx="3" ry="3" style="stroke:#038048;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="89" x="1819" y="875.1826">find_events()</text><ellipse cx="1810" cy="888.1328" fill="#84BE84" rx="3" ry="3" style="stroke:#038048;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="184" x="1819" y="891.4795">events_from_annotations()</text></g><!--MD5=[a07fd63debfac0ee80f8e85c4d8d629b]
+class NumPy--><g id="elem_NumPy"><rect codeLine="60" fill="#F1F1F1" height="113.1875" id="NumPy" rx="2.5" ry="2.5" style="stroke:#181818;stroke-width:0.5;" width="123" x="2044.5" y="777.2969"/><ellipse cx="2078.85" cy="793.2969" fill="#ADD1B2" rx="11" ry="11" style="stroke:#181818;stroke-width:1.0;"/><path d="M2081.8188,798.9375 Q2081.2406,799.2344 2080.6,799.375 Q2079.9594,799.5313 2079.2563,799.5313 Q2076.7563,799.5313 2075.4281,797.8906 Q2074.1156,796.2344 2074.1156,793.1094 Q2074.1156,789.9844 2075.4281,788.3281 Q2076.7563,786.6719 2079.2563,786.6719 Q2079.9594,786.6719 2080.6,786.8281 Q2081.2563,786.9844 2081.8188,787.2813 L2081.8188,790 Q2081.1938,789.4219 2080.6,789.1563 Q2080.0063,788.875 2079.3813,788.875 Q2078.0375,788.875 2077.35,789.9531 Q2076.6625,791.0156 2076.6625,793.1094 Q2076.6625,795.2031 2077.35,796.2813 Q2078.0375,797.3438 2079.3813,797.3438 Q2080.0063,797.3438 2080.6,797.0781 Q2081.1938,796.7969 2081.8188,796.2188 L2081.8188,798.9375 Z " fill="#000000"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="48" x="2097.15" y="798.1436">NumPy</text><line style="stroke:#181818;stroke-width:0.5;" x1="2045.5" x2="2166.5" y1="809.2969" y2="809.2969"/><ellipse cx="2055.5" cy="822.9453" fill="none" rx="3" ry="3" style="stroke:#038048;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="51" x="2064.5" y="826.292">ndarray</text><line style="stroke:#181818;stroke-width:0.5;" x1="2045.5" x2="2166.5" y1="833.5938" y2="833.5938"/><ellipse cx="2055.5" cy="847.2422" fill="#84BE84" rx="3" ry="3" style="stroke:#038048;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="39" x="2064.5" y="850.5889">load()</text><ellipse cx="2055.5" cy="863.5391" fill="#84BE84" rx="3" ry="3" style="stroke:#038048;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="42" x="2064.5" y="866.8857">save()</text><ellipse cx="2055.5" cy="879.8359" fill="#84BE84" rx="3" ry="3" style="stroke:#038048;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="97" x="2064.5" y="883.1826">concatenate()</text></g><!--MD5=[03ff8cf7d3054e2dfef884920eb31dfe]
+class SciPy--><g id="elem_SciPy"><rect codeLine="67" fill="#F1F1F1" height="64.2969" id="SciPy" rx="2.5" ry="2.5" style="stroke:#181818;stroke-width:0.5;" width="120" x="2203" y="801.7969"/><ellipse cx="2241.4" cy="817.7969" fill="#ADD1B2" rx="11" ry="11" style="stroke:#181818;stroke-width:1.0;"/><path d="M2244.3688,823.4375 Q2243.7906,823.7344 2243.15,823.875 Q2242.5094,824.0313 2241.8063,824.0313 Q2239.3063,824.0313 2237.9781,822.3906 Q2236.6656,820.7344 2236.6656,817.6094 Q2236.6656,814.4844 2237.9781,812.8281 Q2239.3063,811.1719 2241.8063,811.1719 Q2242.5094,811.1719 2243.15,811.3281 Q2243.8063,811.4844 2244.3688,811.7813 L2244.3688,814.5 Q2243.7438,813.9219 2243.15,813.6563 Q2242.5563,813.375 2241.9313,813.375 Q2240.5875,813.375 2239.9,814.4531 Q2239.2125,815.5156 2239.2125,817.6094 Q2239.2125,819.7031 2239.9,820.7813 Q2240.5875,821.8438 2241.9313,821.8438 Q2242.5563,821.8438 2243.15,821.5781 Q2243.7438,821.2969 2244.3688,820.7188 L2244.3688,823.4375 Z " fill="#000000"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="36" x="2260.6" y="822.6436">SciPy</text><line style="stroke:#181818;stroke-width:0.5;" x1="2204" x2="2322" y1="833.7969" y2="833.7969"/><line style="stroke:#181818;stroke-width:0.5;" x1="2204" x2="2322" y1="841.7969" y2="841.7969"/><ellipse cx="2214" cy="855.4453" fill="#84BE84" rx="3" ry="3" style="stroke:#038048;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="94" x="2223" y="858.792">signal.welch()</text></g><!--MD5=[4952947aed3f9bdd1d6ac44b56dd10ac]
+class Pandas--><g id="elem_Pandas"><rect codeLine="71" fill="#F1F1F1" height="64.2969" id="Pandas" rx="2.5" ry="2.5" style="stroke:#181818;stroke-width:0.5;" width="110" x="2358" y="801.7969"/><ellipse cx="2385.15" cy="817.7969" fill="#ADD1B2" rx="11" ry="11" style="stroke:#181818;stroke-width:1.0;"/><path d="M2388.1188,823.4375 Q2387.5406,823.7344 2386.9,823.875 Q2386.2594,824.0313 2385.5563,824.0313 Q2383.0563,824.0313 2381.7281,822.3906 Q2380.4156,820.7344 2380.4156,817.6094 Q2380.4156,814.4844 2381.7281,812.8281 Q2383.0563,811.1719 2385.5563,811.1719 Q2386.2594,811.1719 2386.9,811.3281 Q2387.5563,811.4844 2388.1188,811.7813 L2388.1188,814.5 Q2387.4938,813.9219 2386.9,813.6563 Q2386.3063,813.375 2385.6813,813.375 Q2384.3375,813.375 2383.65,814.4531 Q2382.9625,815.5156 2382.9625,817.6094 Q2382.9625,819.7031 2383.65,820.7813 Q2384.3375,821.8438 2385.6813,821.8438 Q2386.3063,821.8438 2386.9,821.5781 Q2387.4938,821.2969 2388.1188,820.7188 L2388.1188,823.4375 Z " fill="#000000"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="51" x="2401.85" y="822.6436">Pandas</text><line style="stroke:#181818;stroke-width:0.5;" x1="2359" x2="2467" y1="833.7969" y2="833.7969"/><line style="stroke:#181818;stroke-width:0.5;" x1="2359" x2="2467" y1="841.7969" y2="841.7969"/><ellipse cx="2369" cy="855.4453" fill="#84BE84" rx="3" ry="3" style="stroke:#038048;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="84" x="2378" y="858.792">read_excel()</text></g><!--MD5=[7656a3a726918333a1022946def81424]
+class GlobalConstants--><g id="elem_GlobalConstants"><rect codeLine="77" fill="#F1F1F1" height="80.5938" id="GlobalConstants" rx="2.5" ry="2.5" style="stroke:#181818;stroke-width:0.5;" width="520" x="23" y="793.2969"/><ellipse cx="221.75" cy="809.2969" fill="#ADD1B2" rx="11" ry="11" style="stroke:#181818;stroke-width:1.0;"/><path d="M224.7188,814.9375 Q224.1406,815.2344 223.5,815.375 Q222.8594,815.5313 222.1563,815.5313 Q219.6563,815.5313 218.3281,813.8906 Q217.0156,812.2344 217.0156,809.1094 Q217.0156,805.9844 218.3281,804.3281 Q219.6563,802.6719 222.1563,802.6719 Q222.8594,802.6719 223.5,802.8281 Q224.1563,802.9844 224.7188,803.2813 L224.7188,806 Q224.0938,805.4219 223.5,805.1563 Q222.9063,804.875 222.2813,804.875 Q220.9375,804.875 220.25,805.9531 Q219.5625,807.0156 219.5625,809.1094 Q219.5625,811.2031 220.25,812.2813 Q220.9375,813.3438 222.2813,813.3438 Q222.9063,813.3438 223.5,813.0781 Q224.0938,812.7969 224.7188,812.2188 L224.7188,814.9375 Z " fill="#000000"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="114" x="242.25" y="814.1436">GlobalConstants</text><line style="stroke:#181818;stroke-width:0.5;" x1="24" x2="542" y1="825.2969" y2="825.2969"/><ellipse cx="34" cy="838.9453" fill="none" rx="3" ry="3" style="stroke:#038048;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="494" x="43" y="842.292">LABELS : dict = {31: "arriba", 32: "abajo", 33: "derecha", 34: "izquierda"}</text><ellipse cx="34" cy="855.2422" fill="none" rx="3" ry="3" style="stroke:#038048;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="228" x="43" y="858.5889">CUE_IDS : set = {31, 32, 33, 34}</text><line style="stroke:#181818;stroke-width:0.5;" x1="24" x2="542" y1="865.8906" y2="865.8906"/></g><!--MD5=[8b82677223ea9eb28a50de16faa90dcd]
+class Dataset--><g id="elem_Dataset"><rect codeLine="3" fill="#F1F1F1" height="373.9375" id="Dataset" rx="2.5" ry="2.5" style="stroke:#181818;stroke-width:0.5;" width="668" x="1552" y="44.2969"/><ellipse cx="1854.75" cy="60.2969" fill="#ADD1B2" rx="11" ry="11" style="stroke:#181818;stroke-width:1.0;"/><path d="M1857.7188,65.9375 Q1857.1406,66.2344 1856.5,66.375 Q1855.8594,66.5313 1855.1563,66.5313 Q1852.6563,66.5313 1851.3281,64.8906 Q1850.0156,63.2344 1850.0156,60.1094 Q1850.0156,56.9844 1851.3281,55.3281 Q1852.6563,53.6719 1855.1563,53.6719 Q1855.8594,53.6719 1856.5,53.8281 Q1857.1563,53.9844 1857.7188,54.2813 L1857.7188,57 Q1857.0938,56.4219 1856.5,56.1563 Q1855.9063,55.875 1855.2813,55.875 Q1853.9375,55.875 1853.25,56.9531 Q1852.5625,58.0156 1852.5625,60.1094 Q1852.5625,62.2031 1853.25,63.2813 Q1853.9375,64.3438 1855.2813,64.3438 Q1855.9063,64.3438 1856.5,64.0781 Q1857.0938,63.7969 1857.7188,63.2188 L1857.7188,65.9375 Z " fill="#000000"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="54" x="1875.25" y="65.1436">Dataset</text><line style="stroke:#181818;stroke-width:0.5;" x1="1553" x2="2219" y1="76.2969" y2="76.2969"/><rect fill="none" height="6" style="stroke:#C82930;stroke-width:1.0;" width="6" x="1560" y="86.9453"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="62" x="1572" y="93.292">path : str</text><rect fill="none" height="6" style="stroke:#C82930;stroke-width:1.0;" width="6" x="1560" y="103.2422"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="70" x="1572" y="109.5889">name : str</text><rect fill="none" height="6" style="stroke:#C82930;stroke-width:1.0;" width="6" x="1560" y="119.5391"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="203" x="1572" y="125.8857">extensions_enabled : List[str]</text><line style="stroke:#181818;stroke-width:0.5;" x1="1553" x2="2219" y1="133.1875" y2="133.1875"/><ellipse cx="1563" cy="146.8359" fill="#84BE84" rx="3" ry="3" style="stroke:#038048;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="190" x="1572" y="150.1826">__init__(path: str, name: str)</text><ellipse cx="1563" cy="163.1328" fill="#84BE84" rx="3" ry="3" style="stroke:#038048;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="279" x="1572" y="166.4795">upload_dataset(path_to_folder: str) : dict</text><ellipse cx="1563" cy="179.4297" fill="#84BE84" rx="3" ry="3" style="stroke:#038048;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="96" x="1572" y="182.7764">get_info() : str</text><ellipse cx="1563" cy="195.7266" fill="#84BE84" rx="3" ry="3" style="stroke:#038048;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="221" x="1572" y="199.0732">read_bdf(path: str) : mne.io.Raw</text><ellipse cx="1563" cy="212.0234" fill="#84BE84" rx="3" ry="3" style="stroke:#038048;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="221" x="1572" y="215.3701">read_edf(path: str) : mne.io.Raw</text><ellipse cx="1563" cy="228.3203" fill="#84BE84" rx="3" ry="3" style="stroke:#038048;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="272" x="1572" y="231.667">read_brainvision(path: str) : mne.io.Raw</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="4" x="1572" y="247.9639"> </text><ellipse cx="1563" cy="260.9141" fill="#84BE84" rx="3" ry="3" style="stroke:#038048;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" text-decoration="underline" textLength="431" x="1572" y="264.2607">get_events_by_class(path_to_folder: str, class_name: str) : dict</text><ellipse cx="1563" cy="277.2109" fill="#84BE84" rx="3" ry="3" style="stroke:#038048;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" text-decoration="underline" textLength="256" x="1572" y="280.5576">load_events(path_to_folder: str) : dict</text><ellipse cx="1563" cy="293.5078" fill="#84BE84" rx="3" ry="3" style="stroke:#038048;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" text-decoration="underline" textLength="143" x="1572" y="296.8545">find_datasets() : void</text><ellipse cx="1563" cy="309.8047" fill="#84BE84" rx="3" ry="3" style="stroke:#038048;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" text-decoration="underline" textLength="322" x="1572" y="313.1514">load_signal_data(selected_file_path: str) : tuple</text><ellipse cx="1563" cy="326.1016" fill="#84BE84" rx="3" ry="3" style="stroke:#038048;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" text-decoration="underline" textLength="325" x="1572" y="329.4482">get_channel_mapping(dataset_name: str) : dict</text><ellipse cx="1563" cy="342.3984" fill="#84BE84" rx="3" ry="3" style="stroke:#038048;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" text-decoration="underline" textLength="430" x="1572" y="345.7451">get_channel_index(dataset_name: str, channel_name: str) : int</text><ellipse cx="1563" cy="358.6953" fill="#84BE84" rx="3" ry="3" style="stroke:#038048;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" text-decoration="underline" textLength="524" x="1572" y="362.042">get_channels_indices(dataset_name: str, channel_names: List[str]) : List[int]</text><ellipse cx="1563" cy="374.9922" fill="#84BE84" rx="3" ry="3" style="stroke:#038048;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" text-decoration="underline" textLength="639" x="1572" y="378.3389">extract_channels(data_array: NDArray, channel_names: List[str], dataset_name: str) : NDArray</text><ellipse cx="1563" cy="391.2891" fill="#84BE84" rx="3" ry="3" style="stroke:#038048;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" text-decoration="underline" textLength="642" x="1572" y="394.6357">load_event_with_channels(event_path: str, channel_names: List[str], dataset_name: str) : dict</text><ellipse cx="1563" cy="407.5859" fill="#84BE84" rx="3" ry="3" style="stroke:#038048;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" text-decoration="underline" textLength="359" x="1572" y="410.9326">get_all_channel_names(dataset_name: str) : List[str]</text></g><g id="elem_GMN417"><path d="M2254.5,203.7969 L2254.5,227.2969 L2220.21,231.2969 L2254.5,235.2969 L2254.5,259.1953 A0,0 0 0 0 2254.5,259.1953 L2579.5,259.1953 A0,0 0 0 0 2579.5,259.1953 L2579.5,213.7969 L2569.5,203.7969 L2254.5,203.7969 A0,0 0 0 0 2254.5,203.7969 " fill="#FEFFDD" style="stroke:#181818;stroke-width:0.5;"/><path d="M2569.5,203.7969 L2569.5,213.7969 L2579.5,213.7969 L2569.5,203.7969 " fill="#FEFFDD" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="235" x="2260.5" y="220.8638">Main class for handling EEG datasets</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="282" x="2260.5" y="235.9966">Supports BDF, EDF, and BrainVision formats</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="304" x="2260.5" y="251.1294">Provides channel mapping and event extraction</text></g><g id="elem_GMN420"><path d="M578,806.2969 L578,861.6953 A0,0 0 0 0 578,861.6953 L790,861.6953 A0,0 0 0 0 790,861.6953 L790,816.2969 L780,806.2969 L681.22,806.2969 L634.21,637.9669 L673.22,806.2969 L578,806.2969 A0,0 0 0 0 578,806.2969 " fill="#FEFFDD" style="stroke:#181818;stroke-width:0.5;"/><path d="M780,806.2969 L780,816.2969 L790,816.2969 L780,806.2969 " fill="#FEFFDD" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="191" x="584" y="823.3638">Specific processing for Nieto's</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="166" x="584" y="838.4966">Inner Speech dataset with</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="165" x="584" y="853.6294">custom event ID mapping</text></g><g id="elem_GMN423"><path d="M1504,806.2969 L1504,861.6953 A0,0 0 0 0 1504,861.6953 L1754,861.6953 A0,0 0 0 0 1754,861.6953 L1754,816.2969 L1744,806.2969 L1633,806.2969 L1629,654.3069 L1625,806.2969 L1504,806.2969 A0,0 0 0 0 1504,806.2969 " fill="#FEFFDD" style="stroke:#181818;stroke-width:0.5;"/><path d="M1744,806.2969 L1744,816.2969 L1754,816.2969 L1744,806.2969 " fill="#FEFFDD" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="180" x="1510" y="823.3638">Calculates frequency bands:</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="212" x="1510" y="838.4966">delta, theta, alpha, beta, gamma</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="229" x="1510" y="853.6294">Detects bad channels and montage</text></g><!--MD5=[6d19ef9b9e79743da050658107ba7ba0]
+link Dataset to InnerSpeechProcessing--><g id="link_Dataset_InnerSpeechProcessing"><path codeLine="84" d="M1551.97,303.9269 C1362.13,347.3269 1120.95,407.0269 910,473.2969 C856.85,489.9969 799.36,511.3669 749.76,530.8969 " fill="none" id="Dataset-to-InnerSpeechProcessing" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="744.98,532.7769,754.8208,533.1744,749.6273,530.9323,751.8694,525.7387,744.98,532.7769" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="30" x="988" y="461.3638">uses</text></g><!--MD5=[3914409e792cb6ce40375223fd6ae7f8]
+link Dataset to FileSystemHelpers--><g id="link_Dataset_FileSystemHelpers"><path codeLine="85" d="M1551.85,375.6069 C1481.2,406.9969 1407.35,440.6369 1339,473.2969 C1312.4,486.0069 1284.22,500.0969 1257.33,513.8469 " fill="none" id="Dataset-to-FileSystemHelpers" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="1252.68,516.2269,1262.5129,515.6665,1257.1261,513.9395,1258.8531,508.5527,1252.68,516.2269" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="30" x="1383" y="461.3638">uses</text></g><!--MD5=[e46c400276f5e5e1ed5aa777cfd4e261]
+link Dataset to SignalAnalysis--><g id="link_Dataset_SignalAnalysis"><path codeLine="86" d="M1750.16,418.3469 C1725.91,451.5669 1702,484.3069 1681.92,511.8169 " fill="none" id="Dataset-to-SignalAnalysis" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="1678.73,516.1869,1687.2719,511.2842,1681.6819,512.1512,1680.8148,506.5612,1678.73,516.1869" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="30" x="1727" y="461.3638">uses</text></g><!--MD5=[b79f4785ccd4bc2e8f615824c0d8637d]
+link Dataset to MNE--><g id="link_Dataset_MNE"><path codeLine="87" d="M1937.53,418.4369 C1954.84,505.2269 1966.12,609.7769 1950,703.2969 C1946.51,723.5669 1940.15,744.8669 1933.26,764.2069 " fill="none" id="Dataset-to-MNE" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="1931.49,769.0769,1938.3127,761.974,1933.1907,764.375,1930.7897,759.2529,1931.49,769.0769" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="75" x="1958" y="589.8638">depends on</text></g><!--MD5=[380039c4b97b2f3a1ca082e4aec760e6]
+link Dataset to NumPy--><g id="link_Dataset_NumPy"><path codeLine="88" d="M2014.65,418.4969 C2024.67,436.6069 2033.99,455.0369 2042,473.2969 C2081.29,562.8269 2081.71,589.7269 2097,686.2969 C2101.43,714.2569 2103.71,745.5369 2104.87,771.9969 " fill="none" id="Dataset-to-NumPy" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="2105.09,777.2169,2108.701,768.0539,2104.8759,772.2215,2100.7083,768.3964,2105.09,777.2169" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="75" x="2096" y="589.8638">depends on</text></g><!--MD5=[d5ef1338f134daa9eb03125694d71161]
+link Dataset to SciPy--><g id="link_Dataset_SciPy"><path codeLine="89" d="M2139.12,418.6569 C2154.29,435.9769 2168.17,454.2269 2180,473.2969 C2244.86,577.7869 2259.12,727.7569 2262.19,796.2169 " fill="none" id="Dataset-to-SciPy" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="2262.41,801.3969,2266.021,792.2339,2262.1959,796.4015,2258.0283,792.5764,2262.41,801.3969" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="75" x="2250" y="589.8638">depends on</text></g><!--MD5=[0182aa15661b3a11bff002a73d81bbe9]
+link Dataset to Pandas--><g id="link_Dataset_Pandas"><path codeLine="90" d="M2220.21,410.5969 C2284.47,445.1769 2332.61,471.4569 2334,473.2969 C2408.41,571.8269 2415.5,726.4169 2414.5,796.3169 " fill="none" id="Dataset-to-Pandas" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="2414.41,801.5969,2418.5892,792.6787,2414.51,796.5979,2410.5908,792.5187,2414.41,801.5969" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="75" x="2408" y="589.8638">depends on</text></g><!--MD5=[f6037e38423f1761069e338410649cd9]
+link Dataset to GlobalConstants--><g id="link_Dataset_GlobalConstants"><path codeLine="91" d="M1551.69,235.4669 C1136.91,247.1569 464.4,294.1169 302,473.2969 C223.14,560.2969 249.8,713.2269 269.57,788.4569 " fill="none" id="Dataset-to-GlobalConstants" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="270.86,793.2969,272.4096,783.5707,269.5735,788.4652,264.6789,785.6291,270.86,793.2969" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="30" x="303" y="589.8638">uses</text></g><!--MD5=[f2fa06fb856b21da2c69e908c6e4bd24]
+link InnerSpeechProcessing to GlobalConstants--><g id="link_InnerSpeechProcessing_GlobalConstants"><path codeLine="93" d="M550.14,637.9669 C488.23,683.1269 399.43,747.8869 341.49,790.1369 " fill="none" id="InnerSpeechProcessing-to-GlobalConstants" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="337.37,793.1469,347.0004,791.0842,341.4124,790.2043,342.2924,784.6163,337.37,793.1469" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="30" x="484" y="699.3638">uses</text></g><!--MD5=[029a65ce8e56bc1f86a8cb8b530a20b8]
+link SignalAnalysis to MNE--><g id="link_SignalAnalysis_MNE"><path codeLine="94" d="M1707.62,654.3769 C1728.63,672.7469 1751.26,692.6869 1772,711.2969 C1791.45,728.7469 1812.34,747.8069 1831.62,765.5569 " fill="none" id="SignalAnalysis-to-MNE" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="1835.45,769.0869,1831.5455,760.045,1831.7743,765.6973,1826.1221,765.9261,1835.45,769.0869" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="30" x="1761" y="699.3638">uses</text></g><!--MD5=[67752b651f51de1b1448e20e1d876043]
+link SignalAnalysis to NumPy--><g id="link_SignalAnalysis_NumPy"><path codeLine="95" d="M1808.29,654.4069 C1860.5,672.3369 1918.02,690.2869 1972,703.2969 C1996.01,709.0869 2006.2,697.9769 2027,711.2969 C2049.85,725.9169 2067.46,749.7769 2080.2,772.4969 " fill="none" id="SignalAnalysis-to-NumPy" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="2082.68,777.0169,2081.8685,767.2015,2080.2797,772.6307,2074.8506,771.0419,2082.68,777.0169" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="30" x="1973" y="699.3638">uses</text></g><!--MD5=[26876c7702a8efb8b8faae71cecce661]
+link SignalAnalysis to SciPy--><g id="link_SignalAnalysis_SciPy"><path codeLine="96" d="M1831.76,654.3569 C1864.02,663.4769 1897.23,671.8769 1929,678.2969 C2041.45,701.0069 2088.43,649.3669 2185,711.2969 C2216.22,731.3169 2237.4,768.7769 2249.73,796.8269 " fill="none" id="SignalAnalysis-to-SciPy" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="2251.78,801.5969,2251.9113,791.7489,2249.8104,797.0011,2244.5581,794.9002,2251.78,801.5969" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="30" x="2169" y="699.3638">uses</text></g><!--MD5=[25095f5e49b710239ad08d22ce888087]
+@startuml
+title Dataset Class - EEG Signal Processing System
+
+class Dataset {
+  - path : str
+  - name : str
+  - extensions_enabled : List[str]
+
+  + __init__(path: str, name: str)
+  + upload_dataset(path_to_folder: str) : dict
+  + get_info() : str
+  + read_bdf(path: str) : mne.io.Raw
+  + read_edf(path: str) : mne.io.Raw
+  + read_brainvision(path: str) : mne.io.Raw
+
+  {static} + get_events_by_class(path_to_folder: str, class_name: str) : dict
+  {static} + load_events(path_to_folder: str) : dict
+  {static} + find_datasets() : void
+  {static} + load_signal_data(selected_file_path: str) : tuple
+  {static} + get_channel_mapping(dataset_name: str) : dict
+  {static} + get_channel_index(dataset_name: str, channel_name: str) : int
+  {static} + get_channels_indices(dataset_name: str, channel_names: List[str]) : List[int]
+  {static} + extract_channels(data_array: NDArray, channel_names: List[str], dataset_name: str) : NDArray
+  {static} + load_event_with_channels(event_path: str, channel_names: List[str], dataset_name: str) : dict
+  {static} + get_all_channel_names(dataset_name: str) : List[str]
+}
+
+package "Helper Functions" <<Cloud>> {
+  class InnerSpeechProcessing <<utility>> {
+    {static} + _inner_speech_cues(events: NDArray) : List
+    {static} + _detect_dataset_type(events: NDArray) : str
+    {static} + _generic_event_extraction(events: NDArray, event_id_mapping: dict) : tuple
+  }
+
+  class FileSystemHelpers <<utility>> {
+    {static} + _aux_root_for(path_to_folder: str) : str
+    {static} + _filter_largest_per_session(files: List[Path]) : List[Path]
+    {static} + _json_fallback(o: Any) : Any
+    {static} + _assert_npy_path(p: str) : None
+    {static} + _load_and_concat(paths: Sequence[str]) : NDArray
+  }
+
+  class SignalAnalysis <<utility>> {
+    {static} + _calculate_channel_stats(raw_data: mne.io.Raw) : dict
+    {static} + _infer_montage(channel_names: List[str]) : dict
+    {static} + _calculate_frequency_bands(raw_data: mne.io.Raw, sfreq: float) : dict
+    {static} + _detect_bad_channels(raw_data: mne.io.Raw, threshold_std: float) : List[str]
+    {static} + _calculate_session_stats(...) : dict
+  }
+}
+
+package "External Dependencies" <<Database>> {
+  class MNE {
+    + io.read_raw_bdf()
+    + io.read_raw_edf()
+    + io.read_raw_brainvision()
+    + find_events()
+    + events_from_annotations()
+  }
+
+  class NumPy {
+    + ndarray
+    + load()
+    + save()
+    + concatenate()
+  }
+
+  class SciPy {
+    + signal.welch()
+  }
+
+  class Pandas {
+    + read_excel()
+  }
+}
+
+package "Constants" <<Frame>> {
+  class GlobalConstants {
+    + LABELS : dict = {31: "arriba", 32: "abajo", 33: "derecha", 34: "izquierda"}
+    + CUE_IDS : set = {31, 32, 33, 34}
+  }
+}
+
+' Relationships
+Dataset ..> InnerSpeechProcessing : uses
+Dataset ..> FileSystemHelpers : uses
+Dataset ..> SignalAnalysis : uses
+Dataset ..> MNE : depends on
+Dataset ..> NumPy : depends on
+Dataset ..> SciPy : depends on
+Dataset ..> Pandas : depends on
+Dataset ..> GlobalConstants : uses
+
+InnerSpeechProcessing ..> GlobalConstants : uses
+SignalAnalysis ..> MNE : uses
+SignalAnalysis ..> NumPy : uses
+SignalAnalysis ..> SciPy : uses
+
+note right of Dataset
+  Main class for handling EEG datasets
+  Supports BDF, EDF, and BrainVision formats
+  Provides channel mapping and event extraction
+end note
+
+note bottom of InnerSpeechProcessing
+  Specific processing for Nieto's
+  Inner Speech dataset with
+  custom event ID mapping
+end note
+
+note bottom of SignalAnalysis
+  Calculates frequency bands:
+  delta, theta, alpha, beta, gamma
+  Detects bad channels and montage
+end note
+@enduml
+
+@startuml
+title Dataset Class - EEG Signal Processing System
+
+class Dataset {
+  - path : str
+  - name : str
+  - extensions_enabled : List[str]
+
+  + __init__(path: str, name: str)
+  + upload_dataset(path_to_folder: str) : dict
+  + get_info() : str
+  + read_bdf(path: str) : mne.io.Raw
+  + read_edf(path: str) : mne.io.Raw
+  + read_brainvision(path: str) : mne.io.Raw
+
+  {static} + get_events_by_class(path_to_folder: str, class_name: str) : dict
+  {static} + load_events(path_to_folder: str) : dict
+  {static} + find_datasets() : void
+  {static} + load_signal_data(selected_file_path: str) : tuple
+  {static} + get_channel_mapping(dataset_name: str) : dict
+  {static} + get_channel_index(dataset_name: str, channel_name: str) : int
+  {static} + get_channels_indices(dataset_name: str, channel_names: List[str]) : List[int]
+  {static} + extract_channels(data_array: NDArray, channel_names: List[str], dataset_name: str) : NDArray
+  {static} + load_event_with_channels(event_path: str, channel_names: List[str], dataset_name: str) : dict
+  {static} + get_all_channel_names(dataset_name: str) : List[str]
+}
+
+package "Helper Functions" <<Cloud>> {
+  class InnerSpeechProcessing <<utility>> {
+    {static} + _inner_speech_cues(events: NDArray) : List
+    {static} + _detect_dataset_type(events: NDArray) : str
+    {static} + _generic_event_extraction(events: NDArray, event_id_mapping: dict) : tuple
+  }
+
+  class FileSystemHelpers <<utility>> {
+    {static} + _aux_root_for(path_to_folder: str) : str
+    {static} + _filter_largest_per_session(files: List[Path]) : List[Path]
+    {static} + _json_fallback(o: Any) : Any
+    {static} + _assert_npy_path(p: str) : None
+    {static} + _load_and_concat(paths: Sequence[str]) : NDArray
+  }
+
+  class SignalAnalysis <<utility>> {
+    {static} + _calculate_channel_stats(raw_data: mne.io.Raw) : dict
+    {static} + _infer_montage(channel_names: List[str]) : dict
+    {static} + _calculate_frequency_bands(raw_data: mne.io.Raw, sfreq: float) : dict
+    {static} + _detect_bad_channels(raw_data: mne.io.Raw, threshold_std: float) : List[str]
+    {static} + _calculate_session_stats(...) : dict
+  }
+}
+
+package "External Dependencies" <<Database>> {
+  class MNE {
+    + io.read_raw_bdf()
+    + io.read_raw_edf()
+    + io.read_raw_brainvision()
+    + find_events()
+    + events_from_annotations()
+  }
+
+  class NumPy {
+    + ndarray
+    + load()
+    + save()
+    + concatenate()
+  }
+
+  class SciPy {
+    + signal.welch()
+  }
+
+  class Pandas {
+    + read_excel()
+  }
+}
+
+package "Constants" <<Frame>> {
+  class GlobalConstants {
+    + LABELS : dict = {31: "arriba", 32: "abajo", 33: "derecha", 34: "izquierda"}
+    + CUE_IDS : set = {31, 32, 33, 34}
+  }
+}
+
+Dataset ..> InnerSpeechProcessing : uses
+Dataset ..> FileSystemHelpers : uses
+Dataset ..> SignalAnalysis : uses
+Dataset ..> MNE : depends on
+Dataset ..> NumPy : depends on
+Dataset ..> SciPy : depends on
+Dataset ..> Pandas : depends on
+Dataset ..> GlobalConstants : uses
+
+InnerSpeechProcessing ..> GlobalConstants : uses
+SignalAnalysis ..> MNE : uses
+SignalAnalysis ..> NumPy : uses
+SignalAnalysis ..> SciPy : uses
+
+note right of Dataset
+  Main class for handling EEG datasets
+  Supports BDF, EDF, and BrainVision formats
+  Provides channel mapping and event extraction
+end note
+
+note bottom of InnerSpeechProcessing
+  Specific processing for Nieto's
+  Inner Speech dataset with
+  custom event ID mapping
+end note
+
+note bottom of SignalAnalysis
+  Calculates frequency bands:
+  delta, theta, alpha, beta, gamma
+  Detects bad channels and montage
+end note
+@enduml
+
+PlantUML version 1.2022.7(Mon Aug 22 17:01:30 UTC 2022)
+(GPL source distribution)
+Java Runtime: OpenJDK Runtime Environment
+JVM: OpenJDK 64-Bit Server VM
+Default Encoding: UTF-8
+Language: en
+Country: null
+--></g></svg>
