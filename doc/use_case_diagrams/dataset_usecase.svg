@@ -1,0 +1,448 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" contentStyleType="text/css" height="759px" preserveAspectRatio="none" style="width:5261px;height:759px;background:#FFFFFF;" version="1.1" viewBox="0 0 5261 759" width="5261px" zoomAndPan="magnify"><defs/><g><rect fill="none" height="26.2969" id="_title" style="stroke:none;stroke-width:1.0;" width="351" x="2448.05" y="5"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="341" x="2453.05" y="22.9951">Casos de Uso - Pagina Dataset (dataset.py)</text><!--MD5=[9444a63b856dc84f6b0dffa099465609]
+cluster Sistema EGG-lab\n(Pagina Dataset)--><g id="cluster_Sistema EGG-lab\n(Pagina Dataset)"><rect fill="none" height="539.5" rx="2.5" ry="2.5" style="stroke:#181818;stroke-width:1.0;" width="1776" x="2255.57" y="213.7969"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="129" x="3079.07" y="228.792">Sistema EGG-lab</text><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="129" x="3079.07" y="245.0889">(Pagina Dataset)</text></g><!--MD5=[391fd25ec88e9de293d1d54861be9ae2]
+cluster Backend y Sistema de Archivos--><g id="cluster_Backend y Sistema de Archivos"><rect fill="none" height="104" rx="2.5" ry="2.5" style="stroke:#181818;stroke-width:1.0;" width="1172" x="1059.57" y="649.7969"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="247" x="1522.07" y="664.792">Backend y Sistema de Archivos</text></g><!--MD5=[7a6ad60fb13ef252cb401c08b8d8b2ce]
+cluster Componentes de UI--><g id="cluster_Componentes de UI"><rect fill="none" height="103" rx="2.5" ry="2.5" style="stroke:#181818;stroke-width:1.0;" width="630" x="405.57" y="650.2969"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="155" x="643.07" y="665.292">Componentes de UI</text></g><g id="elem_UC1"><ellipse cx="3513.5042" cy="290.8494" fill="#90EE90" rx="74.4342" ry="26.0526" style="stroke:#00008B;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="89" x="3467.9218" y="285.897">Ver Overview</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="54" x="3485.4218" y="302.1939">General</text></g><g id="elem_UC2"><ellipse cx="2552.538" cy="290.8441" fill="#ADD8E6" rx="69.468" ry="26.0473" style="stroke:#00008B;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="53" x="2526.038" y="285.5424">Analizar</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="82" x="2511.538" y="301.8393">Estadisticas</text></g><g id="elem_UC3"><ellipse cx="3723.6507" cy="290.8441" fill="#FFFF00" rx="100.5807" ry="26.0473" style="stroke:#00008B;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="64" x="3691.6507" y="285.5424">Visualizar</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="126" x="3660.6507" y="301.8393">Topomap Espacial</text></g><g id="elem_UC4"><ellipse cx="3590.5147" cy="513.8441" fill="#FFA500" rx="106.9447" ry="26.0473" style="stroke:#00008B;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="96" x="3542.5147" y="508.5424">Ver Activacion</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="135" x="3523.0147" y="524.8393">Temporal Topomap</text></g><g id="elem_UC5"><ellipse cx="2735.8195" cy="290.8713" fill="#FFC0CB" rx="78.7495" ry="26.0744" style="stroke:#00008B;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="95" x="2685.7228" y="286.3605">Analizar Señal</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="65" x="2700.7228" y="302.6574">Por Canal</text></g><g id="elem_UC6"><ellipse cx="2930.5589" cy="290.8441" fill="#E6E6FA" rx="81.4889" ry="26.0473" style="stroke:#00008B;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="65" x="2898.0589" y="285.5424">Ver Señal</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="99" x="2881.0589" y="301.8393">Raw Completa</text></g><g id="elem_UC7"><ellipse cx="3937.5233" cy="290.8441" fill="#E0FFFF" rx="77.9533" ry="26.0473" style="stroke:#00008B;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="64" x="3905.5233" y="285.5424">Visualizar</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="94" x="3890.5233" y="301.8393">Heatmap ERP</text></g><g id="elem_UC8"><ellipse cx="3136.4906" cy="290.9413" fill="#FFFFE0" rx="88.9206" ry="26.1444" style="stroke:#00008B;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="109" x="3078.9906" y="286.5404">Analizar Bandas</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="98" x="3084.4906" y="302.8373">de Frecuencia</text></g><g id="elem_UC9"><ellipse cx="3332.6596" cy="290.8442" fill="#D3D3D3" rx="71.5896" ry="26.0473" style="stroke:#00008B;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="85" x="3290.0331" y="285.585">Ver Metricas</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="72" x="3296.5331" y="301.8818">de Calidad</text></g><g id="elem_UC10"><ellipse cx="3136.3974" cy="513.9586" fill="#FFFFE0" rx="91.8274" ry="26.1617" style="stroke:#00008B;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="113" x="3076.8974" y="509.5577">Cargar Metadata</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="76" x="3095.3974" y="525.8546">de Dataset</text></g><g id="elem_UC11"><ellipse cx="3487.6587" cy="711.5341" fill="#FFFFE0" rx="107.0887" ry="26.2373" style="stroke:#00008B;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="134" x="3417.6587" y="707.1333">Seleccionar Archivo</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="95" x="3437.1587" y="723.4301">EEG (Sidebar)</text></g><g id="elem_UC12"><ellipse cx="3728.4378" cy="711.4938" fill="#FFFFE0" rx="98.3678" ry="26.197" style="stroke:#00008B;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="122" x="3664.4378" y="707.093">Seleccionar Clase</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="70" x="3690.4378" y="723.3898">de Evento</text></g><g id="elem_UC13"><ellipse cx="3938.6545" cy="711.3584" fill="#FFFFE0" rx="76.5845" ry="26.0615" style="stroke:#00008B;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="92" x="3890.8266" y="706.6295">Ajustar Punto</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="65" x="3904.3266" y="722.9263">Temporal</text></g><g id="elem_UC14"><ellipse cx="2359.764" cy="290.9368" fill="#FFFFE0" rx="88.194" ry="26.1399" style="stroke:#00008B;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="108" x="2302.764" y="286.5359">Cambiar de Tab</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="40" x="2336.764" y="302.8328">Activa</text></g><g id="elem_BACK1"><ellipse cx="1183.8182" cy="711.2465" fill="#E6E6FA" rx="107.7482" ry="23.9496" style="stroke:#00008B;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="181" x="1093.3182" y="714.0932">Dataset.load_signal_data()</text></g><g id="elem_BACK2"><ellipse cx="1879.811" cy="711.4451" fill="#E6E6FA" rx="121.241" ry="26.6482" style="stroke:#00008B;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="210" x="1774.811" y="714.2917">Dataset.get_events_by_class()</text></g><g id="elem_BACK3"><ellipse cx="1623.5438" cy="711.1916" fill="#E6E6FA" rx="99.9738" ry="22.3948" style="stroke:#00008B;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="164" x="1541.5438" y="714.0383">get_dataset_metadata()</text></g><g id="elem_EXT1"><ellipse cx="1407.3517" cy="711.3441" fill="#D3D3D3" rx="80.7817" ry="26.0473" style="stroke:#00008B;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="83" x="1365.8517" y="706.0424">Leer archivo</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="98" x="1358.3517" y="722.3393">metadata.json</text></g><g id="elem_EXT2"><ellipse cx="2125.5441" cy="711.3441" fill="#D3D3D3" rx="89.9741" ry="26.0473" style="stroke:#00008B;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="106" x="2072.5441" y="706.0424">Cargar archivos</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="111" x="2070.0441" y="722.3393">.npy de eventos</text></g><g id="elem_UI1"><ellipse cx="715.4375" cy="711.3441" fill="#FFB6C1" rx="79.3675" ry="26.0473" style="stroke:#00008B;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="75" x="677.9375" y="706.0424">Renderizar</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="96" x="667.4375" y="722.3393">Graficos Plotly</text></g><g id="elem_UI2"><ellipse cx="511.337" cy="711.3441" fill="#FFB6C1" rx="89.267" ry="26.0473" style="stroke:#00008B;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="93" x="464.837" y="706.0424">Mostrar Tabla</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="110" x="456.337" y="722.3393">Dash DataTable</text></g><g id="elem_UI3"><ellipse cx="924.8042" cy="711.4749" fill="#FFB6C1" rx="94.7342" ry="26.178" style="stroke:#00008B;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="117" x="863.3042" y="707.074">Animar Topomap</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="68" x="887.8042" y="723.3709">con Slider</text></g><!--MD5=[8fc3522a43f8c7199df5e09e5bb0188e]
+entity user--><g id="elem_user"><ellipse cx="3513.57" cy="51.2969" fill="#ADD8E6" rx="8" ry="8" style="stroke:#00008B;stroke-width:0.5;"/><path d="M3513.57,59.2969 L3513.57,86.2969 M3500.57,67.2969 L3526.57,67.2969 M3513.57,86.2969 L3500.57,101.2969 M3513.57,86.2969 L3526.57,101.2969 " fill="none" style="stroke:#00008B;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="52" x="3471.57" y="115.792">Usuario</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="84" x="3471.57" y="132.0889">Investigador</text></g><g id="elem_GMN90"><path d="M4355.07,240.2969 L4355.07,341.0938 L4634.07,341.0938 L4634.07,250.2969 L4624.07,240.2969 L4355.07,240.2969 " fill="#FFFFE0" style="stroke:#181818;stroke-width:0.5;"/><path d="M4624.07,240.2969 L4624.07,250.2969 L4634.07,250.2969 L4624.07,240.2969 " fill="#FFFFE0" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="33" x="4361.07" y="257.3638">Flujo:</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="258" x="4361.07" y="272.4966">1. Sistema carga metadata desde Store</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="239" x="4361.07" y="287.6294">2. Muestra resumen: nombre, clases,</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="190" x="4373.07" y="302.7622">archivos, frecuencia, duracion</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="238" x="4361.07" y="317.895">3. Calcula score de calidad (estrellas)</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="257" x="4361.07" y="333.0278">4. Renderiza en Card con metricas clave</text></g><g id="elem_GMN93"><path d="M4051.07,232.7969 L4051.07,348.7266 L4320.07,348.7266 L4320.07,242.7969 L4310.07,232.7969 L4051.07,232.7969 " fill="#FFFFE0" style="stroke:#181818;stroke-width:0.5;"/><path d="M4310.07,232.7969 L4310.07,242.7969 L4320.07,242.7969 L4310.07,232.7969 " fill="#FFFFE0" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="33" x="4057.07" y="249.8638">Flujo:</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="248" x="4057.07" y="264.9966">1. Lee class_counts_total de metadata</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="223" x="4057.07" y="280.1294">2. Genera grafico de barras (Plotly)</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="185" x="4057.07" y="295.2622">3. Lee sessions de metadata</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="241" x="4057.07" y="310.395">4. Crea tabla paginada con DataTable</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="186" x="4057.07" y="325.5278">5. Muestra: Subject, Session,</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="220" x="4069.07" y="340.6606">Duracion, Eventos, Freq. Muestreo</text></g><g id="elem_GMN96"><path d="M4669.57,232.7969 L4669.57,348.7266 L4947.57,348.7266 L4947.57,242.7969 L4937.57,232.7969 L4669.57,232.7969 " fill="#FFFFE0" style="stroke:#181818;stroke-width:0.5;"/><path d="M4937.57,232.7969 L4937.57,242.7969 L4947.57,242.7969 L4937.57,232.7969 " fill="#FFFFE0" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="33" x="4675.57" y="249.8638">Flujo:</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="188" x="4675.57" y="264.9966">1. Lee montage de metadata</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="195" x="4675.57" y="280.1294">2. Valida que tenga posiciones</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="257" x="4675.57" y="295.2622">3. Extrae coordenadas x,y de electrodos</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="217" x="4675.57" y="310.395">4. Dibuja circulo de cabeza y nariz</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="195" x="4675.57" y="325.5278">5. Plotea electrodos con labels</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="247" x="4675.57" y="340.6606">6. Muestra tipo de montage detectado</text></g><g id="elem_GMN99"><path d="M4047.57,440.7969 L4047.57,509.7969 L3697.67,513.7969 L4047.57,517.7969 L4047.57,586.9922 A0,0 0 0 0 4047.57,586.9922 L4355.57,586.9922 A0,0 0 0 0 4355.57,586.9922 L4355.57,450.7969 L4345.57,440.7969 L4047.57,440.7969 A0,0 0 0 0 4047.57,440.7969 " fill="#FFFFE0" style="stroke:#181818;stroke-width:0.5;"/><path d="M4345.57,440.7969 L4345.57,450.7969 L4355.57,450.7969 L4345.57,440.7969 " fill="#FFFFE0" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="33" x="4053.57" y="457.8638">Flujo:</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="259" x="4053.57" y="472.9966">1. Usuario selecciona archivo en Sidebar</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="169" x="4053.57" y="488.1294">2. Elige clase de dropdown</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="224" x="4053.57" y="503.2622">3. Ajusta tiempo con slider (0-3.2s)</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="260" x="4053.57" y="518.395">4. Sistema carga primer evento de clase</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="287" x="4053.57" y="533.5278">5. Calcula indice de muestra (tiempo x sfreq)</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="242" x="4053.57" y="548.6606">6. Extrae valores de todos los canales</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="279" x="4053.57" y="563.7935">7. Mapea valores a coordenadas espaciales</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="269" x="4053.57" y="578.9263">8. Renderiza topomap con colormap RdBu</text></g><g id="elem_GMN102"><path d="M353.57,455.7969 L353.57,571.7266 L667.57,571.7266 L667.57,465.7969 L657.57,455.7969 L353.57,455.7969 " fill="#FFFFE0" style="stroke:#181818;stroke-width:0.5;"/><path d="M657.57,455.7969 L657.57,465.7969 L667.57,465.7969 L657.57,455.7969 " fill="#FFFFE0" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="33" x="359.57" y="472.8638">Flujo:</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="219" x="359.57" y="487.9966">1. Lee channel_stats de metadata</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="273" x="359.57" y="503.1294">2. Crea tabla con: Canal, Media, Desv. Std,</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="281" x="371.57" y="518.2622">Min, Max, RMS (todos en notacion cientifica)</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="279" x="359.57" y="533.395">3. DataTable con paginacion, ordenamiento</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="98" x="371.57" y="548.5278">y filtrado nativo</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="274" x="359.57" y="563.6606">4. Muestra primeros 15 canales por pagina</text></g><g id="elem_GMN105"><path d="M968.57,448.2969 L968.57,579.3594 L1248.57,579.3594 L1248.57,458.2969 L1238.57,448.2969 L968.57,448.2969 " fill="#FFFFE0" style="stroke:#181818;stroke-width:0.5;"/><path d="M1238.57,448.2969 L1238.57,458.2969 L1248.57,458.2969 L1238.57,448.2969 " fill="#FFFFE0" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="33" x="974.57" y="465.3638">Flujo:</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="259" x="974.57" y="480.4966">1. Usuario selecciona archivo en Sidebar</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="176" x="974.57" y="495.6294">2. Callback carga datos con</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="172" x="986.57" y="510.7622">Dataset.load_signal_data()</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="172" x="974.57" y="525.895">3. Lee archivo .npy y labels</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="215" x="974.57" y="541.0278">4. Serializa primeros 5000 puntos</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="232" x="974.57" y="556.1606">5. Renderiza con callbacks clientside</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="205" x="974.57" y="571.2935">6. Permite navegacion temporal</text></g><g id="elem_GMN108"><path d="M1549.57,448.2969 L1549.57,579.3594 L1811.57,579.3594 L1811.57,458.2969 L1801.57,448.2969 L1549.57,448.2969 " fill="#FFFFE0" style="stroke:#181818;stroke-width:0.5;"/><path d="M1801.57,448.2969 L1801.57,458.2969 L1811.57,458.2969 L1801.57,448.2969 " fill="#FFFFE0" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="33" x="1555.57" y="465.3638">Flujo:</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="239" x="1555.57" y="480.4966">1. Lee frequency_bands de metadata</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="239" x="1555.57" y="495.6294">2. Crea grafico de barras con colores:</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="192" x="1567.57" y="510.7622">Delta (rojo), Theta (magenta),</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="172" x="1567.57" y="525.895">Alpha (cyan), Beta (verde),</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="117" x="1567.57" y="541.0278">Gamma (amarillo)</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="241" x="1555.57" y="556.1606">3. Muestra potencia promedio (V²/Hz)</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="215" x="1555.57" y="571.2935">4. Tabla con rangos de frecuencia</text></g><g id="elem_GMN111"><path d="M1980.07,448.2969 L1980.07,579.3594 L2239.07,579.3594 L2239.07,458.2969 L2229.07,448.2969 L1980.07,448.2969 " fill="#FFFFE0" style="stroke:#181818;stroke-width:0.5;"/><path d="M2229.07,448.2969 L2229.07,458.2969 L2239.07,458.2969 L2229.07,448.2969 " fill="#FFFFE0" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="33" x="1986.07" y="465.3638">Flujo:</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="227" x="1986.07" y="480.4966">1. Lee quality_metrics de metadata</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="219" x="1986.07" y="495.6294">2. Muestra 3 cards: Bad Channels,</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="226" x="1998.07" y="510.7622">Balance de Clases, Eventos Totales</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="211" x="1986.07" y="525.895">3. Grafico de pastel para balance</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="231" x="1986.07" y="541.0278">4. Lista de bad channels detectados</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="209" x="1986.07" y="556.1606">5. Ratio de desbalance de clases</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="208" x="1986.07" y="571.2935">6. Info sobre metricas de calidad</text></g><!--MD5=[e71913910ae60f5842a843a20d6ecd39]
+link user to UC1--><g id="link_user_UC1"><path d="M3513.57,136.0669 C3513.57,173.9569 3513.57,226.7169 3513.57,259.5369 " fill="none" id="user-to-UC1" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="3513.57,264.6269,3517.57,255.6269,3513.57,259.6269,3509.57,255.6269,3513.57,264.6269" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="77" x="3514.57" y="178.8638">Abrir pagina</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="53" x="3526.57" y="193.9966">/dataset</text></g><!--MD5=[20aeaa20d1880359803c0703a4b24425]
+link user to UC2--><g id="link_user_UC2"><path d="M3471.22,91.4269 C3356.23,95.1669 3029.05,110.2669 2763.57,165.7969 C2706.89,177.6569 2689.24,176.0269 2639.57,205.7969 C2614.96,220.5469 2591.83,243.4869 2575.62,261.6669 " fill="none" id="user-to-UC2" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="2572.06,265.7069,2581.0134,261.6037,2575.3676,261.9573,2575.0141,256.3115,2572.06,265.7069" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="67" x="2769.07" y="178.8638">Clic en tab</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="76" x="2764.57" y="193.9966">Estadisticas</text></g><!--MD5=[17d4c6462e07b4f1b5dbb0e87d08d5e6]
+link user to UC3--><g id="link_user_UC3"><path d="M3555.73,125.7769 C3570.15,138.2069 3586.26,152.4069 3600.57,165.7969 C3634.55,197.5869 3671.99,235.8169 3696.53,261.3469 " fill="none" id="user-to-UC3" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="3700.06,265.0169,3696.7296,255.7482,3696.6039,261.4037,3690.9484,261.278,3700.06,265.0169" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="67" x="3632.57" y="178.8638">Clic en tab</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="60" x="3636.07" y="193.9966">Topomap</text></g><!--MD5=[ba5eb2ef110023c82e1618c561204d0b]
+link user to UC11--><g id="link_user_UC11"><path d="M3555.71,90.3369 C3784.16,90.9469 4867.4,99.5069 4965.57,205.7969 C5008.69,252.4869 5001.16,296.1369 4965.57,348.7969 C4955.65,363.4869 4390.79,582.5769 4373.57,586.7969 C4166.23,637.5669 4108.61,620.3269 3895.57,633.7969 C3864.18,635.7769 3642.93,633.5669 3612.57,641.7969 C3581.09,650.3369 3548.89,668.2369 3525.06,683.5969 " fill="none" id="user-to-UC11" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="3520.71,686.4369,3530.4301,684.8497,3524.8921,683.6964,3526.0454,678.1584,3520.71,686.4369" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="124" x="4897.57" y="391.8638">Seleccionar archivo</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="69" x="4925.07" y="406.9966">en Sidebar</text></g><!--MD5=[db8b385c0c41a4e2e6dc28f8477f18a9]
+link user to UC12--><g id="link_user_UC12"><path d="M3555.84,91.2869 C3778,96.6669 4805.5,123.6769 4940.57,165.7969 C4972.95,175.8969 4986.94,177.4469 5005.57,205.7969 C5254.1,584.0369 4533.24,605.0969 4081.57,633.7969 C4055.28,635.4669 3869.87,634.4269 3844.57,641.7969 C3815.1,650.3869 3785.36,668.1769 3763.37,683.4669 " fill="none" id="user-to-UC12" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="3759.08,686.4969,3768.7434,684.5945,3763.1708,683.6219,3764.1434,678.0493,3759.08,686.4969" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="72" x="5057.57" y="391.8638">Elegir clase</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="82" x="5052.57" y="406.9966">en dropdown</text></g><!--MD5=[9c2920df18b0fe08bc79dbae0e81b791]
+link user to UC13--><g id="link_user_UC13"><path d="M3555.61,91.1269 C3782.47,95.7769 4855.52,120.0569 4995.57,165.7969 C5105.15,201.5869 5116.96,266.6369 5143.57,378.7969 C5197.86,607.5769 4296.47,686.5869 4018.73,705.4369 " fill="none" id="user-to-UC13" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="4013.48,705.7969,4022.7332,709.17,4018.4682,705.4538,4022.1844,701.1888,4013.48,705.7969" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="77" x="5146.57" y="391.8638">Mover slider</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="65" x="5152.57" y="406.9966">de tiempo</text></g><!--MD5=[96bbf347eb6577790aa042b4af8d13f7]
+link user to UC5--><g id="link_user_UC5"><path d="M3471.38,93.8869 C3340.6,105.5569 2944.04,145.2269 2831.57,205.7969 C2804.7,220.2669 2778.94,243.4969 2760.88,261.8669 " fill="none" id="user-to-UC5" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="2757.37,265.4769,2766.5188,261.83,2760.8623,261.8987,2760.7936,256.2422,2757.37,265.4769" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="67" x="2954.57" y="178.8638">Clic en tab</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="61" x="2957.57" y="193.9966">Por Canal</text></g><!--MD5=[25a3ad4d0be805c5841d244648c395ae]
+link user to UC6--><g id="link_user_UC6"><path d="M3471.44,93.4569 C3384.46,101.4169 3180.62,127.5969 3030.57,205.7969 C3002.86,220.2369 2976.01,243.4769 2957.11,261.8469 " fill="none" id="user-to-UC6" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="2953.45,265.4569,2962.6636,261.9771,2957.0069,261.9428,2957.0412,256.2861,2953.45,265.4569" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="67" x="3117.57" y="178.8638">Clic en tab</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="65" x="3118.57" y="193.9966">Señal Raw</text></g><!--MD5=[42a9aa1c05961f1dbfed44d6070980e5]
+link user to UC7--><g id="link_user_UC7"><path d="M3555.63,99.6469 C3620.25,115.1869 3746.44,150.2169 3841.57,205.7969 C3867.74,221.0869 3893.37,244.0369 3911.56,262.0869 " fill="none" id="user-to-UC7" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="3915.09,265.6269,3911.573,256.4274,3911.5616,262.0842,3905.9048,262.0728,3915.09,265.6269" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="67" x="3825.57" y="178.8638">Clic en tab</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="60" x="3829.07" y="193.9966">Heatmap</text></g><!--MD5=[efda522a7868aa178a844f5aef0f93b9]
+link user to UC8--><g id="link_user_UC8"><path d="M3471.28,103.6469 C3416.32,122.0269 3318.51,158.3269 3243.57,205.7969 C3216.82,222.7369 3188.75,244.9769 3168.07,262.3069 " fill="none" id="user-to-UC8" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="3164.03,265.7069,3173.4948,262.9835,3167.8594,262.4919,3168.3509,256.8565,3164.03,265.7069" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="67" x="3319.07" y="178.8638">Clic en tab</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="76" x="3314.57" y="193.9966">Frecuencias</text></g><!--MD5=[44e93b4d375e8b6782fdeded18311ebf]
+link user to UC9--><g id="link_user_UC9"><path d="M3471.27,130.3269 C3459.78,141.5769 3447.51,153.9769 3436.57,165.7969 C3407.23,197.5069 3375.61,235.8669 3355.04,261.4369 " fill="none" id="user-to-UC9" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="3351.84,265.4369,3360.5918,260.9195,3354.9687,261.5367,3354.3515,255.9136,3351.84,265.4369" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="67" x="3437.57" y="178.8638">Clic en tab</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="47" x="3447.57" y="193.9966">Calidad</text></g><!--MD5=[8e5138a6d8232622b484de293c5b836d]
+link UC1 to UC10--><g id="link_UC1_UC10"><path d="M3479.07,314.0969 C3441.09,338.4569 3378.04,378.3369 3322.57,410.7969 C3275.68,438.2269 3221.08,467.9169 3183.21,488.1469 " fill="none" id="UC1-to-UC10" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="3178.68,490.5669,3188.5032,489.856,3183.0906,488.2117,3184.7349,482.7991,3178.68,490.5669" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="61" x="3376.57" y="399.3638">«include»</text></g><!--MD5=[63f1217800f098517a44a1e33581072d]
+link UC1 to UI1--><g id="link_UC1_UI1"><path d="M3484.84,315.0969 C3467.6,327.6169 3444.6,341.8669 3421.57,348.7969 C3207.61,413.1769 2626.87,303.3169 2416.57,378.7969 C2374.23,393.9969 2365.77,406.5769 2336.57,440.7969 C2288.54,497.0869 2318.87,546.8769 2256.57,586.7969 C2131.28,667.0869 1737.26,627.8069 1588.57,633.7969 C1567.03,634.6669 833.08,635.1669 812.57,641.7969 C787.04,650.0469 762.39,667.6169 744.34,682.8969 " fill="none" id="UC1-to-UI1" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="740.35,686.3169,749.7865,683.4968,744.1463,683.0629,744.5801,677.4227,740.35,686.3169" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="61" x="2337.57" y="518.3638">«include»</text></g><!--MD5=[414cd2148b8870882965220c507f725b]
+link UC2 to UC10--><g id="link_UC2_UC10"><path d="M2582.88,314.2969 C2599.12,325.6669 2619.81,339.0669 2639.57,348.7969 C2782.66,419.2569 2963.19,470.1969 3062.54,495.2569 " fill="none" id="UC2-to-UC10" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="3067.51,496.5069,3059.7489,490.4435,3062.6593,495.2942,3057.8086,498.2046,3067.51,496.5069" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="61" x="2785.57" y="399.3638">«include»</text></g><!--MD5=[530bab53f4924f1ea453255a49eccfea]
+link UC2 to UI1--><g id="link_UC2_UI1"><path d="M2526.02,314.9069 C2509.75,327.5369 2487.84,341.9569 2465.57,348.7969 C2368.43,378.6569 737.94,371.5369 636.57,378.7969 C418.94,394.3869 293.78,277.0569 149.57,440.7969 C106.68,489.4869 106.44,538.3169 149.57,586.7969 C219.32,665.1969 520.58,604.2569 618.57,641.7969 C643.27,651.2569 667.58,668.4369 685.68,683.2269 " fill="none" id="UC2-to-UI1" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="689.68,686.5369,685.3041,677.7135,685.8307,683.3458,680.1984,683.8724,689.68,686.5369" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="61" x="150.57" y="518.3638">«include»</text></g><!--MD5=[84ffa62ad48678a9e940e17196035757]
+link UC2 to UI2--><g id="link_UC2_UI2"><path d="M2526.03,314.9369 C2509.76,327.5669 2487.85,341.9869 2465.57,348.7969 C2222.11,423.1869 422.41,320.6169 174.57,378.7969 C112.64,393.3369 79.44,386.9469 45.57,440.7969 C11.03,495.7269 6,535.3669 45.57,586.7969 C91.51,646.4969 303.24,683.2969 424.9,699.8869 " fill="none" id="UC2-to-UI2" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="429.91,700.5669,421.5283,695.3951,424.9552,699.8958,420.4546,703.3227,429.91,700.5669" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="61" x="46.57" y="518.3638">«include»</text></g><!--MD5=[b5ebc4358cc1fbddf3d18c1f4c43196d]
+link UC3 to UC10--><g id="link_UC3_UC10"><path d="M3679.13,314.2769 C3657.18,325.1269 3630.18,338.0769 3605.57,348.7969 C3465.73,409.7269 3295.3,464.7369 3203.26,492.9269 " fill="none" id="UC3-to-UC10" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="3198.4,494.4169,3208.1749,495.622,3203.1832,492.9605,3205.8447,487.9688,3198.4,494.4169" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="61" x="3530.57" y="399.3638">«include»</text></g><!--MD5=[0ebb72115b4a17b56466df6c95f0aeef]
+link UC3 to UI1--><g id="link_UC3_UI1"><path d="M3686.04,314.9269 C3663.58,327.4669 3633.96,341.7969 3605.57,348.7969 C3411.92,396.5369 2898.14,316.8169 2708.57,378.7969 C2552.62,429.7869 2557.9,531.0869 2403.57,586.7969 C2194.88,662.1269 2128.16,622.5269 1906.57,633.7969 C1876.22,635.3369 841.5,632.4969 812.57,641.7969 C787.03,650.0069 762.38,667.5769 744.33,682.8669 " fill="none" id="UC3-to-UI1" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="740.35,686.2869,749.775,683.4288,744.1332,683.0177,744.5443,677.3758,740.35,686.2869" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="61" x="2594.57" y="518.3638">«include»</text></g><!--MD5=[d6fc586b262573c96be1a8347f474dee]
+link UC4 to UC11--><g id="link_UC4_UC11"><path d="M3553.63,538.3769 C3528.96,556.4769 3498.57,583.8969 3484.57,616.7969 C3476.14,636.6069 3477.25,660.9669 3480.27,679.8569 " fill="none" id="UC4-to-UC11" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="3481.17,685.0269,3483.5688,675.4746,3480.3133,680.1008,3475.6871,676.8453,3481.17,685.0269" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="61" x="3485.57" y="629.8638">«include»</text></g><!--MD5=[bf33ecb3ffba2e975b8c6d2420c877ee]
+link UC11 to UC4--><g id="link_UC11_UC4"><path d="M3512.13,685.9069 C3525.31,671.7069 3540.98,652.8769 3551.57,633.7969 C3567.23,605.5769 3577.84,570.0769 3584,545.2169 " fill="none" id="UC11-to-UC4" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="3585.24,540.0869,3579.2414,547.8982,3584.0677,544.9475,3587.0184,549.7738,3585.24,540.0869" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="42" x="3559.57" y="629.8638">trigger</text></g><!--MD5=[30e93b20afbad0063b98e4d51b752d48]
+link UC4 to UC12--><g id="link_UC4_UC12"><path d="M3608.05,539.5569 C3633.49,575.5969 3680.63,642.3869 3707.81,680.8769 " fill="none" id="UC4-to-UC12" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="3711.02,685.4269,3709.0951,675.768,3708.1355,681.3428,3702.5606,680.3832,3711.02,685.4269" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="61" x="3672.57" y="629.8638">«include»</text></g><!--MD5=[c433e865e6f1c9d7e6eca43d5dbb858b]
+link UC4 to UC13--><g id="link_UC4_UC13"><path d="M3640.56,536.7969 C3692.75,560.4469 3776.34,600.2769 3844.57,641.7969 C3865.4,654.4769 3887.5,670.4369 3905.03,683.7569 " fill="none" id="UC4-to-UC13" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="3909.39,687.0869,3904.6441,678.4569,3905.4089,684.0618,3899.804,684.8266,3909.39,687.0869" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="61" x="3825.57" y="629.8638">«include»</text></g><!--MD5=[1b762da015043ae088bbc3e813e9be6d]
+link UC4 to BACK2--><g id="link_UC4_BACK2"><path d="M3525.06,534.4669 C3414.42,567.6169 3200.78,631.2769 3183.57,633.7969 C3119.53,643.1869 2081.55,626.8969 2018.57,641.7969 C1984.05,649.9669 1948.21,667.8969 1921.57,683.3669 " fill="none" id="UC4-to-BACK2" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="1917.04,686.0169,1926.8273,684.917,1921.3537,683.4886,1922.7821,678.0151,1917.04,686.0169" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="61" x="3243.57" y="629.8638">«include»</text></g><!--MD5=[5d5323ded9bfb52d0e8cdd741adfbddf]
+link UC4 to EXT2--><g id="link_UC4_EXT2"><path d="M3551.44,538.0969 C3500.24,567.1269 3406.75,615.1569 3319.57,633.7969 C3261.76,646.1569 2312.9,627.3869 2255.57,641.7969 C2222.24,650.1769 2187.99,668.6969 2163.02,684.3769 " fill="none" id="UC4-to-EXT2" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="2158.78,687.0669,2168.5252,685.6417,2163.0071,684.3964,2164.2524,678.8783,2158.78,687.0669" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="61" x="3374.57" y="629.8638">«include»</text></g><!--MD5=[9aefa906c9b0dd61cd3423deded1c6c4]
+link UC4 to UI3--><g id="link_UC4_UI3"><path d="M3517.44,532.8669 C3395.08,561.9569 3140.69,617.5569 2921.57,633.7969 C2869.99,637.6169 1109.85,629.6569 1059.57,641.7969 C1025.16,650.1069 989.58,668.6369 963.59,684.3369 " fill="none" id="UC4-to-UI3" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="959.18,687.0269,968.9476,685.7641,963.451,684.4271,964.788,678.9306,959.18,687.0269" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="61" x="3069.57" y="629.8638">«include»</text></g><!--MD5=[c2c2d51be8a732dddcb94b0c58646b8f]
+link UC3 to UC4--><g id="link_UC3_UC4"><path d="M3708.57,316.7169 C3683.81,357.8669 3634.5,439.7969 3608.15,483.5869 " fill="none" id="UC3-to-UC4" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="3605.51,487.9669,3613.5843,482.3272,3608.093,483.6857,3606.7344,478.1944,3605.51,487.9669" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="60" x="3719.57" y="391.8638">«extend»</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="160" x="3669.57" y="406.9966">con archivo seleccionado</text></g><!--MD5=[c5253a994e4596ea8c99fba8c18960d1]
+link UC5 to UC10--><g id="link_UC5_UC10"><path d="M2772.28,314.0869 C2790.08,324.7669 2811.83,337.6369 2831.57,348.7969 C2921.98,399.9169 3029.26,456.7169 3089.47,488.2669 " fill="none" id="UC5-to-UC10" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="3094.08,490.6769,3087.9561,482.9634,3089.6486,488.3611,3084.2509,490.0536,3094.08,490.6769" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="61" x="2940.57" y="399.3638">«include»</text></g><!--MD5=[fbfde2cbbcf854addc330b63eed363b0]
+link UC5 to UI2--><g id="link_UC5_UI2"><path d="M2705.9,314.9469 C2687.82,327.5769 2663.63,341.9969 2639.57,348.7969 C2532.47,379.0569 747.39,368.5669 636.57,378.7969 C473.59,393.8469 379.11,315.6969 273.57,440.7969 C231.73,490.3969 239.87,531.3469 273.57,586.7969 C308.77,644.7169 380.92,676.7069 436.6,693.5169 " fill="none" id="UC5-to-UI2" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="441.6,695.0069,434.1026,688.6202,436.805,693.5898,431.8354,696.2922,441.6,695.0069" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="61" x="274.57" y="518.3638">«include»</text></g><!--MD5=[281d9e36d8b83bce507e452c181fe588]
+link UC6 to BACK1--><g id="link_UC6_BACK1"><path d="M2899.85,314.9169 C2881.17,327.5369 2856.22,341.9569 2831.57,348.7969 C2659.26,396.5769 1400.47,360.7469 1222.57,378.7969 C1072.36,394.0369 985.1,324.7069 888.57,440.7969 C847.09,490.6969 851.59,533.4769 888.57,586.7969 C928.33,644.1169 971.21,614.9069 1035.57,641.7969 C1069.42,655.9369 1106.92,673.3169 1135.7,687.0269 " fill="none" id="UC6-to-BACK1" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="1140.24,689.1969,1133.8248,681.7239,1135.7231,687.0528,1130.3942,688.951,1140.24,689.1969" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="61" x="889.57" y="518.3638">«include»</text></g><!--MD5=[1ad16c84d06e8922f60304667c6434df]
+link UC6 to UI1--><g id="link_UC6_UI1"><path d="M2899.86,314.9469 C2881.18,327.5769 2856.23,341.9969 2831.57,348.7969 C2625.89,405.5069 1118.83,328.1569 911.57,378.7969 C851.72,393.4169 826.51,393.0469 787.57,440.7969 C729.46,512.0569 717.94,625.8669 715.87,679.9069 " fill="none" id="UC6-to-UI1" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="715.7,684.9469,720.006,676.0892,715.8713,679.9498,712.0107,675.8151,715.7,684.9469" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="61" x="788.57" y="518.3638">«include»</text></g><!--MD5=[f5c4e274000c7e350e185e93ca73978c]
+link UC7 to UC10--><g id="link_UC7_UC10"><path d="M3924.87,316.6869 C3908.94,344.9869 3878.76,389.9369 3838.57,410.7969 C3764.96,448.9969 3548.6,428.5969 3466.57,440.7969 C3376.55,454.1869 3274.38,477.8069 3207.89,494.3269 " fill="none" id="UC7-to-UC10" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="3202.77,495.6069,3212.4667,497.3315,3207.6241,494.4076,3210.5479,489.565,3202.77,495.6069" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="61" x="3878.57" y="399.3638">«include»</text></g><!--MD5=[a772c4f978f362cce41d5c2cad26b365]
+link UC8 to UC10--><g id="link_UC8_UC10"><path d="M3136.57,317.1469 C3136.57,358.1169 3136.57,438.6969 3136.57,482.5769 " fill="none" id="UC8-to-UC10" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="3136.57,487.7369,3140.57,478.7369,3136.57,482.7369,3132.57,478.7369,3136.57,487.7369" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="61" x="3137.57" y="399.3638">«include»</text></g><!--MD5=[542f75ac461e9e0a6211ae8f13595b48]
+link UC8 to UI1--><g id="link_UC8_UI1"><path d="M3102.61,315.1669 C3082.38,327.7069 3055.63,341.9569 3029.57,348.7969 C2896.17,383.8269 1925.7,363.9169 1788.57,378.7969 C1644.98,394.3769 1586.21,355.6169 1469.57,440.7969 C1387.04,501.0669 1438.25,592.9569 1344.57,633.7969 C1317.47,645.6069 840.68,632.6369 812.57,641.7969 C787.06,650.1069 762.41,667.6769 744.35,682.9369 " fill="none" id="UC8-to-UI1" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="740.37,686.3569,749.8012,683.5192,744.1602,683.0959,744.5836,677.4549,740.37,686.3569" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="61" x="1470.57" y="518.3638">«include»</text></g><!--MD5=[ea0c7cd0bc140c21f40c6c14104aa710]
+link UC8 to UI2--><g id="link_UC8_UI2"><path d="M3103.1,314.9169 C3082.81,327.5369 3055.85,341.9569 3029.57,348.7969 C2866.31,391.2869 1677.82,350.1269 1511.57,378.7969 C1425.7,393.6069 1389.08,381.1269 1325.57,440.7969 C1274.57,488.7169 1322.89,545.2469 1266.57,586.7969 C1150.28,672.6069 755.43,595.3669 618.57,641.7969 C591.46,650.9969 564.34,668.4669 544.19,683.4669 " fill="none" id="UC8-to-UI2" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="540,686.6269,549.6,684.4269,544,683.6269,544.8,678.0269,540,686.6269" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="61" x="1326.57" y="518.3638">«include»</text></g><!--MD5=[766679404c4c999e4cf4dcfe94687ae6]
+link UC9 to UC10--><g id="link_UC9_UC10"><path d="M3311.22,315.8669 C3274.72,357.0269 3200.5,440.7169 3161.61,484.5569 " fill="none" id="UC9-to-UC10" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="3158.19,488.4169,3167.1512,484.3306,3161.5047,484.6735,3161.1618,479.0271,3158.19,488.4169" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="61" x="3252.57" y="399.3638">«include»</text></g><!--MD5=[580a29b7df0d9795b2d9f9689d086e81]
+link UC9 to UI1--><g id="link_UC9_UI1"><path d="M3304.9,315.0969 C3288.26,327.6169 3266.01,341.8669 3243.57,348.7969 C3134.49,382.4669 2330.03,366.1269 2216.57,378.7969 C2073.9,394.7269 2013.12,352.9569 1899.57,440.7969 C1842.65,484.8269 1888.37,545.3169 1829.57,586.7969 C1748.13,644.2469 1483.05,627.8669 1383.57,633.7969 C1351.9,635.6869 842.74,631.9869 812.57,641.7969 C787.05,650.0969 762.41,667.6669 744.35,682.9269 " fill="none" id="UC9-to-UI1" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="740.36,686.3469,749.7912,683.5092,744.1502,683.0859,744.5736,677.4449,740.36,686.3469" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="61" x="1900.57" y="518.3638">«include»</text></g><!--MD5=[2db792a1cbe73d8809b9ce5738013fcc]
+link UC10 to EXT1--><g id="link_UC10_EXT1"><path d="M3065.35,530.3669 C2936.75,557.6269 2656.91,613.0669 2417.57,633.7969 C2392.36,635.9769 1530.69,634.1469 1506.57,641.7969 C1480.64,650.0169 1455.49,667.5869 1437.02,682.8769 " fill="none" id="UC10-to-EXT1" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="1432.95,686.2969,1442.4148,683.5735,1436.7794,683.0819,1437.2709,677.4465,1432.95,686.2969" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="61" x="2556.57" y="629.8638">«include»</text></g><!--MD5=[0785da5c8ebe6ac9fb489791a51795e6]
+link UC10 to BACK3--><g id="link_UC10_BACK3"><path d="M3089,536.1369 C3022.03,564.9269 2895.37,614.7769 2781.57,633.7969 C2724.58,643.3169 1797.31,626.5669 1741.57,641.7969 C1709.52,650.5569 1677.17,670.2869 1654.46,686.3269 " fill="none" id="UC10-to-BACK3" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="1650.34,689.2769,1659.9912,687.3135,1654.4125,686.3761,1655.3499,680.7974,1650.34,689.2769" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="61" x="2851.57" y="629.8638">«include»</text></g><!--MD5=[e1195592b73cc1b17eb0778be7ddab90]
+link UC1 to GMN90--><g id="link_UC1_GMN90"><path d="M3527.97,265.0469 C3545.91,235.8969 3579.59,189.9769 3623.07,170.7969 C3693.92,139.5369 4246.11,147.8169 4320.07,170.7969 C4364.31,184.5369 4407.28,213.8269 4439.5,240.0269 " fill="none" id="UC1-GMN90" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/></g><!--MD5=[b6e0961db733f122725afbecd5a5ba78]
+link UC2 to GMN93--><g id="link_UC2_GMN93"><path d="M2566,265.0869 C2582.84,235.9669 2614.7,190.0769 2657.07,170.7969 C2725.69,139.5669 3942.17,148.1369 4014.07,170.7969 C4053.58,183.2469 4091.91,208.4069 4122.28,232.4869 " fill="none" id="UC2-GMN93" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/></g><!--MD5=[56b87a5d24a47435188cfc2171b5a07b]
+link UC3 to GMN96--><g id="link_UC3_GMN96"><path d="M3742.86,265.1569 C3766.67,235.8769 3810.17,189.6069 3860.07,170.7969 C3940.54,140.4569 4551.94,145.2869 4634.07,170.7969 C4674.27,183.2869 4713.42,208.6069 4744.42,232.7869 " fill="none" id="UC3-GMN96" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/></g><!--MD5=[bb201c4a71667045809d550ae059891d]
+link UC5 to GMN102--><g id="link_UC5_GMN102"><path d="M2705.9,314.9369 C2687.82,327.5669 2663.63,341.9869 2639.57,348.7969 C2433.41,407.1169 916.14,315.1169 711.57,378.7969 C661.52,394.3769 612.42,426.6869 575.28,455.6869 " fill="none" id="UC5-GMN102" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/></g><!--MD5=[b0789648ef2326a2913d0632086670ef]
+link UC6 to GMN105--><g id="link_UC6_GMN105"><path d="M2899.85,314.9069 C2881.17,327.5269 2856.22,341.9469 2831.57,348.7969 C2666.78,394.5769 1454.68,324.2669 1292.57,378.7969 C1249.87,393.1569 1208.71,421.3069 1176.19,448.1069 " fill="none" id="UC6-GMN105" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/></g><!--MD5=[1a499322f0062de3b0e62bc6a475f30f]
+link UC8 to GMN108--><g id="link_UC8_GMN108"><path d="M3102.61,315.1469 C3082.37,327.6869 3055.62,341.9369 3029.57,348.7969 C2903.39,382.0269 1978.61,335.3369 1855.57,378.7969 C1814.44,393.3269 1775.24,421.4869 1744.4,448.2569 " fill="none" id="UC8-GMN108" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/></g><!--MD5=[6a47db1c76c66da279bbb97ed77637a0]
+link UC9 to GMN111--><g id="link_UC9_GMN111"><path d="M3304.9,315.0869 C3288.26,327.5969 3266.01,341.8469 3243.57,348.7969 C3039.69,411.9569 2484.52,306.8669 2283.57,378.7969 C2242.83,393.3769 2204.01,421.3769 2173.42,448.0169 " fill="none" id="UC9-GMN111" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/></g><!--MD5=[c49c2e67e45460d3e28876faa66766ae]
+@startuml
+title Casos de Uso - Pagina Dataset (dataset.py)
+
+' Actor
+actor "Usuario\nInvestigador" as user #lightblue
+
+' Sistema boundary
+rectangle "Sistema EGG-lab\n(Pagina Dataset)" {
+
+  ' Casos de uso principales (por cada tab)
+  usecase "Ver Overview\nGeneral" as UC1 #lightgreen
+  usecase "Analizar\nEstadisticas" as UC2 #lightblue
+  usecase "Visualizar\nTopomap Espacial" as UC3 #yellow
+  usecase "Ver Activacion\nTemporal Topomap" as UC4 #orange
+  usecase "Analizar Señal\nPor Canal" as UC5 #pink
+  usecase "Ver Señal\nRaw Completa" as UC6 #lavender
+  usecase "Visualizar\nHeatmap ERP" as UC7 #lightcyan
+  usecase "Analizar Bandas\nde Frecuencia" as UC8 #lightyellow
+  usecase "Ver Metricas\nde Calidad" as UC9 #lightgray
+
+  ' Casos de uso de datos y metadata
+  usecase "Cargar Metadata\nde Dataset" as UC10 #lightyellow
+  usecase "Seleccionar Archivo\nEEG (Sidebar)" as UC11 #lightyellow
+  usecase "Seleccionar Clase\nde Evento" as UC12 #lightyellow
+  usecase "Ajustar Punto\nTemporal" as UC13 #lightyellow
+  usecase "Cambiar de Tab\nActiva" as UC14 #lightyellow
+}
+
+' Sistemas externos
+rectangle "Backend y Sistema de Archivos" {
+  usecase "Dataset.load_signal_data()" as BACK1 #lavender
+  usecase "Dataset.get_events_by_class()" as BACK2 #lavender
+  usecase "get_dataset_metadata()" as BACK3 #lavender
+  usecase "Leer archivo\nmetadata.json" as EXT1 #lightgray
+  usecase "Cargar archivos\n.npy de eventos" as EXT2 #lightgray
+}
+
+' Componentes UI
+rectangle "Componentes de UI" {
+  usecase "Renderizar\nGraficos Plotly" as UI1 #lightpink
+  usecase "Mostrar Tabla\nDash DataTable" as UI2 #lightpink
+  usecase "Animar Topomap\ncon Slider" as UI3 #lightpink
+}
+
+' Relaciones usuario -> casos de uso principales
+user - -> UC1 : "Abrir pagina\n/dataset"
+user - -> UC2 : "Clic en tab\nEstadisticas"
+user - -> UC3 : "Clic en tab\nTopomap"
+user - -> UC11 : "Seleccionar archivo\nen Sidebar"
+user - -> UC12 : "Elegir clase\nen dropdown"
+user - -> UC13 : "Mover slider\nde tiempo"
+user - -> UC5 : "Clic en tab\nPor Canal"
+user - -> UC6 : "Clic en tab\nSeñal Raw"
+user - -> UC7 : "Clic en tab\nHeatmap"
+user - -> UC8 : "Clic en tab\nFrecuencias"
+user - -> UC9 : "Clic en tab\nCalidad"
+
+' Relaciones include
+UC1 ..> UC10 : <<include>>
+UC1 ..> UI1 : <<include>>
+
+UC2 ..> UC10 : <<include>>
+UC2 ..> UI1 : <<include>>
+UC2 ..> UI2 : <<include>>
+
+UC3 ..> UC10 : <<include>>
+UC3 ..> UI1 : <<include>>
+
+UC4 ..> UC11 : <<include>>
+UC4 ..> UC12 : <<include>>
+UC4 ..> UC13 : <<include>>
+UC4 ..> BACK2 : <<include>>
+UC4 ..> EXT2 : <<include>>
+UC4 ..> UI3 : <<include>>
+
+UC3 ..> UC4 : <<extend>>\ncon archivo seleccionado
+
+UC5 ..> UC10 : <<include>>
+UC5 ..> UI2 : <<include>>
+
+UC6 ..> BACK1 : <<include>>
+UC6 ..> UI1 : <<include>>
+
+UC7 ..> UC10 : <<include>>
+
+UC8 ..> UC10 : <<include>>
+UC8 ..> UI1 : <<include>>
+UC8 ..> UI2 : <<include>>
+
+UC9 ..> UC10 : <<include>>
+UC9 ..> UI1 : <<include>>
+
+UC10 ..> EXT1 : <<include>>
+UC10 ..> BACK3 : <<include>>
+
+UC11 - -> UC4 : trigger
+
+' Notas explicativas
+note right of UC1
+  Flujo:
+  1. Sistema carga metadata desde Store
+  2. Muestra resumen: nombre, clases,
+     archivos, frecuencia, duracion
+  3. Calcula score de calidad (estrellas)
+  4. Renderiza en Card con metricas clave
+end note
+
+note right of UC2
+  Flujo:
+  1. Lee class_counts_total de metadata
+  2. Genera grafico de barras (Plotly)
+  3. Lee sessions de metadata
+  4. Crea tabla paginada con DataTable
+  5. Muestra: Subject, Session,
+     Duracion, Eventos, Freq. Muestreo
+end note
+
+note right of UC3
+  Flujo:
+  1. Lee montage de metadata
+  2. Valida que tenga posiciones
+  3. Extrae coordenadas x,y de electrodos
+  4. Dibuja circulo de cabeza y nariz
+  5. Plotea electrodos con labels
+  6. Muestra tipo de montage detectado
+end note
+
+note right of UC4
+  Flujo:
+  1. Usuario selecciona archivo en Sidebar
+  2. Elige clase de dropdown
+  3. Ajusta tiempo con slider (0-3.2s)
+  4. Sistema carga primer evento de clase
+  5. Calcula indice de muestra (tiempo x sfreq)
+  6. Extrae valores de todos los canales
+  7. Mapea valores a coordenadas espaciales
+  8. Renderiza topomap con colormap RdBu
+end note
+
+note bottom of UC5
+  Flujo:
+  1. Lee channel_stats de metadata
+  2. Crea tabla con: Canal, Media, Desv. Std,
+     Min, Max, RMS (todos en notacion cientifica)
+  3. DataTable con paginacion, ordenamiento
+     y filtrado nativo
+  4. Muestra primeros 15 canales por pagina
+end note
+
+note bottom of UC6
+  Flujo:
+  1. Usuario selecciona archivo en Sidebar
+  2. Callback carga datos con
+     Dataset.load_signal_data()
+  3. Lee archivo .npy y labels
+  4. Serializa primeros 5000 puntos
+  5. Renderiza con callbacks clientside
+  6. Permite navegacion temporal
+end note
+
+note bottom of UC8
+  Flujo:
+  1. Lee frequency_bands de metadata
+  2. Crea grafico de barras con colores:
+     Delta (rojo), Theta (magenta),
+     Alpha (cyan), Beta (verde),
+     Gamma (amarillo)
+  3. Muestra potencia promedio (V²/Hz)
+  4. Tabla con rangos de frecuencia
+end note
+
+note bottom of UC9
+  Flujo:
+  1. Lee quality_metrics de metadata
+  2. Muestra 3 cards: Bad Channels,
+     Balance de Clases, Eventos Totales
+  3. Grafico de pastel para balance
+  4. Lista de bad channels detectados
+  5. Ratio de desbalance de clases
+  6. Info sobre metricas de calidad
+end note
+
+' Estilos
+skinparam usecase {
+  BackgroundColor lightblue
+  BorderColor darkblue
+  ArrowColor darkblue
+}
+
+skinparam actor {
+  BackgroundColor lightblue
+  BorderColor darkblue
+}
+
+skinparam note {
+  BackgroundColor lightyellow
+  BorderColor orange
+}
+@enduml
+
+@startuml
+title Casos de Uso - Pagina Dataset (dataset.py)
+
+actor "Usuario\nInvestigador" as user #lightblue
+
+rectangle "Sistema EGG-lab\n(Pagina Dataset)" {
+
+  usecase "Ver Overview\nGeneral" as UC1 #lightgreen
+  usecase "Analizar\nEstadisticas" as UC2 #lightblue
+  usecase "Visualizar\nTopomap Espacial" as UC3 #yellow
+  usecase "Ver Activacion\nTemporal Topomap" as UC4 #orange
+  usecase "Analizar Señal\nPor Canal" as UC5 #pink
+  usecase "Ver Señal\nRaw Completa" as UC6 #lavender
+  usecase "Visualizar\nHeatmap ERP" as UC7 #lightcyan
+  usecase "Analizar Bandas\nde Frecuencia" as UC8 #lightyellow
+  usecase "Ver Metricas\nde Calidad" as UC9 #lightgray
+
+  usecase "Cargar Metadata\nde Dataset" as UC10 #lightyellow
+  usecase "Seleccionar Archivo\nEEG (Sidebar)" as UC11 #lightyellow
+  usecase "Seleccionar Clase\nde Evento" as UC12 #lightyellow
+  usecase "Ajustar Punto\nTemporal" as UC13 #lightyellow
+  usecase "Cambiar de Tab\nActiva" as UC14 #lightyellow
+}
+
+rectangle "Backend y Sistema de Archivos" {
+  usecase "Dataset.load_signal_data()" as BACK1 #lavender
+  usecase "Dataset.get_events_by_class()" as BACK2 #lavender
+  usecase "get_dataset_metadata()" as BACK3 #lavender
+  usecase "Leer archivo\nmetadata.json" as EXT1 #lightgray
+  usecase "Cargar archivos\n.npy de eventos" as EXT2 #lightgray
+}
+
+rectangle "Componentes de UI" {
+  usecase "Renderizar\nGraficos Plotly" as UI1 #lightpink
+  usecase "Mostrar Tabla\nDash DataTable" as UI2 #lightpink
+  usecase "Animar Topomap\ncon Slider" as UI3 #lightpink
+}
+
+user - -> UC1 : "Abrir pagina\n/dataset"
+user - -> UC2 : "Clic en tab\nEstadisticas"
+user - -> UC3 : "Clic en tab\nTopomap"
+user - -> UC11 : "Seleccionar archivo\nen Sidebar"
+user - -> UC12 : "Elegir clase\nen dropdown"
+user - -> UC13 : "Mover slider\nde tiempo"
+user - -> UC5 : "Clic en tab\nPor Canal"
+user - -> UC6 : "Clic en tab\nSeñal Raw"
+user - -> UC7 : "Clic en tab\nHeatmap"
+user - -> UC8 : "Clic en tab\nFrecuencias"
+user - -> UC9 : "Clic en tab\nCalidad"
+
+UC1 ..> UC10 : <<include>>
+UC1 ..> UI1 : <<include>>
+
+UC2 ..> UC10 : <<include>>
+UC2 ..> UI1 : <<include>>
+UC2 ..> UI2 : <<include>>
+
+UC3 ..> UC10 : <<include>>
+UC3 ..> UI1 : <<include>>
+
+UC4 ..> UC11 : <<include>>
+UC4 ..> UC12 : <<include>>
+UC4 ..> UC13 : <<include>>
+UC4 ..> BACK2 : <<include>>
+UC4 ..> EXT2 : <<include>>
+UC4 ..> UI3 : <<include>>
+
+UC3 ..> UC4 : <<extend>>\ncon archivo seleccionado
+
+UC5 ..> UC10 : <<include>>
+UC5 ..> UI2 : <<include>>
+
+UC6 ..> BACK1 : <<include>>
+UC6 ..> UI1 : <<include>>
+
+UC7 ..> UC10 : <<include>>
+
+UC8 ..> UC10 : <<include>>
+UC8 ..> UI1 : <<include>>
+UC8 ..> UI2 : <<include>>
+
+UC9 ..> UC10 : <<include>>
+UC9 ..> UI1 : <<include>>
+
+UC10 ..> EXT1 : <<include>>
+UC10 ..> BACK3 : <<include>>
+
+UC11 - -> UC4 : trigger
+
+note right of UC1
+  Flujo:
+  1. Sistema carga metadata desde Store
+  2. Muestra resumen: nombre, clases,
+     archivos, frecuencia, duracion
+  3. Calcula score de calidad (estrellas)
+  4. Renderiza en Card con metricas clave
+end note
+
+note right of UC2
+  Flujo:
+  1. Lee class_counts_total de metadata
+  2. Genera grafico de barras (Plotly)
+  3. Lee sessions de metadata
+  4. Crea tabla paginada con DataTable
+  5. Muestra: Subject, Session,
+     Duracion, Eventos, Freq. Muestreo
+end note
+
+note right of UC3
+  Flujo:
+  1. Lee montage de metadata
+  2. Valida que tenga posiciones
+  3. Extrae coordenadas x,y de electrodos
+  4. Dibuja circulo de cabeza y nariz
+  5. Plotea electrodos con labels
+  6. Muestra tipo de montage detectado
+end note
+
+note right of UC4
+  Flujo:
+  1. Usuario selecciona archivo en Sidebar
+  2. Elige clase de dropdown
+  3. Ajusta tiempo con slider (0-3.2s)
+  4. Sistema carga primer evento de clase
+  5. Calcula indice de muestra (tiempo x sfreq)
+  6. Extrae valores de todos los canales
+  7. Mapea valores a coordenadas espaciales
+  8. Renderiza topomap con colormap RdBu
+end note
+
+note bottom of UC5
+  Flujo:
+  1. Lee channel_stats de metadata
+  2. Crea tabla con: Canal, Media, Desv. Std,
+     Min, Max, RMS (todos en notacion cientifica)
+  3. DataTable con paginacion, ordenamiento
+     y filtrado nativo
+  4. Muestra primeros 15 canales por pagina
+end note
+
+note bottom of UC6
+  Flujo:
+  1. Usuario selecciona archivo en Sidebar
+  2. Callback carga datos con
+     Dataset.load_signal_data()
+  3. Lee archivo .npy y labels
+  4. Serializa primeros 5000 puntos
+  5. Renderiza con callbacks clientside
+  6. Permite navegacion temporal
+end note
+
+note bottom of UC8
+  Flujo:
+  1. Lee frequency_bands de metadata
+  2. Crea grafico de barras con colores:
+     Delta (rojo), Theta (magenta),
+     Alpha (cyan), Beta (verde),
+     Gamma (amarillo)
+  3. Muestra potencia promedio (V²/Hz)
+  4. Tabla con rangos de frecuencia
+end note
+
+note bottom of UC9
+  Flujo:
+  1. Lee quality_metrics de metadata
+  2. Muestra 3 cards: Bad Channels,
+     Balance de Clases, Eventos Totales
+  3. Grafico de pastel para balance
+  4. Lista de bad channels detectados
+  5. Ratio de desbalance de clases
+  6. Info sobre metricas de calidad
+end note
+
+skinparam usecase {
+  BackgroundColor lightblue
+  BorderColor darkblue
+  ArrowColor darkblue
+}
+
+skinparam actor {
+  BackgroundColor lightblue
+  BorderColor darkblue
+}
+
+skinparam note {
+  BackgroundColor lightyellow
+  BorderColor orange
+}
+@enduml
+
+PlantUML version 1.2022.7(Mon Aug 22 17:01:30 UTC 2022)
+(GPL source distribution)
+Java Runtime: OpenJDK Runtime Environment
+JVM: OpenJDK 64-Bit Server VM
+Default Encoding: UTF-8
+Language: en
+Country: null
+--></g></svg>
