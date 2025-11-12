@@ -212,4 +212,6 @@ src/backend/Experiments/*
 **/*inner*speech*.npy
 **/*sub-*_ses-*_task-*.npy
 
+src/Data/innerSpeech/src/src/backend/models/
+src/backend/Experiments/
 src/Data/innerSpeech/
