@@ -3,11 +3,9 @@ from dash.exceptions import PreventUpdate
 import dash_bootstrap_components as dbc
 from app.components.PageContainer import get_page_container
 from shared.fileUtils import get_data_folders
-from backend.classes.dataset import Dataset
-import os
-from pathlib import Path
+from backend.classes.dataset import Dataset, clean_experiments
 
-register_page(__name__, path="/cargardatos", name="Cargar Datos")
+register_page(__name__, path="/cargar-datos", name="Cargar Datos")
 
 # Estilo común para botones
 BUTTON_STYLE = {
@@ -129,6 +127,41 @@ layout = get_page_container(
 
             # Lista de datasets (pendientes o procesados)
             html.Div(id="datasets-list", style={"marginTop": "0.5rem", "textAlign": "center"}),
+            html.Hr(style={"margin":"1.5rem 0"}),
+            html.Div(
+                [
+                    html.Div("Limpieza de artefactos (sin tocar Events)", style={"fontWeight":700, "marginBottom":"0.5rem"}),
+                    html.Div("Elige qué borrar: artefactos de pipeline (pipeline_cache, intermediates) o subsets generados. Los eventos nunca se eliminan.", style={"fontSize":"0.8rem", "opacity":0.7, "marginBottom":"0.75rem"}),
+                    html.Div([
+                        dcc.Dropdown(
+                            id="cleanup-mode",
+                            options=[
+                                {"label":"Pipeline + Intermediates", "value":"pipeline"},
+                                {"label":"Subsets generados", "value":"subset"}
+                            ],
+                            value="pipeline",
+                            clearable=False,
+                            className="custom-dropdown",
+                            style={
+                                "minWidth": "280px",
+                                "backgroundColor": "#FFFFFF",
+                                "color": "#000000",
+                                "border": "1px solid color-mix(in srgb, var(--color-4) 40%, transparent)",
+                                "borderRadius": "10px"
+                            }
+                        ),
+                        html.Button(
+                            "Limpiar",
+                            id="cleanup-btn",
+                            n_clicks=0,
+                            style={**BUTTON_STYLE, "backgroundColor":"#ff5c5c", "borderColor":"#ff8a8a"},
+                            title="Ejecuta la limpieza según el modo seleccionado"
+                        )
+                    ], style={"display":"flex", "flexWrap":"wrap", "gap":"0.75rem", "justifyContent":"center", "alignItems":"center"}),
+                    html.Div(id="cleanup-report", style={"marginTop":"0.75rem", "fontSize":"0.8rem", "whiteSpace":"pre-wrap"})
+                ],
+                style={"marginTop":"1rem", "textAlign":"center"}
+            ),
         ]
     ),
 )
@@ -554,3 +587,47 @@ def redirect_to_dataset(n_clicks_list):
     print(f"👉 Dataset seleccionado: {nombre}")
 
     return "/dataset"
+
+# =============================================================================
+# Callback 6: Ejecutar limpieza de experimentos
+# =============================================================================
+@callback(
+    Output("cleanup-report", "children"),
+    Input("cleanup-btn", "n_clicks"),
+    State("cleanup-mode", "value"),
+    prevent_initial_call=True
+)
+def run_cleanup(n_clicks, mode):
+    if n_clicks == 0:
+        raise PreventUpdate
+    try:
+        report = clean_experiments(None, mode=mode, dry_run=False)
+        lines = []
+        lines.append(f"Modo: {report.mode}")
+        lines.append(f"Experimentos encontrados: {report.experiments_found}")
+        if mode == "pipeline":
+            lines.append(f"pipeline_cache dirs eliminadas: {report.pipeline_cache_dirs}")
+            lines.append(f"intermediates dirs eliminadas: {report.intermediates_dirs}")
+            lines.append(f"Archivos *_final.npy contados antes: {report.files_final_npy}")
+            lines.append(f"Archivos *_metadata.json contados antes: {report.files_metadata_json}")
+        elif mode == "subset":
+            lines.append(f"generated_datasets dirs eliminadas: {report.generated_datasets_dirs}")
+        if report.deleted_dirs:
+            lines.append("Directorio(s) borrados:")
+            for d in report.deleted_dirs[:25]:
+                lines.append(f"  - {d}")
+            if len(report.deleted_dirs) > 25:
+                lines.append(f"  ... {len(report.deleted_dirs)-25} más")
+        else:
+            lines.append("No se borraron directorios.")
+        if report.kept_dirs:
+            lines.append("No eliminados / errores:")
+            for d in report.kept_dirs[:10]:
+                lines.append(f"  - {d}")
+            if len(report.kept_dirs) > 10:
+                lines.append(f"  ... {len(report.kept_dirs)-10} más")
+        return html.Pre("\n".join(lines), style={"textAlign":"left", "background":"rgba(255,255,255,0.05)", "padding":"0.75rem", "borderRadius":"8px", "border":"1px solid rgba(255,255,255,0.15)"})
+    except Exception as e:
+        return html.Div([
+            html.Span("Error en limpieza: "), html.Code(str(e))
+        ], style={"color":"#ff6b6b"})

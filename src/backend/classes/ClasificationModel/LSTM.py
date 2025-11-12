@@ -2,6 +2,9 @@ from __future__ import annotations
 from typing import List, Literal, Optional, Sequence, Tuple
 import numpy as np
 from pydantic import BaseModel, Field, field_validator
+import pickle
+from pathlib import Path
+from datetime import datetime
 
 # ===== Tipos =====
 NDArray = np.ndarray
@@ -149,6 +152,62 @@ class LSTMNet(BaseModel):
 
     # Objeto de modelo entrenado (keras.Model) para query posterior (se llena en fit)
     _tf_model: Optional[object] = None  # usar 'object' para no forzar import keras al parsear schema
+
+    # =================================================================================
+    # Persistencia: save/load
+    # =================================================================================
+    def save(self, path: str):
+        """
+        Guarda la instancia completa (configuración + modelo entrenado) a disco.
+        
+        Args:
+            path: Ruta completa donde guardar el archivo .pkl
+                  Ejemplo: "src/backend/models/p300/lstm_20251109_143022.pkl"
+        
+        Note:
+            Usa pickle para serializar toda la instancia incluyendo _tf_model.
+            El directorio padre se crea automáticamente si no existe.
+        """
+        Path(path).parent.mkdir(parents=True, exist_ok=True)
+        with open(path, 'wb') as f:
+            pickle.dump(self, f)
+        print(f"[LSTM] Modelo guardado en: {path}")
+    
+    @classmethod
+    def load(cls, path: str) -> "LSTMNet":
+        """
+        Carga una instancia completa desde disco.
+        
+        Args:
+            path: Ruta al archivo .pkl guardado previamente
+        
+        Returns:
+            Instancia de LSTMNet con modelo entrenado listo para query()
+        
+        Example:
+            lstm_model = LSTMNet.load("src/backend/models/p300/lstm_20251109_143022.pkl")
+            predictions = LSTMNet.query(lstm_model, sequences)
+        """
+        with open(path, 'rb') as f:
+            instance = pickle.load(f)
+        print(f"[LSTM] Modelo cargado desde: {path}")
+        return instance
+    
+    @staticmethod
+    def _generate_model_path(label: str, base_dir: str = "src/backend/models") -> str:
+        """
+        Genera ruta única para guardar modelo.
+        
+        Args:
+            label: Etiqueta del experimento (e.g., "p300", "inner")
+            base_dir: Directorio base para modelos
+        
+        Returns:
+            Ruta completa: "{base_dir}/{label}/lstm_{timestamp}.pkl"
+        """
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"lstm_{timestamp}.pkl"
+        return str(Path(base_dir) / label / filename)
 
     # =================================================================================
     # Helpers de metadatos
@@ -344,9 +403,13 @@ class LSTMNet(BaseModel):
         epochs: int = 2,
         batch_size: int = 64,
         lr: float = 1e-3,
+        model_label: Optional[str] = None,
     ):
         """
-        Entrena un modelo LSTM usando TensorFlow/Keras.
+        Entrena un modelo LSTM usando TensorFlow/Keras (wrapper legacy).
+        
+        Este método mantiene compatibilidad con código existente retornando solo EvaluationMetrics.
+        Internamente delega a fit() para evitar duplicación de código.
 
         Args:
             instance: Instancia de LSTMNet con arquitectura configurada
@@ -365,229 +428,31 @@ class LSTMNet(BaseModel):
             epochs: Número de épocas de entrenamiento
             batch_size: Tamaño de batch
             lr: Learning rate
+            model_label: Etiqueta opcional para auto-guardar (e.g., "p300", "inner").
+                        Si se proporciona, guarda automáticamente en src/backend/models/{label}/
+            
+        Returns:
+            EvaluationMetrics: Solo las métricas de evaluación (para compatibilidad backward)
+            
+        Note:
+            Si necesitas acceso al modelo entrenado y más información, usa fit() en su lugar.
         """
-        # 1) Prepara dataset con metadatos
-        try:
-            seq_tr, len_tr, y_tr = cls._prepare_sequences_and_labels(
-                xTrain, yTrain,
-                pad_value=instance.encoder.pad_value,
-                metadata_list=metadata_train
-            )
-            seq_te, len_te, y_te = cls._prepare_sequences_and_labels(
-                xTest, yTest,
-                pad_value=instance.encoder.pad_value,
-                metadata_list=metadata_test
-            )
-        except Exception as e:
-            raise RuntimeError(f"Error preparando dataset LSTM: {e}") from e
-
-        # 2) Chequeo básico
-        d_enc, is_seq = instance.encoder.infer_output_signature()
-        in_F = instance.encoder.input_feature_dim
-        n_classes = int(max(int(y_tr.max()), int(y_te.max()))) + 1
-        if d_enc < 1 or in_F < 1 or n_classes < 2:
-            raise ValueError("Dimensionalidades/num clases inválidas.")
-
-        try:
-            import tensorflow as tf
-            from tensorflow import keras
-            from tensorflow.keras import layers, models
-
-            # Configurar GPU si está disponible
-            gpus = tf.config.list_physical_devices('GPU')
-            if gpus:
-                try:
-                    for gpu in gpus:
-                        tf.config.experimental.set_memory_growth(gpu, True)
-                except RuntimeError as e:
-                    print(f"GPU config error: {e}")
-
-            # Padding de secuencias a longitud máxima
-            max_len_tr = int(len_tr.max())
-            max_len_te = int(len_te.max())
-            pad_value = instance.encoder.pad_value
-
-            def pad_sequences(seqs: List[NDArray], max_len: int, pad_val: float) -> NDArray:
-                """Pad secuencias a max_len. Retorna (N, T, F)"""
-                N = len(seqs)
-                F = seqs[0].shape[1]
-                padded = np.full((N, max_len, F), pad_val, dtype=np.float32)
-                for i, seq in enumerate(seqs):
-                    T = seq.shape[0]
-                    padded[i, :T, :] = seq
-                return padded
-
-            X_tr_padded = pad_sequences(seq_tr, max_len_tr, pad_value)  # (N_tr, T_tr, F)
-            X_te_padded = pad_sequences(seq_te, max_len_te, pad_value)  # (N_te, T_te, F)
-
-            # ------- Construcción del modelo con TensorFlow/Keras -------
-            def build_lstm_model(spec: LSTMNet, input_shape: Tuple[int, int]) -> keras.Model:
-                """
-                Construye modelo LSTM usando Keras.
-
-                Args:
-                    spec: Especificación LSTMNet
-                    input_shape: (max_seq_len, feature_dim)
-                """
-                # Input con masking
-                inputs = layers.Input(shape=input_shape, name='input')
-                x = layers.Masking(mask_value=spec.encoder.pad_value)(inputs)
-
-                # Encoder (LSTM layers)
-                for i, lstm_layer in enumerate(spec.encoder.layers):
-                    return_sequences = lstm_layer.return_sequences or (i < len(spec.encoder.layers) - 1)
-
-                    # Configurar LSTM con todos los parámetros
-                    lstm = layers.LSTM(
-                        units=lstm_layer.hidden_size,
-                        return_sequences=return_sequences,
-                        dropout=lstm_layer.dropout if lstm_layer.num_layers > 1 else 0.0,
-                        recurrent_dropout=lstm_layer.recurrent_dropout,
-                        kernel_initializer=lstm_layer.kernel_initializer,
-                        recurrent_initializer=lstm_layer.recurrent_initializer,
-                        use_bias=lstm_layer.use_bias,
-                        unit_forget_bias=lstm_layer.unit_forget_bias,
-                        name=f'lstm_{i}'
-                    )
-
-                    if lstm_layer.bidirectional:
-                        x = layers.Bidirectional(lstm, name=f'bidirectional_lstm_{i}')(x)
-                    else:
-                        x = lstm(x)
-
-                    # Si hay múltiples num_layers, apilar más LSTMs
-                    for j in range(1, lstm_layer.num_layers):
-                        inner_return_seq = return_sequences if j == lstm_layer.num_layers - 1 else True
-                        lstm_inner = layers.LSTM(
-                            units=lstm_layer.hidden_size,
-                            return_sequences=inner_return_seq,
-                            dropout=lstm_layer.dropout,
-                            recurrent_dropout=lstm_layer.recurrent_dropout,
-                            kernel_initializer=lstm_layer.kernel_initializer,
-                            recurrent_initializer=lstm_layer.recurrent_initializer,
-                            use_bias=lstm_layer.use_bias,
-                            unit_forget_bias=lstm_layer.unit_forget_bias,
-                            name=f'lstm_{i}_inner_{j}'
-                        )
-                        if lstm_layer.bidirectional:
-                            x = layers.Bidirectional(lstm_inner, name=f'bidirectional_lstm_{i}_inner_{j}')(x)
-                        else:
-                            x = lstm_inner(x)
-
-                # Pooling temporal (si la última capa devuelve secuencias)
-                if is_seq or spec.encoder.layers[-1].return_sequences:
-                    pool_kind = spec.pooling.kind
-                    if pool_kind == "last":
-                        # Tomar último paso (ya manejado por return_sequences=False)
-                        x = layers.Lambda(lambda t: t[:, -1, :], name='last_pooling')(x)
-                    elif pool_kind == "mean":
-                        x = layers.GlobalAveragePooling1D(name='mean_pooling')(x)
-                    elif pool_kind == "max":
-                        x = layers.GlobalMaxPooling1D(name='max_pooling')(x)
-                    elif pool_kind == "attn":
-                        # Attention pooling simple
-                        attn_hidden = spec.pooling.attn_hidden or 64
-                        # Calcular scores de atención
-                        attn_scores = layers.Dense(attn_hidden, activation='tanh', name='attn_hidden')(x)
-                        attn_scores = layers.Dense(1, name='attn_scores')(attn_scores)
-                        attn_weights = layers.Softmax(axis=1, name='attn_weights')(attn_scores)
-                        # Weighted sum
-                        x = layers.Multiply(name='attn_multiply')([x, attn_weights])
-                        x = layers.Lambda(lambda t: tf.reduce_sum(t, axis=1), name='attn_sum')(x)
-
-                # FC layers
-                for i, fc in enumerate(spec.fc_layers):
-                    x = layers.Dense(fc.units, name=f'fc_{i}')(x)
-                    act = spec.fc_activation_common.kind
-                    if act == "relu":
-                        x = layers.ReLU(name=f'fc_{i}_relu')(x)
-                    elif act == "tanh":
-                        x = layers.Activation('tanh', name=f'fc_{i}_tanh')(x)
-                    elif act == "gelu":
-                        x = layers.Activation('gelu', name=f'fc_{i}_gelu')(x)
-                    elif act == "sigmoid":
-                        x = layers.Activation('sigmoid', name=f'fc_{i}_sigmoid')(x)
-
-                # Classification layer
-                outputs = layers.Dense(spec.classification.units, activation='softmax', name='classification')(x)
-
-                return keras.Model(inputs=inputs, outputs=outputs, name='LSTMNet')
-
-            # Construir modelo
-            model = build_lstm_model(instance, input_shape=(X_tr_padded.shape[1], in_F))
-
-            # Compilar
-            model.compile(
-                optimizer=keras.optimizers.Adam(learning_rate=lr),
-                loss='sparse_categorical_crossentropy',
-                metrics=['accuracy']
-            )
-
-            # Entrenar
-            t0 = time.perf_counter()
-            history = model.fit(
-                X_tr_padded, y_tr,
-                batch_size=batch_size,
-                epochs=epochs,
-                verbose=1,
-                validation_data=(X_te_padded, y_te)
-            )
-            train_time = time.perf_counter() - t0
-
-            train_losses: List[float] = history.history['loss']
-
-            # Evaluación
-            t0 = time.perf_counter()
-            logits = model.predict(X_te_padded, batch_size=batch_size, verbose=0)
-            y_pred = np.argmax(logits, axis=1)
-            y_true = y_te
-            eval_seconds = time.perf_counter() - t0
-
-            # Métricas básicas
-            acc  = float(accuracy_score(y_true, y_pred))
-            prec = float(precision_score(y_true, y_pred, average="weighted", zero_division=0))
-            rec  = float(recall_score(y_true, y_pred, average="weighted", zero_division=0))
-            f1   = float(f1_score(y_true, y_pred, average="weighted", zero_division=0))
-            cm   = confusion_matrix(y_true, y_pred).tolist()
-
-            # AUC-ROC
-            try:
-                auc = float(roc_auc_score(y_true, logits, multi_class="ovr", average="weighted"))
-            except Exception:
-                auc = 0.0
-
-            metrics = EvaluationMetrics(
-                accuracy=acc,
-                precision=prec,
-                recall=rec,
-                f1_score=f1,
-                confusion_matrix=cm,
-                auc_roc=auc,
-                loss=train_losses,
-                evaluation_time=f"{eval_seconds:.4f}s",
-            )
-
-            print(f"[LSTM] Acc={acc:.3f} F1={f1:.3f} AUC={auc:.3f}")
-            # Solo métricas para compatibilidad legacy
-            return metrics
-
-
-        except Exception as e:
-            print("[LSTM] Entrenamiento real no ejecutado (fallback).")
-            print(f"Razón: {e}")
-            import traceback
-            traceback.print_exc()
-            metrics = EvaluationMetrics(
-                accuracy=0.0,
-                precision=0.0,
-                recall=0.0,
-                f1_score=0.0,
-                confusion_matrix=[],
-                auc_roc=0.0,
-                loss=[],
-                evaluation_time="",
-            )
-            return metrics
+        # Delegar a fit() y extraer solo métricas (evita duplicación de código)
+        result = cls.fit(
+            instance=instance,
+            xTest=xTest,
+            yTest=yTest,
+            xTrain=xTrain,
+            yTrain=yTrain,
+            metadata_train=metadata_train,
+            metadata_test=metadata_test,
+            epochs=epochs,
+            batch_size=batch_size,
+            lr=lr,
+            return_history=False,  # No necesitamos historia completa para legacy API
+            model_label=model_label
+        )
+        return result.metrics
 
     # Nuevo método: devuelve TrainResult con el modelo entrenado y métricas
     @classmethod
@@ -604,10 +469,15 @@ class LSTMNet(BaseModel):
         batch_size: int = 64,
         lr: float = 1e-3,
         return_history: bool = True,
+        model_label: Optional[str] = None,
     ) -> TrainResult:
         """Entrena y devuelve paquete TrainResult (modelo + métricas + historia).
 
         No rompe `train()`: es una API paralela opt-in.
+        
+        Args:
+            model_label: Etiqueta opcional para auto-guardar (e.g., "p300", "inner").
+                        Si se proporciona, guarda automáticamente en src/backend/models/{label}/
         """
         try:
             seq_tr, len_tr, y_tr = cls._prepare_sequences_and_labels(
@@ -633,6 +503,9 @@ class LSTMNet(BaseModel):
             import tensorflow as tf
             from tensorflow import keras
             from tensorflow.keras import layers
+
+            # Limpiar modelo previo (cada fit() reconstruye desde cero)
+            instance._tf_model = None
 
             gpus = tf.config.list_physical_devices('GPU')
             if gpus:
@@ -767,6 +640,12 @@ class LSTMNet(BaseModel):
             )
             instance._tf_model = model
             print(f"[LSTM.fit] Acc={acc:.3f} F1={f1:.3f} AUC={auc:.3f}")
+            
+            # Auto-guardar si se proporciona label
+            if model_label:
+                save_path = cls._generate_model_path(model_label)
+                instance.save(save_path)
+            
             return TrainResult(
                 metrics=metrics,
                 model=model,

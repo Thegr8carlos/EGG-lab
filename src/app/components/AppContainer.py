@@ -34,5 +34,6 @@ def get_app_container(header, navBar, sidebar, page_container):
             ),
             dcc.Location(id="url"),
             dcc.Store(id="selected-file-path", storage_type="local"),
+            dcc.Store(id="selected-dataset", storage_type="session"),
         ],
     )

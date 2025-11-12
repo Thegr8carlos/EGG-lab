@@ -2,11 +2,15 @@ from __future__ import annotations
 from typing import List, Literal, Optional, Sequence, Tuple, Union
 import math
 import numpy as np
+import pickle
+from pathlib import Path
+from datetime import datetime
 from pydantic import BaseModel, Field, field_validator
 import time
 
 from backend.classes.Metrics import EvaluationMetrics
 from backend.classes.ClasificationModel.utils.RecurrentModelDataUtils import RecurrentModelDataUtils
+from backend.classes.ClasificationModel.utils.TrainResult import TrainResult
 
 from sklearn.metrics import (
     accuracy_score,
@@ -147,8 +151,67 @@ class GRUNet(BaseModel):
             return int(d)
 
     def flatten_dim(self) -> int:
-        # En RNN, el “flatten” es simplemente el vector tras pooling (o salida final).
+        # En RNN, el "flatten" es simplemente el vector tras pooling (o salida final).
         return self.feature_dim_after_encoder()
+
+    # Objeto de modelo entrenado (keras.Model) para query posterior (se llena en fit)
+    _tf_model: Optional[object] = None
+
+    # =================================================================================
+    # Persistencia: save/load
+    # =================================================================================
+    def save(self, path: str):
+        """
+        Guarda la instancia completa (configuración + modelo entrenado) a disco.
+        
+        Args:
+            path: Ruta completa donde guardar el archivo .pkl
+                  Ejemplo: "src/backend/models/p300/gru_20251109_143022.pkl"
+        
+        Note:
+            Usa pickle para serializar toda la instancia incluyendo _tf_model.
+            El directorio padre se crea automáticamente si no existe.
+        """
+        Path(path).parent.mkdir(parents=True, exist_ok=True)
+        with open(path, 'wb') as f:
+            pickle.dump(self, f)
+        print(f"[GRU] Modelo guardado en: {path}")
+    
+    @classmethod
+    def load(cls, path: str) -> "GRUNet":
+        """
+        Carga una instancia completa desde disco.
+        
+        Args:
+            path: Ruta al archivo .pkl guardado previamente
+        
+        Returns:
+            Instancia de GRUNet con modelo entrenado listo para query()
+        
+        Example:
+            gru_model = GRUNet.load("src/backend/models/p300/gru_20251109_143022.pkl")
+            predictions = GRUNet.query(gru_model, sequences)
+        """
+        with open(path, 'rb') as f:
+            instance = pickle.load(f)
+        print(f"[GRU] Modelo cargado desde: {path}")
+        return instance
+    
+    @staticmethod
+    def _generate_model_path(label: str, base_dir: str = "src/backend/models") -> str:
+        """
+        Genera ruta única para guardar modelo.
+        
+        Args:
+            label: Etiqueta del experimento (e.g., "p300", "inner")
+            base_dir: Directorio base para modelos
+        
+        Returns:
+            Ruta completa: "{base_dir}/{label}/gru_{timestamp}.pkl"
+        """
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"gru_{timestamp}.pkl"
+        return str(Path(base_dir) / label / filename)
 
     # =================================================================================
     # Helpers de metadatos
@@ -257,8 +320,6 @@ class GRUNet(BaseModel):
         # Fallback final
         return "time_first", False
 
-   
-
     # =================================================================================
     # Entrenamiento: TensorFlow/Keras con soporte de metadatos
     # =================================================================================
@@ -275,9 +336,13 @@ class GRUNet(BaseModel):
         epochs: int = 2,
         batch_size: int = 64,
         lr: float = 1e-3,
+        model_label: Optional[str] = None,
     ):
         """
-        Entrena un modelo GRU usando TensorFlow/Keras.
+        Entrena un modelo GRU usando TensorFlow/Keras (wrapper legacy).
+        
+        Este método mantiene compatibilidad con código existente retornando solo EvaluationMetrics.
+        Internamente delega a fit() para evitar duplicación de código.
 
         Args:
             instance: Instancia de GRUNet con arquitectura configurada
@@ -285,17 +350,60 @@ class GRUNet(BaseModel):
             yTest: Lista de rutas a archivos .npy con etiquetas de test
             xTrain: Lista de rutas a archivos .npy de entrenamiento
             yTrain: Lista de rutas a archivos .npy con etiquetas de entrenamiento
-            metadata_train: Lista de diccionarios con metadatos de dimensionality_change para train.
-                           Cada diccionario debe contener:
-                           - 'output_axes_semantics': dict con semántica de ejes
-                           - 'output_shape': tuple con forma de salida
-                           Ejemplo:
-                           [{"output_axes_semantics": {"axis0": "time", "axis1": "channels"},
-                             "output_shape": (1000, 64)}]
+            metadata_train: Lista de diccionarios con metadatos de dimensionality_change para train
             metadata_test: Lista de diccionarios con metadatos para test
             epochs: Número de épocas de entrenamiento
             batch_size: Tamaño de batch
             lr: Learning rate
+            model_label: Etiqueta opcional para auto-guardar (e.g., "p300", "inner").
+                        Si se proporciona, guarda automáticamente en src/backend/models/{label}/
+            
+        Returns:
+            EvaluationMetrics: Solo las métricas de evaluación (para compatibilidad backward)
+            
+        Note:
+            Si necesitas acceso al modelo entrenado y más información, usa fit() en su lugar.
+        """
+        # Delegar a fit() y extraer solo métricas (evita duplicación de código)
+        result = cls.fit(
+            instance=instance,
+            xTest=xTest,
+            yTest=yTest,
+            xTrain=xTrain,
+            yTrain=yTrain,
+            metadata_train=metadata_train,
+            metadata_test=metadata_test,
+            epochs=epochs,
+            batch_size=batch_size,
+            lr=lr,
+            return_history=False,
+            model_label=model_label
+        )
+        return result.metrics
+
+    @classmethod
+    def fit(
+        cls,
+        instance: "GRUNet",
+        xTest: List[str],
+        yTest: List[str],
+        xTrain: List[str],
+        yTrain: List[str],
+        metadata_train: Optional[List[dict]] = None,
+        metadata_test: Optional[List[dict]] = None,
+        epochs: int = 2,
+        batch_size: int = 64,
+        lr: float = 1e-3,
+        return_history: bool = True,
+        model_label: Optional[str] = None,
+    ) -> TrainResult:
+        """Entrena y devuelve paquete TrainResult (modelo + métricas + historia).
+
+        No rompe `train()`: es una API paralela opt-in.
+        
+        Args:
+            model_label: Etiqueta opcional para auto-guardar (e.g., "p300", "inner").
+                        Si se proporciona, guarda automáticamente en src/backend/models/{label}/
         """
         # 1) Prepara dataset con metadatos
         try:
@@ -325,6 +433,9 @@ class GRUNet(BaseModel):
             import tensorflow as tf
             from tensorflow import keras
             from tensorflow.keras import layers, models
+
+            # Limpiar modelo previo (cada fit() reconstruye desde cero)
+            instance._tf_model = None
 
             # Configurar GPU si está disponible
             gpus = tf.config.list_physical_devices('GPU')
@@ -502,8 +613,39 @@ class GRUNet(BaseModel):
                 evaluation_time=f"{eval_seconds:.4f}s",
             )
 
+            # Guardar modelo en la instancia
+            instance._tf_model = model
+
+            # Auto-guardar si se proporciona model_label
+            if model_label:
+                save_path = cls._generate_model_path(model_label)
+                instance.save(save_path)
+                print(f"[GRU] Modelo guardado automáticamente en: {save_path}")
+
+            # Construir historial para TrainResult
+            hist_dict = history.history if return_history else {}
+
+            # Construir hiperparámetros
+            hyperparams = {
+                "epochs": epochs,
+                "batch_size": batch_size,
+                "learning_rate": lr,
+                "n_classes": n_classes,
+                "max_len_train": max_len_tr,
+                "max_len_test": max_len_te,
+                "model_architecture": model.summary(print_fn=lambda x: None) or "GRU",
+            }
+
             print(f"[GRU] Acc={acc:.3f} F1={f1:.3f} AUC={auc:.3f}")
-            return metrics
+
+            return TrainResult(
+                metrics=metrics,
+                model=instance,
+                model_name="GRU",
+                training_seconds=train_time,
+                history=hist_dict,
+                hyperparams=hyperparams,
+            )
 
         except Exception as e:
             print("[GRU] Entrenamiento real no ejecutado (fallback).")
@@ -520,7 +662,84 @@ class GRUNet(BaseModel):
                 loss=[],
                 evaluation_time="",
             )
-            return metrics
+            return TrainResult(
+                metrics=metrics,
+                model=instance,
+                model_name="GRU",
+                training_seconds=0.0,
+                history={},
+                hyperparams={"error": str(e)},
+            )
+
+    # =================================================================================
+    # Inferencia con modelo entrenado
+    # =================================================================================
+    @classmethod
+    def query(
+        cls,
+        instance: "GRUNet",
+        data: List[NDArray],
+        metadata_list: Optional[List[dict]] = None,
+        batch_size: int = 64
+    ) -> Tuple[NDArray, NDArray]:
+        """
+        Realiza inferencia con el modelo GRU entrenado.
+
+        Args:
+            instance: Instancia de GRUNet con modelo entrenado (_tf_model debe existir)
+            data: Lista de secuencias como NDArray (cada una con shape (T, F))
+            metadata_list: Lista opcional de diccionarios con metadatos (misma estructura que train)
+            batch_size: Tamaño de batch para predicción
+
+        Returns:
+            Tuple[NDArray, NDArray]: (predictions, probabilities)
+                - predictions: Array 1D con clases predichas (índices)
+                - probabilities: Array 2D con probabilidades por clase (N, n_classes)
+
+        Raises:
+            ValueError: Si el modelo no ha sido entrenado (_tf_model es None)
+        """
+        if instance._tf_model is None:
+            raise ValueError(
+                "El modelo no ha sido entrenado. Llama a train() o fit() primero, "
+                "o carga un modelo existente con load()."
+            )
+
+        try:
+            import tensorflow as tf
+            
+            # Preparar secuencias (sin labels ya que es inferencia)
+            if metadata_list:
+                # Aplicar mismo procesamiento que en entrenamiento
+                processed_seqs = []
+                for seq, metadata in zip(data, metadata_list):
+                    axis_order, needs_transpose = cls._interpret_metadata(metadata)
+                    if needs_transpose:
+                        seq = seq.T  # (F,T) → (T,F)
+                    processed_seqs.append(seq)
+            else:
+                processed_seqs = data
+
+            # Padding a longitud máxima
+            max_len = max(seq.shape[0] for seq in processed_seqs)
+            pad_value = instance.encoder.pad_value
+            F = processed_seqs[0].shape[1]
+            N = len(processed_seqs)
+
+            X_padded = np.full((N, max_len, F), pad_value, dtype=np.float32)
+            for i, seq in enumerate(processed_seqs):
+                T = seq.shape[0]
+                X_padded[i, :T, :] = seq
+
+            # Predicción
+            probabilities = instance._tf_model.predict(X_padded, batch_size=batch_size, verbose=0)
+            predictions = np.argmax(probabilities, axis=1)
+
+            return predictions, probabilities
+
+        except Exception as e:
+            raise RuntimeError(f"Error en inferencia GRU: {e}") from e
+
 
 
 # Alias for backward compatibility

@@ -2,6 +2,9 @@ from __future__ import annotations
 
 import os
 import time
+import pickle
+from pathlib import Path
+from datetime import datetime
 from typing import List, Literal, Optional, Sequence, Tuple, Union
 
 import numpy as np
@@ -21,6 +24,7 @@ from sklearn.svm import SVC
 
 from backend.classes.ClasificationModel.ClsificationModels import Classifier
 from backend.classes.Metrics import EvaluationMetrics
+from backend.classes.ClasificationModel.utils.TrainResult import TrainResult
 from backend.classes.dataset import _load_and_concat
 
 
@@ -65,6 +69,9 @@ class SVM(Classifier):
         None, description="Pesos de clases: None o 'balanced' para balanceo automático"
     )
 
+    # Modelo entrenado (sklearn SVC) para query posterior (se llena en fit)
+    _svc_model: Optional[object] = None
+
     @field_validator("gamma")
     @classmethod
     def _validate_gamma(cls, v: Optional[str]) -> Optional[str]:
@@ -79,6 +86,62 @@ class SVM(Classifier):
             return v
         except Exception:
             raise ValueError("gamma debe ser 'scale', 'auto' o un valor numérico como string (e.g. '0.01').")
+
+    # =================================================================================
+    # Persistencia: save/load
+    # =================================================================================
+    def save(self, path: str):
+        """
+        Guarda la instancia completa (configuración + modelo entrenado) a disco.
+        
+        Args:
+            path: Ruta completa donde guardar el archivo .pkl
+                  Ejemplo: "src/backend/models/p300/svm_20251109_143022.pkl"
+        
+        Note:
+            Usa pickle para serializar toda la instancia incluyendo _svc_model.
+            El directorio padre se crea automáticamente si no existe.
+        """
+        Path(path).parent.mkdir(parents=True, exist_ok=True)
+        with open(path, 'wb') as f:
+            pickle.dump(self, f)
+        print(f"[SVM] Modelo guardado en: {path}")
+    
+    @classmethod
+    def load(cls, path: str) -> "SVM":
+        """
+        Carga una instancia completa desde disco.
+        
+        Args:
+            path: Ruta al archivo .pkl guardado previamente
+        
+        Returns:
+            Instancia de SVM con modelo entrenado listo para query()
+        
+        Example:
+            svm_model = SVM.load("src/backend/models/p300/svm_20251109_143022.pkl")
+            predictions = SVM.query(svm_model, x_paths)
+        """
+        with open(path, 'rb') as f:
+            instance = pickle.load(f)
+        print(f"[SVM] Modelo cargado desde: {path}")
+        return instance
+    
+    @staticmethod
+    def _generate_model_path(label: str, base_dir: str = "src/backend/models") -> str:
+        """
+        Genera ruta única para guardar modelo.
+        
+        Args:
+            label: Etiqueta del experimento (e.g., "p300", "inner")
+            base_dir: Directorio base para modelos
+        
+        Returns:
+            Ruta completa: "{base_dir}/{label}/svm_{timestamp}.pkl"
+        """
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"svm_{timestamp}.pkl"
+        return str(Path(base_dir) / label / filename)
 
     # =================================================================================
     # Helpers de metadatos
@@ -133,6 +196,8 @@ class SVM(Classifier):
         x_paths: Sequence[str],
         y_paths: Sequence[str],
         metadata_list: Optional[Sequence[dict]] = None,
+        *,
+        verbose: bool = False,
     ) -> Tuple[NDArray, NDArray]:
         """
         Carga features X y etiquetas y desde archivos .npy.
@@ -151,8 +216,13 @@ class SVM(Classifier):
                 X: (n_samples, n_features_flat) - cada frame es un ejemplo
                 y: (n_samples,) - una etiqueta por frame
         """
+        t_load = time.perf_counter()
         X = _load_and_concat(x_paths)
         y = _load_and_concat(y_paths)
+        load_seconds = time.perf_counter() - t_load
+
+        if verbose:
+            print(f"[SVM._prepare_xy] Archivos cargados: X={len(x_paths)} y={len(y_paths)} en {load_seconds:.3f}s. Shape cruda X={X.shape} y={y.shape}")
 
         # Validar que X es 3D (regla de negocio)
         if X.ndim != 3:
@@ -165,6 +235,7 @@ class SVM(Classifier):
         # Aplanar: (n_frames, features, n_channels) → (n_frames, features*n_channels)
         # axis0 = n_frames (ejemplos/ventanas)
         n_samples = X.shape[0]
+        flat_features = int(np.prod(X.shape[1:]))
         X = X.reshape(n_samples, -1)
 
         # Asegurar que y es 1D
@@ -176,6 +247,9 @@ class SVM(Classifier):
                 f"Mismatch entre ejemplos y etiquetas: X={X.shape[0]} frames vs y={y.shape[0]} labels. "
                 f"Cada frame debe tener una etiqueta."
             )
+
+        if verbose:
+            print(f"[SVM._prepare_xy] X preparado: {n_samples} ejemplos, {flat_features} features planos. y shape={y.shape}")
 
         return X, y
 
@@ -189,10 +263,15 @@ class SVM(Classifier):
         yTrain: List[str],
         metadata_train: Optional[List[dict]] = None,
         metadata_test: Optional[List[dict]] = None,
+        model_label: Optional[str] = None,
+        *,
+        verbose: bool = True,
     ) -> EvaluationMetrics:
         """
-        Trains an SVM using ONLY the file paths provided (ignores any Experiment.dataset).
-        Each list must contain one or more .npy files. Multiple files will be concatenated.
+        Trains an SVM using ONLY the file paths provided (wrapper legacy).
+        
+        Este método mantiene compatibilidad con código existente retornando solo EvaluationMetrics.
+        Internamente delega a fit() para evitar duplicación de código.
 
         Args:
             instance: Instancia de SVM con parámetros configurados
@@ -208,17 +287,66 @@ class SVM(Classifier):
                            [{"output_axes_semantics": {"axis0": "sample", "axis1": "channels"},
                              "output_shape": (1000, 64)}]
             metadata_test: Lista de diccionarios con metadatos para test
+            model_label: Etiqueta opcional para auto-guardar (e.g., "p300", "inner").
+                        Si se proporciona, guarda automáticamente en src/backend/models/{label}/
 
         Returns:
-            EvaluationMetrics object con accuracy, precision, recall, F1, confusion matrix, AUC-ROC
-
-        Notes:
-            - X files must be 2D: (n_samples, n_features) o serán reformateados usando metadatos
-            - y files must be 1D or (n_samples, 1)
+            EvaluationMetrics: Solo las métricas de evaluación (para compatibilidad backward)
+            
+        Note:
+            Si necesitas acceso al modelo entrenado y más información, usa fit() en su lugar.
         """
+        # Delegar a fit() y extraer solo métricas (evita duplicación de código)
+        result = cls.fit(
+            instance=instance,
+            xTest=xTest,
+            yTest=yTest,
+            xTrain=xTrain,
+            yTrain=yTrain,
+            metadata_train=metadata_train,
+            metadata_test=metadata_test,
+            return_history=False,  # SVM no tiene historia de entrenamiento
+            model_label=model_label,
+            verbose=verbose,
+        )
+        return result.metrics
+
+    @classmethod
+    def fit(
+        cls,
+        instance: "SVM",
+        xTest: List[str],
+        yTest: List[str],
+        xTrain: List[str],
+        yTrain: List[str],
+        metadata_train: Optional[List[dict]] = None,
+        metadata_test: Optional[List[dict]] = None,
+        return_history: bool = False,  # SVM no tiene historia, pero mantener consistencia
+        model_label: Optional[str] = None,
+        *,
+        verbose: bool = True,
+    ) -> TrainResult:
+        """Entrena y devuelve paquete TrainResult (modelo + métricas).
+
+        No rompe `train()`: es una API paralela opt-in.
+        
+        Args:
+            model_label: Etiqueta opcional para auto-guardar (e.g., "p300", "inner").
+                        Si se proporciona, guarda automáticamente en src/backend/models/{label}/
+        """
+        if verbose:
+            print("[SVM.fit] Iniciando entrenamiento SVM")
+            print(f"[SVM.fit] Parámetros: kernel={instance.kernel} C={instance.C} gamma={instance.gamma} degree={instance.degree} prob={instance.probability}")
+            print(f"[SVM.fit] Archivos train: X={len(xTrain)} y={len(yTrain)} | test: X={len(xTest)} y={len(yTest)}")
+
+        t_prepare = time.perf_counter()
         # Preparar datos train/test con metadatos
-        X_train, y_train = cls._prepare_xy(xTrain, yTrain, metadata_list=metadata_train)
-        X_test, y_test = cls._prepare_xy(xTest, yTest, metadata_list=metadata_test)
+        X_train, y_train = cls._prepare_xy(xTrain, yTrain, metadata_list=metadata_train, verbose=verbose)
+        X_test, y_test = cls._prepare_xy(xTest, yTest, metadata_list=metadata_test, verbose=verbose)
+        prepare_seconds = time.perf_counter() - t_prepare
+
+        if verbose:
+            print(f"[SVM.fit] Datos preparados en {prepare_seconds:.3f}s | X_train={X_train.shape} y_train={y_train.shape} | X_test={X_test.shape} y_test={y_test.shape}")
 
         # Build gamma parameter
         gamma_param: Union[str, float]
@@ -243,7 +371,15 @@ class SVM(Classifier):
 
         t0 = time.perf_counter()
         model.fit(X_train, y_train)
+        train_time = time.perf_counter() - t0
+        if verbose:
+            print(f"[SVM.fit] Entrenamiento completado en {train_time:.3f}s. Vectores de soporte totales={int(model.n_support_.sum()) if hasattr(model,'n_support_') else 'NA'}")
+
+        t_eval = time.perf_counter()
         y_pred = model.predict(X_test)
+        eval_seconds = time.perf_counter() - t_eval
+        if verbose:
+            print(f"[SVM.fit] Evaluación completada en {eval_seconds:.3f}s")
 
         # Metrics
         acc = float(accuracy_score(y_test, y_pred))
@@ -255,14 +391,9 @@ class SVM(Classifier):
         # AUC-ROC (works for binary and multiclass if probability=True)
         try:
             proba = model.predict_proba(X_test)
-            # For multiclass, use OVR with weighted average
-            # Note: sklearn expects y_test as integer labels for multiclass AUC with proba matrix
             auc = float(roc_auc_score(y_test, proba, multi_class="ovr", average="weighted"))
         except Exception:
-            # If anything goes wrong (rare), fall back to 0.0
             auc = 0.0
-
-        eval_seconds = time.perf_counter() - t0
 
         # SVM does not produce a loss curve; return empty list to comply with schema.
         metrics = EvaluationMetrics(
@@ -276,8 +407,85 @@ class SVM(Classifier):
             evaluation_time=f"{eval_seconds:.4f}s",
         )
 
-        print(f"[SVM] Acc={acc:.3f} F1={f1:.3f} AUC={auc:.3f}")
-        return metrics
+        # Guardar modelo en instancia para query()
+        instance._svc_model = model
+
+        if verbose:
+            print(f"[SVM.fit] Métricas: Acc={acc:.3f} Prec={prec:.3f} Rec={rec:.3f} F1={f1:.3f} AUC={auc:.3f}")
+            print(f"[SVM.fit] Matriz de confusión: {cm}")
+        
+        # Auto-guardar si se proporciona label
+        if model_label:
+            save_path = cls._generate_model_path(model_label)
+            if verbose:
+                print(f"[SVM.fit] Guardando modelo en {save_path}")
+            instance.save(save_path)
+        
+        return TrainResult(
+            metrics=metrics,
+            model=model,
+            model_name="SVM",
+            training_seconds=float(train_time),
+            history=None,  # SVM no tiene historia de entrenamiento por época
+            hyperparams={
+                "kernel": instance.kernel,
+                "C": instance.C,
+                "gamma": str(instance.gamma),
+                "degree": instance.degree,
+                "coef0": instance.coef0,
+                "n_support_vectors": int(model.n_support_.sum()) if hasattr(model, 'n_support_') else 0,
+            }
+        )
+
+    @classmethod
+    def query(
+        cls,
+        instance: "SVM",
+        x_paths: List[str],
+        metadata_list: Optional[List[dict]] = None,
+        return_logits: bool = False
+    ):
+        """Inferencia sobre lista de archivos .npy.
+        
+        Args:
+            instance: Instancia de SVM con modelo entrenado
+            x_paths: Lista de rutas a archivos .npy con features
+            metadata_list: Metadatos opcionales para interpretar datos
+            return_logits: Si True, retorna (predictions, probabilities)
+            
+        Returns:
+            predictions: Lista de etiquetas predichas (int)
+            Si return_logits=True: (predictions, probabilities)
+        """
+        if instance._svc_model is None:
+            raise RuntimeError("Modelo SVM no entrenado: usa fit() antes de query().")
+        if not x_paths:
+            return []
+        
+        # Cargar y preparar datos (sin etiquetas)
+        X = _load_and_concat(x_paths)
+        
+        # Validar formato 3D y aplanar
+        if X.ndim != 3:
+            raise ValueError(
+                f"Los datos deben ser 3D (n_frames, features, n_channels) después de aplicar transform. "
+                f"Recibido shape={X.shape}"
+            )
+        
+        n_samples = X.shape[0]
+        X = X.reshape(n_samples, -1)
+        
+        # Predicción
+        preds = instance._svc_model.predict(X).tolist()
+        
+        if return_logits:
+            if instance.probability:
+                probs = instance._svc_model.predict_proba(X).tolist()
+                return preds, probs
+            else:
+                raise RuntimeError("Para obtener probabilidades, configura probability=True al crear el modelo SVM.")
+        
+        return preds
 
 
 # ======================= Ejemplo de uso =======================

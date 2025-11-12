@@ -136,3 +136,90 @@
     animation: spin 1s linear infinite;
     display: inline-block;
 }
+
+/* ===== Estilos para Dropdown de limpieza ===== */
+/* Contenedor del dropdown */
+#cleanup-mode {
+    background-color: #FFFFFF !important;
+    border: 1px solid color-mix(in srgb, var(--color-4) 40%, transparent) !important;
+    border-radius: 10px !important;
+}
+
+/* Contenedor del control (valor seleccionado) */
+.Select-control {
+    background-color: #FFFFFF !important;
+    border: 1px solid color-mix(in srgb, var(--color-4) 40%, transparent) !important;
+    border-radius: 10px !important;
+    color: #000000 !important;
+}
+
+/* Texto del valor seleccionado */
+.Select-value,
+.Select-value-label {
+    color: #000000 !important;
+}
+
+/* Input de búsqueda */
+.Select-input > input {
+    color: #000000 !important;
+}
+
+/* Placeholder */
+.Select-placeholder {
+    color: rgba(0, 0, 0, 0.5) !important;
+}
+
+/* Menú desplegable */
+.Select-menu-outer {
+    background-color: #FFFFFF !important;
+    border: 1px solid color-mix(in srgb, var(--color-4) 40%, transparent) !important;
+    border-radius: 10px !important;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4) !important;
+    margin-top: 4px !important;
+}
+
+/* Opciones del menú */
+.Select-option {
+    background-color: #FFFFFF !important;
+    color: #000000 !important;
+    padding: 10px 12px !important;
+    border-radius: 6px !important;
+    margin: 2px 4px !important;
+    transition: all 0.2s ease !important;
+}
+
+/* Opción hover */
+.Select-option:hover,
+.Select-option.is-focused {
+    background-color: color-mix(in srgb, var(--color-4) 15%, #FFFFFF) !important;
+    color: #000000 !important;
+}
+
+/* Opción seleccionada */
+.Select-option.is-selected {
+    background-color: color-mix(in srgb, var(--color-4) 25%, #FFFFFF) !important;
+    color: #000000 !important;
+    font-weight: 600 !important;
+}
+
+/* Flecha del dropdown */
+.Select-arrow-zone {
+    color: #000000 !important;
+}
+
+.Select-arrow {
+    border-color: #000000 transparent transparent !important;
+}
+
+/* Estado de focus */
+.Select.is-focused:not(.is-open) > .Select-control {
+    border-color: color-mix(in srgb, var(--color-5) 60%, transparent) !important;
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-5) 30%, transparent) !important;
+}
+
+/* Estado abierto */
+.Select.is-open > .Select-control {
+    border-color: color-mix(in srgb, var(--color-4) 60%, transparent) !important;
+    border-bottom-left-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+}

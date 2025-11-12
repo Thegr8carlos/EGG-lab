@@ -202,3 +202,5 @@ test_instances_results.json
 DOCUMENTACION_TESTS.md
 schemas.json
 src/SISTEMA_INTERACTIVO_MODELOS.md
+
+src\backend\models

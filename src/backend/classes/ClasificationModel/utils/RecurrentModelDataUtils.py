@@ -56,13 +56,13 @@ class RecurrentModelDataUtils:
             # Determinar si necesita transposición
             if metadata and (metadata.get("output_axes_semantics") or metadata.get("output_shape")):
                 # Usar metadatos para determinar orientación
-                # Esta lógica debe ser implementada por el modelo que llama
-                # pasando la interpretación de metadatos
+                # Interpretación detallada se realiza en el modelo (LSTM/GRU) si la requiere
                 pass
             else:
-                # Fallback: heurística tradicional
+                # Fallback: heurística tradicional, con excepción importante:
+                # NO transponer cuando T == 1, porque (1, F) ya es (time, features) con un solo paso.
                 T, F = X.shape
-                if T < F:  # si viene (F,T), trasponemos para (T,F)
+                if T > 1 and T < F:  # si viene (F,T), trasponemos para (T,F)
                     X = X.T
 
         else:

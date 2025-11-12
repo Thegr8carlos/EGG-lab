@@ -19,7 +19,7 @@ def get_navBar(page_registry):
         dbc.NavItem(
             dbc.NavLink(
                 "Cargar Datos",
-                href="/cargardatos",
+                href="/cargar-datos",
                 active="exact",
                 className="nav-link"
             )

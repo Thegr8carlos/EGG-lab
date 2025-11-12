@@ -2,9 +2,13 @@ from __future__ import annotations
 from typing import Any, List, Literal, Optional, Sequence, Tuple, Union
 import math
 import numpy as np
+import pickle
+from pathlib import Path
+from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from pydantic.json_schema import SkipJsonSchema
 from backend.classes.Metrics import EvaluationMetrics
+from backend.classes.ClasificationModel.utils.TrainResult import TrainResult
 
 from sklearn.metrics import (
     accuracy_score,
@@ -233,6 +237,63 @@ class CNN(BaseModel):
         H, W, C = self.infer_output_shape_after_fe(input_shape)
         return int(H * W * C)
 
+    # =================================================================================
+    # Persistencia: Guardar/Cargar modelo entrenado
+    # =================================================================================
+    _tf_model: Optional[object] = None
+
+    def save(self, path: str):
+        """
+        Guarda la instancia completa (arquitectura + modelo entrenado) en disco usando pickle.
+        
+        Args:
+            path: Ruta donde guardar el archivo .pkl
+        
+        Example:
+            cnn.save("src/backend/models/p300/cnn_20251109_143022.pkl")
+        """
+        Path(path).parent.mkdir(parents=True, exist_ok=True)
+        with open(path, 'wb') as f:
+            pickle.dump(self, f)
+        print(f"[CNN] Modelo guardado en: {path}")
+    
+    @classmethod
+    def load(cls, path: str) -> "CNN":
+        """
+        Carga una instancia completa desde disco.
+        
+        Args:
+            path: Ruta al archivo .pkl guardado previamente
+        
+        Returns:
+            Instancia de CNN con modelo entrenado listo para query()
+        
+        Example:
+            cnn_model = CNN.load("src/backend/models/p300/cnn_20251109_143022.pkl")
+            predictions = CNN.query(cnn_model, images)
+        """
+        with open(path, 'rb') as f:
+            instance = pickle.load(f)
+        print(f"[CNN] Modelo cargado desde: {path}")
+        return instance
+    
+    @staticmethod
+    def _generate_model_path(label: str, base_dir: str = "src/backend/models") -> str:
+        """
+        Genera ruta única para guardar modelo.
+        
+        Args:
+            label: Etiqueta del experimento (e.g., "p300", "inner")
+            base_dir: Directorio base para modelos
+        
+        Returns:
+            Ruta completa: "{base_dir}/{label}/cnn_{timestamp}.pkl"
+        """
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        label_dir = Path(base_dir) / label
+        label_dir.mkdir(parents=True, exist_ok=True)
+        return str(label_dir / f"cnn_{timestamp}.pkl")
+
     # -------------------- Helpers de metadatos --------------------
     @staticmethod
     def extract_metadata_from_experiment(experiment_dict: dict, transform_indices: Optional[List[int]] = None) -> List[dict]:
@@ -452,8 +513,65 @@ class CNN(BaseModel):
         yTrain: List[str],
         metadata_train: Optional[List[dict]] = None,
         metadata_test: Optional[List[dict]] = None,
+        model_label: Optional[str] = None,
     ):
         """
+        Entrena una CNN usando TensorFlow/Keras (wrapper legacy).
+        
+        Este método mantiene compatibilidad con código existente retornando solo EvaluationMetrics.
+        Internamente delega a fit() para evitar duplicación de código.
+
+        Args:
+            instance: Instancia de CNN con la arquitectura configurada
+            xTest: Lista de rutas a archivos .npy de test
+            yTest: Lista de rutas a archivos .npy con etiquetas de test
+            xTrain: Lista de rutas a archivos .npy de entrenamiento
+            yTrain: Lista de rutas a archivos .npy con etiquetas de entrenamiento
+            metadata_train: Lista de diccionarios con metadatos de dimensionality_change para train
+            metadata_test: Lista de diccionarios con metadatos para test
+            model_label: Etiqueta opcional para auto-guardar (e.g., "p300", "inner").
+                        Si se proporciona, guarda automáticamente en src/backend/models/{label}/
+            
+        Returns:
+            EvaluationMetrics: Solo las métricas de evaluación (para compatibilidad backward)
+            
+        Note:
+            Si necesitas acceso al modelo entrenado y más información, usa fit() en su lugar.
+        """
+        # Delegar a fit() y extraer solo métricas (evita duplicación de código)
+        result = cls.fit(
+            instance=instance,
+            xTest=xTest,
+            yTest=yTest,
+            xTrain=xTrain,
+            yTrain=yTrain,
+            metadata_train=metadata_train,
+            metadata_test=metadata_test,
+            return_history=False,
+            model_label=model_label
+        )
+        return result.metrics
+
+    @classmethod
+    def fit(
+        cls,
+        instance: "CNN",
+        xTest: List[str],
+        yTest: List[str],
+        xTrain: List[str],
+        yTrain: List[str],
+        metadata_train: Optional[List[dict]] = None,
+        metadata_test: Optional[List[dict]] = None,
+        return_history: bool = True,
+        model_label: Optional[str] = None,
+        *,
+        epochs: Optional[int] = None,
+        batch_size: Optional[int] = None,
+        learning_rate: Optional[float] = None,
+    ) -> TrainResult:
+        """
+        Entrena y devuelve paquete TrainResult (modelo + métricas + historia).
+
         1) Carga artefactos y genera imágenes per-frame (cada ventana = 1 imagen).
         2) Entrena una CNN con TensorFlow que respeta tu feature_extractor + FC + Softmax.
 
@@ -475,6 +593,12 @@ class CNN(BaseModel):
                                 "output_shape": (1000, 64)}
                            ]
             metadata_test: Lista de diccionarios con metadatos para test (misma estructura)
+            return_history: Si True, incluye historial completo de entrenamiento en TrainResult
+            model_label: Etiqueta opcional para auto-guardar (e.g., "p300", "inner").
+                        Si se proporciona, guarda automáticamente en src/backend/models/{label}/
+            
+        Returns:
+            TrainResult con métricas, modelo, historial y hiperparámetros
         """
         try:
             Xtr, ytr = cls._prepare_images_and_labels(
@@ -578,24 +702,35 @@ class CNN(BaseModel):
             n_classes = int(max(int(ytr.max()), int(yte.max()))) + 1
             H_in, W_in = instance.image_hw
 
+            # Limpiar modelo previo (cada fit() reconstruye desde cero)
+            instance._tf_model = None
+
             # Construir modelo
             model = build_cnn_model(instance, in_shape=(H_in, W_in, 3))
 
+            # Hiperparámetros (si no se proporcionan, usar defaults legacy)
+            lr_val = float(learning_rate) if learning_rate is not None else 1e-3
+            bs_val = int(batch_size) if batch_size is not None else 64
+            ep_val = int(epochs) if epochs is not None else 2
+
             # Compilar modelo
             model.compile(
-                optimizer=keras.optimizers.Adam(learning_rate=1e-3),
+                optimizer=keras.optimizers.Adam(learning_rate=lr_val),
                 loss='sparse_categorical_crossentropy',
                 metrics=['accuracy']
             )
 
             # Entrenar modelo
+            import time
+            t0 = time.perf_counter()
             history = model.fit(
                 Xtr, ytr,
-                batch_size=64,
-                epochs=2,  # pocas épocas para demo; ajusta a tu gusto
+                batch_size=bs_val,
+                epochs=ep_val,
                 verbose=1,
                 validation_data=(Xte, yte)
             )
+            train_time = time.perf_counter() - t0
 
             train_losses: List[float] = history.history['loss']
 
@@ -628,15 +763,51 @@ class CNN(BaseModel):
                 f1_score=f1,
                 confusion_matrix=cm,
                 auc_roc=auc,
-                loss=train_losses,                # curva de pérdida
+                loss=train_losses,
                 evaluation_time="",              
             )
-            return metrics
+
+            # Guardar modelo en la instancia
+            instance._tf_model = model
+
+            # Auto-guardar si se proporciona model_label
+            if model_label:
+                save_path = cls._generate_model_path(model_label)
+                instance.save(save_path)
+                print(f"[CNN] Modelo guardado automáticamente en: {save_path}")
+
+            # Construir historial para TrainResult
+            hist_dict = history.history if return_history else {}
+
+            # Construir hiperparámetros
+            hyperparams = {
+                "epochs": ep_val,
+                "batch_size": bs_val,
+                "learning_rate": lr_val,
+                "n_classes": n_classes,
+                "image_hw": instance.image_hw,
+                "frame_context": instance.frame_context,
+                "n_train_images": len(Xtr),
+                "n_test_images": len(Xte),
+            }
+
+            print(f"[CNN] Acc={acc:.3f} F1={f1:.3f} AUC={auc:.3f}")
+
+            return TrainResult(
+                metrics=metrics,
+                model=instance,
+                model_name="CNN",
+                training_seconds=train_time,
+                history=hist_dict,
+                hyperparams=hyperparams,
+            )
 
 
         except Exception as e:
             print("[CNN] Entrenamiento real no ejecutado (fallback).")
             print(f"Razón: {e}")
+            import traceback
+            traceback.print_exc()
             metrics = EvaluationMetrics(
                 accuracy=0.0,
                 precision=0.0,
@@ -644,10 +815,75 @@ class CNN(BaseModel):
                 f1_score=0.0,
                 confusion_matrix=[],
                 auc_roc=0.0,
-                loss=[],                 # sin entrenamiento real
-                evaluation_time="",      # opcional
+                loss=[],
+                evaluation_time="",
             )
-            return metrics
+            return TrainResult(
+                metrics=metrics,
+                model=instance,
+                model_name="CNN",
+                training_seconds=0.0,
+                history={},
+                hyperparams={"error": str(e)},
+            )
+
+    # =================================================================================
+    # Inferencia con modelo entrenado
+    # =================================================================================
+    @classmethod
+    def query(
+        cls,
+        instance: "CNN",
+        data: List[NDArray],
+        metadata_list: Optional[List[dict]] = None,
+        batch_size: int = 128
+    ) -> Tuple[NDArray, NDArray]:
+        """
+        Realiza inferencia con el modelo CNN entrenado.
+
+        Args:
+            instance: Instancia de CNN con modelo entrenado (_tf_model debe existir)
+            data: Lista de imágenes como NDArray (cada una con shape (H, W, 3))
+            metadata_list: Lista opcional de diccionarios con metadatos (no usado típicamente en CNN)
+            batch_size: Tamaño de batch para predicción
+
+        Returns:
+            Tuple[NDArray, NDArray]: (predictions, probabilities)
+                - predictions: Array 1D con clases predichas (índices)
+                - probabilities: Array 2D con probabilidades por clase (N, n_classes)
+
+        Raises:
+            ValueError: Si el modelo no ha sido entrenado (_tf_model es None)
+        """
+        if instance._tf_model is None:
+            raise ValueError(
+                "El modelo no ha sido entrenado. Llama a train() o fit() primero, "
+                "o carga un modelo existente con load()."
+            )
+
+        try:
+            import tensorflow as tf
+            
+            # Validar que las imágenes tengan la forma correcta
+            H_expected, W_expected = instance.image_hw
+            for i, img in enumerate(data):
+                if img.shape != (H_expected, W_expected, 3):
+                    raise ValueError(
+                        f"Imagen {i} tiene shape {img.shape}, esperado ({H_expected}, {W_expected}, 3)"
+                    )
+
+            # Convertir lista a array numpy
+            X = np.stack(data, axis=0).astype(np.float32)
+
+            # Predicción
+            probabilities = instance._tf_model.predict(X, batch_size=batch_size, verbose=0)
+            predictions = np.argmax(probabilities, axis=1)
+
+            return predictions, probabilities
+
+        except Exception as e:
+            raise RuntimeError(f"Error en inferencia CNN: {e}") from e
+
 
 
 # ======================= helpers internos =======================

@@ -11,6 +11,7 @@ import json
 
 # Importar el nuevo sistema interactivo
 from app.components.interactive_architecture_builder import create_interactive_config_card
+from app.components.LocalTrainingComponent import create_local_training_section
 
 # Colores para la visualización de redes
 COLORS = {
@@ -484,6 +485,12 @@ def create_config_card(model_name: str, schema: Dict[str, Any], classifier_type:
                             style={"marginTop": "20px"}
                         )
                     ]),
+
+                    # Divisor
+                    html.Hr(style={"margin": "30px 0", "borderTop": "1px solid rgba(255,255,255,0.2)"}),
+
+                    # Sección de entrenamiento local
+                    create_local_training_section(model_name),
 
                     # Divisor
                     html.Hr(style={"margin": "30px 0", "borderTop": "1px solid rgba(255,255,255,0.2)"}),

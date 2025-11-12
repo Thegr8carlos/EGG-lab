@@ -8,12 +8,40 @@ from shared.fileUtils import (
     get_Data_filePath,
     get_Label_filePath,
 )
-from dash import no_update
-from sklearn.preprocessing import LabelEncoder
-import mne, sys
+try:
+    # Dash puede no estar instalado en algunos entornos (p.ej. limpieza desde WSL).
+    # Intentamos importarlo; si falla definimos un stub para que el módulo siga funcionando.
+    try:
+        from dash import no_update  # type: ignore
+    except Exception:  # pragma: no cover
+        def no_update():  # stub mínimo
+            return None
+        no_update = no_update()
+except Exception:
+    # Fallback para entornos sin Dash (p.ej., ejecución en línea de comandos/WSL)
+    no_update = None
+import sys
+try:
+    import mne  # type: ignore
+except Exception:  # pragma: no cover
+    mne = None
+
+try:
+    from sklearn.preprocessing import LabelEncoder  # type: ignore
+except Exception:  # pragma: no cover
+    class _LabelEncoderFallback:
+        def fit_transform(self, x):
+            import numpy as _np
+            # Fallback: mapea valores únicos a índices en orden estable
+            uniques, inv = _np.unique(_np.array(x).ravel(), return_inverse=True)
+            return inv
+    LabelEncoder = _LabelEncoderFallback  # type: ignore
 import numpy as np
 import os, re
-import pandas as pd
+try:
+    import pandas as pd  # type: ignore
+except Exception:  # pragma: no cover
+    pd = None
 import json
 from collections import Counter
 from typing import List, Sequence
@@ -955,16 +983,414 @@ def _assert_npy_path(p: str) -> None:
 
 def _load_and_concat(paths: Sequence[str]) -> NDArray:
     """
-    Loads one or more .npy files and concatenates along axis=0.
-    Each file must have compatible first dimension.
+    Carga uno o más archivos .npy y concatena a lo largo del eje 0.
+    Si las dimensiones posteriores (ejes > 0) difieren entre archivos, recorta cada
+    arreglo al tamaño mínimo común antes de concatenar. Esto evita errores de
+    concatenación cuando, por ejemplo, distintos eventos tienen diferente longitud
+    temporal o número de características, manteniendo la alineación en el eje 0.
+
+    Nota:
+    - Para vectores 1D (típico para labels), se concatena directamente.
+    - Para 2D/3D, se recorta cada eje >=1 al mínimo encontrado entre los arrays.
+    - Si los arrays tienen distinta dimensionalidad, se lanza un error explícito.
     """
     if not paths:
         raise ValueError("No paths provided.")
+
     arrays: List[NDArray] = []
     for p in paths:
         _assert_npy_path(p)
         arr = np.load(p, allow_pickle=False)
         arrays.append(arr)
+
     if len(arrays) == 1:
         return arrays[0]
-    return np.concatenate(arrays, axis=0)
+
+    # Verificar dimensionalidad consistente
+    ndims = {a.ndim for a in arrays}
+    if len(ndims) != 1:
+        raise ValueError(
+            f"Dimensionalidades inconsistentes al concatenar: {sorted(ndims)}. "
+            "Asegúrate de que todas las salidas de transform tengan la misma forma."
+        )
+
+    ndim = arrays[0].ndim
+    if ndim <= 1:
+        # Labels u otros vectores 1D
+        return np.concatenate(arrays, axis=0)
+
+    # Calcular tamaño objetivo mínimo por eje (a partir del eje 1)
+    min_sizes = [None] * ndim
+    min_sizes[0] = None  # eje de concatenación
+    for axis in range(1, ndim):
+        min_sizes[axis] = int(min(a.shape[axis] for a in arrays))
+
+    # Recortar cada array al tamaño mínimo común en ejes >=1
+    trimmed: List[NDArray] = []
+    for a in arrays:
+        slicer = [slice(None)]
+        for axis in range(1, ndim):
+            target = min_sizes[axis]
+            slicer.append(slice(0, target))
+        trimmed.append(a[tuple(slicer)])
+
+    return np.concatenate(trimmed, axis=0)
+
+# ==============================================================
+# NUEVO: Gestión de subconjuntos para entrenamiento local
+# ==============================================================
+import random
+from datetime import datetime
+
+def create_subset_dataset(
+    dataset_name: str,
+    percentage: int,
+    train_split: float,
+    seed: int = 42,
+    materialize: bool = False,
+) -> dict:
+    """Crea un subconjunto de eventos del dataset para entrenamiento local.
+
+    Busca eventos en Aux/<dataset_name>/**/Events/*.npy, selecciona aleatoriamente
+    el porcentaje solicitado y genera una carpeta:
+
+        Aux/<dataset_name>/generated_datasets/<timestamp>/
+
+    Contiene:
+        - train_manifest.json / test_manifest.json (lista de paths a eventos)
+        - metadata.json (información del subset)
+        - (opcional) train_concat.npy / test_concat.npy si materialize=True
+
+    Args:
+        dataset_name: Nombre del dataset (coincide con carpeta bajo Aux/)
+        percentage: 1..100 porcentaje de eventos a usar
+        train_split: fracción para entrenamiento (resto test)
+        seed: semilla RNG
+        materialize: si True concatena y guarda arrays (más espacio)
+
+    Returns:
+        dict con status, paths y resumen
+    """
+    if percentage <= 0 or percentage > 100:
+        return {"status": 400, "message": "percentage fuera de rango (1-100)"}
+    if train_split <= 0 or train_split >= 1:
+        return {"status": 400, "message": "train_split debe estar entre 0 y 1"}
+
+    aux_root = Path("Aux") / dataset_name
+    if not aux_root.exists():
+        return {"status": 404, "message": f"No existe Aux/{dataset_name}"}
+
+    # Recolectar todos los eventos .npy
+    all_events = sorted(aux_root.rglob("Events/*.npy"))
+    if not all_events:
+        return {"status": 404, "message": "No se encontraron eventos .npy"}
+
+    random.seed(seed)
+    n_total = len(all_events)
+    n_subset = max(1, int(n_total * (percentage / 100.0)))
+    sampled = random.sample(all_events, n_subset)
+
+    # Split train/test
+    n_train = int(len(sampled) * train_split)
+    train_events = sampled[:n_train]
+    test_events = sampled[n_train:]
+
+    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+    out_dir = aux_root / "generated_datasets" / ts
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    import json as _json
+
+    def _extract_class_from_filename(event_path: Path) -> str:
+        """Extrae la clase del nombre del archivo evento.
+        Formato: <clase>[inicio]{fin}.npy
+        Ejemplo: abajo[348.903]{351.453].npy -> 'abajo'
+        """
+        name = event_path.stem
+        match = re.match(r"^([^\[]+)", name)
+        if match:
+            return match.group(1)
+        return "unknown"
+
+    def _write_manifest(name: str, events: List[Path]):
+        manifest = {
+            "count": len(events),
+            "events": [
+                {
+                    "path": str(p),
+                    "class": _extract_class_from_filename(p)
+                }
+                for p in events
+            ],
+        }
+        with open(out_dir / f"{name}_manifest.json", "w", encoding="utf-8") as f:
+            _json.dump(manifest, f, ensure_ascii=False, indent=2)
+
+    _write_manifest("train", train_events)
+    _write_manifest("test", test_events)
+
+    # Capturar snapshot del experimento actual (si existe)
+    experiment_snapshot = {}
+    try:
+        from backend.classes.Experiment import Experiment
+        
+        experiment = Experiment._load_latest_experiment()
+        
+        # Extraer configuración relevante
+        experiment_snapshot = {
+            "experiment_id": experiment.id,
+            "filters": experiment.filters or [],
+            "transform": {},
+            "classifier_config": {}
+        }
+        
+        # Obtener última transformación del historial
+        if experiment.transform and len(experiment.transform) > 0:
+            last_transform = experiment.transform[-1]
+            for k, v in last_transform.items():
+                if k not in ["id", "dimensionality_change"]:
+                    experiment_snapshot["transform"][k] = v
+                    break
+        
+        # Intentar obtener configuración del clasificador
+        # (P300 o InnerSpeech, lo que esté configurado)
+        if experiment.P300Classifier:
+            for model_name, model_config in experiment.P300Classifier.items():
+                if isinstance(model_config, dict):
+                    # No incluir transform anidado (ya está en experiment_snapshot["transform"])
+                    config_copy = {k: v for k, v in model_config.items() if k != "transform"}
+                    experiment_snapshot["classifier_config"] = {
+                        "model_name": model_name,
+                        "config": config_copy
+                    }
+                    break
+        elif experiment.innerSpeachClassifier:
+            for model_name, model_config in experiment.innerSpeachClassifier.items():
+                if isinstance(model_config, dict):
+                    config_copy = {k: v for k, v in model_config.items() if k != "transform"}
+                    experiment_snapshot["classifier_config"] = {
+                        "model_name": model_name,
+                        "config": config_copy
+                    }
+                    break
+    
+    except Exception as e:
+        print(f"[create_subset_dataset] Warning: No se pudo capturar snapshot del experimento: {e}")
+        # Continuar sin snapshot (compatibilidad con ejecuciones sin experimento activo)
+
+    meta = {
+        "dataset_name": dataset_name,
+        "timestamp": ts,
+        "percentage": percentage,
+        "train_split": train_split,
+        "seed": seed,
+        "n_total_events": n_total,
+        "n_subset_events": len(sampled),
+        "n_train_events": len(train_events),
+        "n_test_events": len(test_events),
+        "materialized": materialize,
+        "experiment_snapshot": experiment_snapshot  # NUEVO: snapshot del experimento
+    }
+    with open(out_dir / "metadata.json", "w", encoding="utf-8") as f:
+        _json.dump(meta, f, ensure_ascii=False, indent=2)
+
+    # Opcional: materializar concatenados (puede consumir mucho espacio)
+    concat_paths = {}
+    if materialize:
+        def _concat_save(events: List[Path], fname: str):
+            arrays = []
+            for ev in events:
+                try:
+                    arr = np.load(ev, allow_pickle=False)
+                    arrays.append(arr)
+                except Exception:
+                    pass
+            if arrays:
+                cat = np.concatenate(arrays, axis=1) if arrays[0].ndim == 2 else np.concatenate(arrays, axis=0)
+                np.save(out_dir / fname, cat)
+                return str(out_dir / fname), cat.shape
+            return None, None
+
+        train_path, train_shape = _concat_save(train_events, "train_concat.npy")
+        test_path, test_shape = _concat_save(test_events, "test_concat.npy")
+        concat_paths = {
+            "train_concat_path": train_path,
+            "train_concat_shape": train_shape,
+            "test_concat_path": test_path,
+            "test_concat_shape": test_shape,
+        }
+
+    return {
+        "status": 200,
+        "message": "Subset creado",
+        "subset_dir": str(out_dir),
+        "train_manifest": str(out_dir / "train_manifest.json"),
+        "test_manifest": str(out_dir / "test_manifest.json"),
+        **concat_paths,
+    }
+
+def delete_subset_dataset(subset_dir: str) -> dict:
+    """Elimina un subconjunto generado previamente.
+
+    Solo permite borrar dentro de Aux/<dataset>/generated_datasets/.
+    """
+    p = Path(subset_dir)
+    if not p.exists():
+        return {"status": 404, "message": "Ruta inexistente"}
+    if "generated_datasets" not in str(p):
+        return {"status": 400, "message": "Ruta no permitida"}
+
+    try:
+        import shutil
+        shutil.rmtree(p)
+        return {"status": 200, "message": "Subset eliminado", "subset_dir": subset_dir}
+    except Exception as e:
+        return {"status": 500, "message": f"Error eliminando subset: {e}"}
+
+
+# ==============================================================
+# Limpieza de experimentos/pipelines en Aux
+# ==============================================================
+from dataclasses import dataclass
+
+
+@dataclass
+class CleanupReport:
+    dataset_name: str | None
+    mode: str
+    dry_run: bool
+    experiments_found: int
+    pipeline_cache_dirs: int
+    intermediates_dirs: int
+    generated_datasets_dirs: int
+    files_final_npy: int
+    files_metadata_json: int
+    deleted_dirs: List[str]
+    kept_dirs: List[str]
+
+
+def _iter_dirs_named(root: Path, names: Sequence[str]) -> List[Path]:
+    found: List[Path] = []
+    for name in names:
+        found.extend([p for p in root.rglob(name) if p.is_dir()])
+    return found
+
+
+def list_experiment_artifacts(dataset_name: str | None = None) -> dict:
+    """Enumera artefactos de experimentos bajo Aux/.
+
+    Busca directorios 'experiment_*' y sus subcarpetas relevantes
+    ('pipeline_cache', 'intermediates'), además de 'Events' y
+    'generated_datasets'. También cuenta archivos *_final.npy y *_metadata.json.
+    """
+    aux_root = Path("Aux")
+    if dataset_name:
+        aux_root = aux_root / dataset_name
+    if not aux_root.exists():
+        return {"status": 404, "message": f"No existe {aux_root}"}
+
+    experiments = [p for p in aux_root.rglob("experiment_*") if p.is_dir()]
+    pipeline_cache = _iter_dirs_named(aux_root, ["pipeline_cache"])  # en cualquier nivel
+    intermediates = _iter_dirs_named(aux_root, ["intermediates"])    # en cualquier nivel
+    gen_ds = _iter_dirs_named(aux_root, ["generated_datasets"])      # subsets locales
+
+    # Conteos de archivos característicos dentro de pipeline_cache
+    files_final = 0
+    files_meta = 0
+    for pc in pipeline_cache:
+        files_final += sum(1 for _ in pc.glob("*_final.npy"))
+        files_meta  += sum(1 for _ in pc.glob("*_metadata.json"))
+
+    return {
+        "status": 200,
+        "message": "OK",
+        "aux_root": str(aux_root),
+        "experiments": [str(p) for p in experiments],
+        "pipeline_cache": [str(p) for p in pipeline_cache],
+        "intermediates": [str(p) for p in intermediates],
+        "generated_datasets": [str(p) for p in gen_ds],
+        "files_final_npy": files_final,
+        "files_metadata_json": files_meta,
+    }
+
+
+def clean_experiments(
+    dataset_name: str | None = None,
+    mode: str = "pipeline",
+    dry_run: bool = True,
+) -> CleanupReport:
+    """Limpia artefactos bajo Aux/ sin tocar Events.
+
+    Modos:
+      - 'pipeline': Elimina SOLO artefactos de pipeline (pipeline_cache, intermediates)
+      - 'subset'  : Elimina SOLO subsets generados (generated_datasets)
+
+    Nunca se eliminan 'Events' ni datos crudos.
+
+    Args:
+      dataset_name: si se especifica, limita la limpieza a Aux/<dataset_name>.
+      mode: 'pipeline' | 'subset'.
+      dry_run: si True no borra nada, solo reporta qué borraría.
+    """
+    assert mode in {"pipeline", "subset"}, f"modo inválido: {mode}"
+
+    aux_root = Path("Aux")
+    if dataset_name:
+        aux_root = aux_root / dataset_name
+    aux_root.mkdir(parents=True, exist_ok=True)
+
+    experiments = [p for p in aux_root.rglob("experiment_*") if p.is_dir()]
+    pipeline_cache = _iter_dirs_named(aux_root, ["pipeline_cache"]) if mode == "pipeline" else []
+    intermediates = _iter_dirs_named(aux_root, ["intermediates"]) if mode == "pipeline" else []
+    gen_ds = _iter_dirs_named(aux_root, ["generated_datasets"]) if mode == "subset" else []
+
+    to_delete: List[Path] = []
+    to_delete.extend(pipeline_cache)
+    to_delete.extend(intermediates)
+    to_delete.extend(gen_ds)
+
+    # Contabilizar archivos característicos antes de borrar (solo pipeline)
+    files_final = 0
+    files_meta = 0
+    for pc in pipeline_cache:
+        files_final += sum(1 for _ in pc.glob("*_final.npy"))
+        files_meta  += sum(1 for _ in pc.glob("*_metadata.json"))
+
+    deleted_dirs: List[str] = []
+    kept_dirs: List[str] = []
+
+    import shutil
+    for d in to_delete:
+        if dry_run:
+            kept_dirs.append(str(d))
+        else:
+            try:
+                shutil.rmtree(d)
+                deleted_dirs.append(str(d))
+            except Exception as e:
+                kept_dirs.append(f"{d} (ERROR: {e})")
+
+    # Limpieza de directorios 'experiment_*' vacíos tras borrar subcarpetas
+    if not dry_run:
+        for exp in experiments:
+            try:
+                if exp.exists() and exp.is_dir() and not any(exp.iterdir()):
+                    exp.rmdir()
+                    deleted_dirs.append(str(exp))
+            except Exception as e:
+                kept_dirs.append(f"{exp} (ERROR al borrar vacío: {e})")
+
+    return CleanupReport(
+        dataset_name=dataset_name,
+        mode=mode,
+        dry_run=dry_run,
+        experiments_found=len(experiments),
+        pipeline_cache_dirs=len(pipeline_cache),
+        intermediates_dirs=len(intermediates),
+        generated_datasets_dirs=len(gen_ds),
+        files_final_npy=files_final,
+        files_metadata_json=files_meta,
+        deleted_dirs=deleted_dirs,
+        kept_dirs=kept_dirs,
+    )
+

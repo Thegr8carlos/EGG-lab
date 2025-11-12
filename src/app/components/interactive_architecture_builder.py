@@ -8,10 +8,14 @@ from dash import html, dcc, Input, Output, State, callback, ALL, MATCH, no_updat
 import dash_bootstrap_components as dbc
 from typing import Dict, Any, List, Tuple, Optional
 import json
+import time
+from pathlib import Path
+import numpy as np
 
 # Importar editor de kernels de CNN
 from app.components.cnn_kernel_editor import create_convolution_layer_config
 from app.components.CloudTrainingComponent import create_cloud_training_section
+from app.components.LocalTrainingComponent import create_local_training_section
 
 # Colores para tipos de capas
 LAYER_COLORS = {
@@ -333,7 +337,15 @@ def validate_complete_architecture(layers: List[Dict[str, Any]], model_type: str
     return True, ""
 
 
-def build_model_config_from_layers(layers: List[Dict], model_type: str, num_channels: int, num_classes: int) -> Dict[str, Any]:
+def build_model_config_from_layers(
+    layers: List[Dict],
+    model_type: str,
+    num_channels: int,
+    num_classes: int,
+    epochs: Optional[int] = None,
+    batch_size: Optional[int] = None,
+    learning_rate: Optional[float] = None
+) -> Dict[str, Any]:
     """
     Construye el diccionario de configuración completo del modelo desde las capas.
 
@@ -342,6 +354,9 @@ def build_model_config_from_layers(layers: List[Dict], model_type: str, num_chan
         model_type: Tipo de modelo (LSTM, GRU, CNN, SVNN)
         num_channels: Número de canales de entrada (requerido)
         num_classes: Número de clases de salida (requerido)
+        epochs: Número de épocas (opcional, del usuario)
+        batch_size: Tamaño de batch (opcional, del usuario)
+        learning_rate: Tasa de aprendizaje (opcional, del usuario)
 
     Returns:
         Diccionario con la configuración completa del modelo en formato Pydantic
@@ -353,8 +368,18 @@ def build_model_config_from_layers(layers: List[Dict], model_type: str, num_chan
         raise ValueError("num_channels es requerido y debe ser mayor a 0")
     if num_classes is None or num_classes <= 0:
         raise ValueError("num_classes es requerido y debe ser mayor a 0")
+    
+    # ✅ VALIDAR HIPERPARÁMETROS (sin defaults, solo validación estricta)
+    if epochs is None or epochs <= 0:
+        raise ValueError("epochs es requerido y debe ser mayor a 0")
+    if batch_size is None or batch_size <= 0:
+        raise ValueError("batch_size es requerido y debe ser mayor a 0")
+    if learning_rate is None or learning_rate <= 0 or learning_rate > 1.0:
+        raise ValueError("learning_rate es requerido y debe estar entre 0 y 1")
 
     config = {}
+    
+    print(f"🎛️ Hiperparámetros validados: epochs={epochs}, batch_size={batch_size}, lr={learning_rate}")
 
     if model_type in ["LSTM", "GRU"]:
         # Importar clases Pydantic para instanciación
@@ -586,37 +611,32 @@ def build_model_config_from_layers(layers: List[Dict], model_type: str, num_chan
                 print(f"✅ SVNN DenseLayer instanciada: {dense_inst}")
                 dense_layer_instances.append(dense_inst)
 
-        # ✅ Configurar SVNN siguiendo el schema exacto (test_svnn.py líneas 178-185)
-        config["learning_rate"] = 0.001  # Default del test
-        config["epochs"] = 2  # Default del test
-        config["batch_size"] = 8  # Default del test
-        config["hidden_size"] = 64  # Default del test
+        # ✅ Configurar SVNN siguiendo el schema exacto (reaplicado)
+        # Usar hiperparámetros del usuario (validados previamente)
+        config["learning_rate"] = learning_rate
+        config["epochs"] = epochs
+        config["batch_size"] = batch_size
+        config["hidden_size"] = config.get("hidden_size", 64)  # Default del test
         config["classification_units"] = num_classes
-        config["input_adapter"] = InputAdapter(reduce_3d="flatten", scale="standard")
+        config["input_adapter"] = InputAdapter(reduce_3d="flatten", scale="standard")  # ← flatten requerido para contrato path-based
         config["fc_activation_common"] = ActivationFunction(kind="relu")
 
         # ✅ Las capas densas van en "layers" (NO "hidden_layers")
         if dense_layer_instances:
             config["layers"] = dense_layer_instances
         else:
-            # Si no hay capas, dejar lista vacía (el validador creará 2 capas automáticamente)
+            # Si no hay capas, dejar lista vacía (el validador puede aplicar defaults internos)
             config["layers"] = []
 
         print(f"✅ SVNN configurado: {len(config.get('layers', []))} layers, classification_units={num_classes}")
 
-    # Parámetros de entrenamiento (pueden estar en cualquier capa o usar defaults)
-    # Estos suelen ser campos top-level del modelo
-    for layer in layers:
-        layer_config = layer.get("config", {})
-        if "epochs" in layer_config:
-            config["epochs"] = layer_config["epochs"]
-        if "batch_size" in layer_config:
-            config["batch_size"] = layer_config["batch_size"]
-        if "learning_rate" in layer_config:
-            config["learning_rate"] = layer_config["learning_rate"]
+    # ✅ APLICAR HIPERPARÁMETROS DEL USUARIO (validados, sin fallbacks)
+    config["epochs"] = epochs
+    config["batch_size"] = batch_size
+    config["learning_rate"] = learning_rate
 
     print(f"🔍🔍🔍 DEBUG FINAL - Config completo del modelo {model_type}:")
-    print(f"🔍🔍🔍 {config}")
+    print(f"🔍🔍🔍 epochs={config.get('epochs')}, batch_size={config.get('batch_size')}, lr={config.get('learning_rate')}")
 
     return config
 
@@ -1881,6 +1901,104 @@ def create_interactive_config_card(model_name: str, schema: Dict[str, Any], clas
                     )
                 ], style={"display": "flex", "alignItems": "center", "marginTop": "20px"}),
 
+                # === SECCIÓN DE HIPERPARÁMETROS DE ENTRENAMIENTO ===
+                html.Div([
+                    html.Hr(style={"margin": "30px 0 20px", "borderTop": "1px solid rgba(255,255,255,0.15)"}),
+                    html.H6("Hiperparámetros de Entrenamiento", style={
+                        "color": "white",
+                        "fontWeight": "600",
+                        "marginBottom": "15px",
+                        "textAlign": "center"
+                    }),
+                    
+                    # Formulario de hiperparámetros con estilos consistentes
+                    html.Div([
+                        # Epochs
+                        html.Div([
+                            dbc.Label("Épocas", style={
+                                "minWidth": "120px",
+                                "color": "white",
+                                "fontSize": "13px",
+                                "fontWeight": "500"
+                            }),
+                            dbc.Input(
+                                id={"type": "hyperparam-epochs", "model": model_name},
+                                type="number",
+                                min=1,
+                                max=1000,
+                                value=10,
+                                step=1,
+                                style={
+                                    "flex": "1",
+                                    "fontSize": "14px",
+                                    "height": "38px",
+                                    "padding": "8px 12px"
+                                }
+                            )
+                        ], className="input-field-group", style={"marginBottom": "12px"}),
+                        
+                        # Batch Size
+                        html.Div([
+                            dbc.Label("Tamaño de Batch", style={
+                                "minWidth": "120px",
+                                "color": "white",
+                                "fontSize": "13px",
+                                "fontWeight": "500"
+                            }),
+                            dbc.Input(
+                                id={"type": "hyperparam-batch-size", "model": model_name},
+                                type="number",
+                                min=1,
+                                max=512,
+                                value=32,
+                                step=1,
+                                style={
+                                    "flex": "1",
+                                    "fontSize": "14px",
+                                    "height": "38px",
+                                    "padding": "8px 12px"
+                                }
+                            )
+                        ], className="input-field-group", style={"marginBottom": "12px"}),
+                        
+                        # Learning Rate
+                        html.Div([
+                            dbc.Label("Learning Rate", style={
+                                "minWidth": "120px",
+                                "color": "white",
+                                "fontSize": "13px",
+                                "fontWeight": "500"
+                            }),
+                            dbc.Input(
+                                id={"type": "hyperparam-lr", "model": model_name},
+                                type="number",
+                                min=0.00001,
+                                max=1.0,
+                                value=0.001,
+                                step=0.0001,
+                                style={
+                                    "flex": "1",
+                                    "fontSize": "14px",
+                                    "height": "38px",
+                                    "padding": "8px 12px"
+                                }
+                            )
+                        ], className="input-field-group", style={"marginBottom": "8px"}),
+                        
+                        # Información adicional
+                        dbc.Alert([
+                            html.I(className="fas fa-info-circle me-2"),
+                            html.Strong("Importante: "),
+                            "Estos parámetros son obligatorios y se usarán para todos los entrenamientos (Probar Configuración y Entrenamiento Local)."
+                        ], color="info", style={"fontSize": "12px", "marginTop": "15px", "padding": "10px"})
+                    ], style={
+                        "backgroundColor": "rgba(0,0,0,0.2)",
+                        "borderRadius": "8px",
+                        "padding": "15px",
+                        "border": "1px solid rgba(255,255,255,0.1)"
+                    })
+                ]),
+
                 # Botón final
                 html.Div([
                     dbc.Button(
@@ -1903,6 +2021,12 @@ def create_interactive_config_card(model_name: str, schema: Dict[str, Any], clas
                     )
                 ]),
 
+                # Divisor visual antes de sección de entrenamiento
+                html.Hr(style={"margin": "30px 0", "borderTop": "1px solid rgba(255,255,255,0.15)"}),
+
+                # Sección de entrenamiento local
+                create_local_training_section(model_name),
+
                 # Divisor visual antes de sección cloud
                 html.Hr(style={"margin": "30px 0", "borderTop": "1px solid rgba(255,255,255,0.15)"}),
 
@@ -1917,6 +2041,14 @@ def create_interactive_config_card(model_name: str, schema: Dict[str, Any], clas
 
 def register_interactive_callbacks():
     """Registra todos los callbacks necesarios para el sistema interactivo."""
+
+    # Utilidad de logging central (reaplicada)
+    def _arch_log(*parts: Any) -> None:
+        try:
+            msg = " ".join(str(p) for p in parts)
+            print(f"[ARCH] {msg}")
+        except Exception:
+            pass
 
     # Store para mensajes de error/validación
     @callback(
@@ -2355,6 +2487,7 @@ def register_interactive_callbacks():
         Output({"type": "test-config-result", "model": MATCH}, "children"),
         Output({"type": "btn-cloud-training", "model": MATCH}, "disabled", allow_duplicate=True),
         Output({"type": "cloud-training-hint", "model": MATCH}, "children", allow_duplicate=True),
+        Output({"type": "model-validation-status", "model": MATCH}, "data"),
         Input({"type": "test-config-btn", "model": MATCH}, "n_clicks"),
         [State({"type": "layer-config-input", "layer_index": ALL, "field": ALL}, "value"),
          State({"type": "layer-config-input", "layer_index": ALL, "field": ALL}, "id"),
@@ -2372,25 +2505,34 @@ def register_interactive_callbacks():
          State("architecture-layers", "data"),
          State("model-type", "data"),
          State("classifier-type-store", "data"),
-         State("selected-dataset", "data")],  # Nuevo: obtener dataset seleccionado
+         State("selected-dataset", "data"),
+         State({"type": "hyperparam-epochs", "model": MATCH}, "value"),
+         State({"type": "hyperparam-batch-size", "model": MATCH}, "value"),
+         State({"type": "hyperparam-lr", "model": MATCH}, "value")],
         prevent_initial_call=True
     )
     def test_model_configuration(n_clicks, input_values, input_ids, cnn_filters_data, cnn_filters_ids,
                                   kernel_values, kernel_ids, stride_h_values, stride_w_values, stride_ids,
                                   padding_values, activation_values, kernel_size_values, kernel_size_ids,
-                                  layers, model_type, classifier_type, selected_dataset):
+                                  layers, model_type, classifier_type, selected_dataset,
+                                  epochs, batch_size, learning_rate):
         """
+        Validación y prueba de configuración del modelo interactivo.
+        
         Paso 1: Obtener canales y clases del dataset
         Paso 2: Validar el modelo con las clases Pydantic
         Paso 3: Instanciar el modelo en el experimento (P300 o InnerSpeech según classifier_type)
-        Paso 4: TODO - Mini entrenamiento para verificar que compila
+        Paso 4: Verificación de compilación con mini-entrenamiento
 
         Args:
             classifier_type: "P300" o "InnerSpeech" - determina qué método del experimento usar
             selected_dataset: Path del dataset seleccionado para obtener metadata
+            epochs: Número de épocas proporcionado por el usuario
+            batch_size: Tamaño de batch proporcionado por el usuario  
+            learning_rate: Tasa de aprendizaje proporcionada por el usuario
         """
         if not n_clicks:
-            return no_update, no_update, no_update
+            return no_update, no_update, no_update, no_update
 
         from backend.classes.ClasificationModel.ClassifierSchemaFactory import ClassifierSchemaFactory
         from backend.classes.Experiment import Experiment
@@ -2398,7 +2540,46 @@ def register_interactive_callbacks():
         from shared.fileUtils import get_dataset_metadata
         import copy
 
+        # ✅ VALIDAR HIPERPARÁMETROS DEL USUARIO (sin fallbacks)
+        if epochs is None or epochs <= 0:
+            return (dbc.Alert([
+                html.I(className="fas fa-exclamation-triangle me-2"),
+                "Error: Debes especificar un número válido de épocas (mayor a 0)"
+            ], color="warning", dismissable=True), True, "Configura hiperparámetros válidos", False)
+        
+        if batch_size is None or batch_size <= 0:
+            return (dbc.Alert([
+                html.I(className="fas fa-exclamation-triangle me-2"),
+                "Error: Debes especificar un tamaño de batch válido (mayor a 0)"
+            ], color="warning", dismissable=True), True, "Configura hiperparámetros válidos", False)
+        
+        if learning_rate is None or learning_rate <= 0 or learning_rate > 1.0:
+            return (dbc.Alert([
+                html.I(className="fas fa-exclamation-triangle me-2"),
+                "Error: Debes especificar un learning rate válido (entre 0 y 1)"
+            ], color="warning", dismissable=True), True, "Configura hiperparámetros válidos", False)
+
         try:
+            _arch_log("Iniciando validación de configuración →", model_type, "classifier_type=", classifier_type)
+            _arch_log(f"Hiperparámetros del usuario: epochs={epochs}, batch_size={batch_size}, lr={learning_rate}")
+            if layers:
+                for idx, layer in enumerate(layers):
+                    ltype = layer.get("type")
+                    lcfg = layer.get("config", {})
+                    summary = []
+                    if ltype in ("DenseLayer", "LSTMLayer", "GRULayer"):
+                        units = lcfg.get("units") or lcfg.get("hidden_size")
+                        if units:
+                            summary.append(f"units={units}")
+                    if ltype == "ConvolutionLayer":
+                        filters = lcfg.get("filters", [])
+                        summary.append(f"filters={len(filters)}")
+                    act = lcfg.get("activation")
+                    if isinstance(act, dict):
+                        act = act.get("kind")
+                    if act:
+                        summary.append(f"act={act}")
+                    _arch_log(f"Layer {idx+1}: {ltype}", "|", ", ".join(summary) if summary else "(sin detalle)")
             # Crear copia de layers para evitar mutaciones
             layers = copy.deepcopy(layers) if layers else []
 
@@ -2409,7 +2590,7 @@ def register_interactive_callbacks():
                 return (dbc.Alert([
                     html.I(className="fas fa-exclamation-triangle me-2"),
                     "Error: No hay un dataset seleccionado. Por favor selecciona un dataset primero."
-                ], color="warning", dismissable=True), True, "Selecciona un dataset para habilitar el entrenamiento en la nube")
+                ], color="warning", dismissable=True), True, "Selecciona un dataset para habilitar el entrenamiento en la nube", False)
 
             # Obtener metadata del dataset
             try:
@@ -2424,13 +2605,13 @@ def register_interactive_callbacks():
                     return (dbc.Alert([
                         html.I(className="fas fa-exclamation-triangle me-2"),
                         f"Error: El dataset no tiene canales válidos. Metadata: {metadata}"
-                    ], color="danger", dismissable=True), True, "Dataset sin canales válidos" )
+                    ], color="danger", dismissable=True), True, "Dataset sin canales válidos", False)
 
                 if num_classes <= 0:
                     return (dbc.Alert([
                         html.I(className="fas fa-exclamation-triangle me-2"),
                         f"Error: El dataset no tiene clases válidas. Metadata: {metadata}"
-                    ], color="danger", dismissable=True), True, "Dataset sin clases válidas" )
+                    ], color="danger", dismissable=True), True, "Dataset sin clases válidas", False)
 
                 print(f"📊 Dataset metadata: {num_channels} canales, {num_classes} clases")
 
@@ -2438,7 +2619,7 @@ def register_interactive_callbacks():
                 return (dbc.Alert([
                     html.I(className="fas fa-times-circle me-2"),
                     f"Error al leer metadata del dataset: {str(meta_err)}"
-                ], color="danger", dismissable=True), True, "Error leyendo metadata" )
+                ], color="danger", dismissable=True), True, "Error leyendo metadata", False)
 
             # ===== PASO 1: RECOPILAR CONFIGURACIÓN =====
 
@@ -2447,7 +2628,7 @@ def register_interactive_callbacks():
                 return (dbc.Alert([
                     html.I(className="fas fa-exclamation-triangle me-2"),
                     "Error: Debes agregar al menos una capa a la arquitectura"
-                ], color="danger", dismissable=True), True, "Agrega capas para habilitar el entrenamiento en la nube" )
+                ], color="danger", dismissable=True), True, "Agrega capas para habilitar el entrenamiento en la nube", False)
 
             # Construir configuración desde los inputs
             # Los input_ids son dicts con {"type": "layer-config-input", "layer_index": i, "field": "field_name"}
@@ -2570,18 +2751,30 @@ def register_interactive_callbacks():
                         html.Br(),
                         html.Small("Navega a cada capa Conv y agrega al menos un filtro (botón '+ Agregar Filtro')")
                     ])
-                ], color="warning", dismissable=True), True, "Completa filtros CNN para habilitar entrenamiento" )
+                ], color="warning", dismissable=True), True, "Completa filtros CNN para habilitar entrenamiento", False)
 
             is_valid, error_msg = validate_complete_architecture(layers, model_type)
             if not is_valid:
                 return (dbc.Alert([
                     html.I(className="fas fa-exclamation-triangle me-2"),
                     f"Arquitectura incompleta: {error_msg}"
-                ], color="warning", dismissable=True), True, "Arquitectura incompleta" )
+                ], color="warning", dismissable=True), True, "Arquitectura incompleta", False)
 
             # Construir el diccionario completo del modelo según el tipo
-            # Pasar num_channels y num_classes del dataset
-            model_config = build_model_config_from_layers(layers, model_type, num_channels, num_classes)
+            # Pasar num_channels y num_classes del dataset + hiperparámetros del usuario
+            try:
+                model_config = build_model_config_from_layers(
+                    layers, model_type, num_channels, num_classes,
+                    epochs=epochs,
+                    batch_size=batch_size,
+                    learning_rate=learning_rate
+                )
+                _arch_log("Hparams del usuario:", f"epochs={epochs}, batch_size={batch_size}, lr={learning_rate}")
+            except ValueError as ve:
+                return (dbc.Alert([
+                    html.I(className="fas fa-exclamation-triangle me-2"),
+                    f"Error en configuración: {str(ve)}"
+                ], color="warning", dismissable=True), True, "Configura parámetros válidos", False)
 
             # Obtener la clase Pydantic correspondiente
             available_classifiers = ClassifierSchemaFactory.available_classifiers
@@ -2591,12 +2784,12 @@ def register_interactive_callbacks():
                 return (dbc.Alert([
                     html.I(className="fas fa-times-circle me-2"),
                     f"Error: Modelo '{model_type}' no encontrado"
-                ], color="danger", dismissable=True), True, "Modelo no encontrado" )
+                ], color="danger", dismissable=True), True, "Modelo no encontrado", False)
 
             # Validar con Pydantic
             try:
                 validated_instance = classifier_class(**model_config)
-                print(f"✅ Configuración válida para {model_type}: {validated_instance}")
+                _arch_log("Instancia validada correctamente para", model_type)
             except ValidationError as ve:
                 error_details = "\n".join([f"• {err['loc'][0]}: {err['msg']}" for err in ve.errors()])
                 return (dbc.Alert([
@@ -2605,7 +2798,7 @@ def register_interactive_callbacks():
                         html.Strong("Errores de validación:"),
                         html.Pre(error_details, style={"fontSize": "12px", "marginTop": "10px"})
                     ])
-                ], color="danger", dismissable=True), True, "Errores de validación" )
+                ], color="danger", dismissable=True), True, "Errores de validación", False)
 
             # ===== PASO 2: VERIFICACIÓN DE COMPILACIÓN =====
             # Primero verificar que el modelo compila ANTES de guardarlo en el experimento
@@ -2694,7 +2887,7 @@ def register_interactive_callbacks():
                                         yTest=mini_dataset["test_labels"]
                                     )
                                     compilation_ok = True
-                                    print(f"✅ [INTERNO] Compilación verificada exitosamente")
+                                    _arch_log("Compilación y mini-entrenamiento OK")
                                 except Exception as train_err:
                                     compilation_error = "Error al compilar el modelo con los datos procesados"
                                     print(f"❌ [INTERNO] Error en compilación: {train_err}")
@@ -2732,17 +2925,17 @@ def register_interactive_callbacks():
                             html.Li("Compatibilidad del pipeline con el modelo", style={"fontSize": "13px"})
                         ], className="mb-0 mt-1", style={"opacity": "0.8"})
                     ])
-                ], color="danger", dismissable=True, duration=12000), True, "Errores de compilación" )
+                ], color="danger", dismissable=True, duration=12000), True, "Errores de compilación", False)
 
             # ===== PASO 3: INSTANCIAR EN EXPERIMENTO (solo si compilación OK) =====
             try:
                 # Agregar clasificador al experimento según el tipo
                 if classifier_type == "InnerSpeech":
                     Experiment.add_inner_speech_classifier(validated_instance)
-                    print(f"✅ {model_type} agregado como InnerSpeechClassifier al experimento")
+                    _arch_log(f"{model_type} agregado al experimento como InnerSpeechClassifier")
                 else:  # P300 por defecto
                     Experiment.add_P300_classifier(validated_instance)
-                    print(f"✅ {model_type} agregado como P300Classifier al experimento")
+                    _arch_log(f"{model_type} agregado al experimento como P300Classifier")
 
                 # Éxito total con detalles de compilación
                 success_content = [
@@ -2765,14 +2958,14 @@ def register_interactive_callbacks():
                     ])
                 ]
 
-                return (dbc.Alert(success_content, color="success", dismissable=True, duration=8000), False, "Listo: puedes entrenar el modelo en la nube")
+                return (dbc.Alert(success_content, color="success", dismissable=True, duration=8000), False, "Listo: puedes entrenar el modelo en la nube", True)
 
             except Exception as exp_err:
                 print(f"❌ Error al agregar al experimento: {exp_err}")
                 return (dbc.Alert([
                     html.I(className="fas fa-times-circle me-2"),
                     f"Error al guardar en experimento: {str(exp_err)}"
-                ], color="danger", dismissable=True), True, "Error guardando experimento" )
+                ], color="danger", dismissable=True), True, "Error guardando experimento", False)
 
         except Exception as e:
             print(f"❌ Error inesperado: {e}")
@@ -2781,7 +2974,7 @@ def register_interactive_callbacks():
             return (dbc.Alert([
                 html.I(className="fas fa-times-circle me-2"),
                 f"Error inesperado: {str(e)}"
-            ], color="danger", dismissable=True), True, "Error inesperado" )
+            ], color="danger", dismissable=True), True, "Error inesperado", False)
 
 
 # Registrar callbacks al importar

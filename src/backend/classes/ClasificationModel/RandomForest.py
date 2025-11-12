@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import time
+import pickle
+from pathlib import Path
+from datetime import datetime
 from typing import List, Literal, Optional, Sequence, Tuple, Union
 
 import numpy as np
@@ -18,6 +21,7 @@ from sklearn.metrics import (
 
 from backend.classes.ClasificationModel.ClsificationModels import Classifier
 from backend.classes.Metrics import EvaluationMetrics
+from backend.classes.ClasificationModel.utils.TrainResult import TrainResult
 from backend.classes.dataset import _load_and_concat
 
 NDArray = np.ndarray
@@ -47,95 +51,103 @@ class RandomForest(Classifier):
     # Guardaremos el modelo entrenado para poder hacer query luego
     _model: Optional[RandomForestClassifier] = None  # type: ignore[assignment]
 
+    # =================================================================================
+    # Persistencia: save/load
+    # =================================================================================
+    def save(self, path: str):
+        """
+        Guarda la instancia completa (configuración + modelo entrenado) a disco.
+        
+        Args:
+            path: Ruta completa donde guardar el archivo .pkl
+                  Ejemplo: "src/backend/models/p300/randomforest_20251109_143022.pkl"
+        
+        Note:
+            Usa pickle para serializar toda la instancia incluyendo _model.
+            El directorio padre se crea automáticamente si no existe.
+        """
+        Path(path).parent.mkdir(parents=True, exist_ok=True)
+        with open(path, 'wb') as f:
+            pickle.dump(self, f)
+        print(f"[RandomForest] Modelo guardado en: {path}")
+    
+    @classmethod
+    def load(cls, path: str) -> "RandomForest":
+        """
+        Carga una instancia completa desde disco.
+        
+        Args:
+            path: Ruta al archivo .pkl guardado previamente
+        
+        Returns:
+            Instancia de RandomForest con modelo entrenado listo para query()
+        
+        Example:
+            rf_model = RandomForest.load("src/backend/models/p300/randomforest_20251109_143022.pkl")
+            predictions = RandomForest.query(rf_model, X_new)
+        """
+        with open(path, 'rb') as f:
+            instance = pickle.load(f)
+        print(f"[RandomForest] Modelo cargado desde: {path}")
+        return instance
+    
+    @staticmethod
+    def _generate_model_path(label: str, base_dir: str = "src/backend/models") -> str:
+        """
+        Genera ruta única para guardar modelo.
+        
+        Args:
+            label: Etiqueta del experimento (e.g., "p300", "inner")
+            base_dir: Directorio base para modelos
+        
+        Returns:
+            Ruta completa: "{base_dir}/{label}/randomforest_{timestamp}.pkl"
+        """
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"randomforest_{timestamp}.pkl"
+        return str(Path(base_dir) / label / filename)
+
     @staticmethod
     def _prepare_xy(
         x_paths: Sequence[str],
         y_paths: Sequence[str],
+        metadata_list: Optional[Sequence[dict]] = None,
+        *,
+        verbose: bool = False,
     ) -> Tuple[NDArray, NDArray]:
         """
-        Carga y prepara datos para RandomForest.
+        Carga y prepara datos para RandomForest con la misma convención que SVM:
+        - X debe venir como 3D (n_frames, features, n_channels) tras el pipeline.
+        - Se aplanan los ejes (features, n_channels) para obtener X 2D con un ejemplo por frame.
+        - y se aplana a 1D (una etiqueta por frame) y se valida longitud.
 
-        Regla de negocio estándar:
-        - Las transformadas generan datos 3D: (n_samples, time_steps, features, channels)
-          o más comúnmente por muestra individual: (time_steps, features, channels)
-        - Las etiquetas son por frame: (n_samples, n_frames) o por muestra: (n_frames,)
-
-        Procesamiento:
-        1. Datos 3D → Aplanar a 2D (n_samples, time_steps * features * channels)
-        2. Etiquetas por frame → Moda por muestra
-
-        Returns:
-            X: (n_samples, n_features_totales)
-            y: (n_samples,) con etiqueta por muestra (moda de frames)
+        Soporta tanto listas de archivos por frame como archivos agregados (train_X.npy/test_X.npy).
         """
-        from collections import Counter
+        t_load = time.perf_counter()
+        X = _load_and_concat(x_paths)
+        y = _load_and_concat(y_paths)
+        load_seconds = time.perf_counter() - t_load
 
-        # Cargar y procesar datos X
-        X_list = []
-        for x_path in x_paths:
-            X_sample = np.load(x_path, allow_pickle=False)
+        if verbose:
+            print(f"[RF._prepare_xy] Cargados: X={len(x_paths)} y={len(y_paths)} en {load_seconds:.3f}s. Shape X={X.shape} y={y.shape}")
 
-            # Caso 3D: (time_steps, features_per_step, channels)
-            # Aplanar a 1D: time_steps * features_per_step * channels
-            if X_sample.ndim == 3:
-                X_sample = X_sample.reshape(-1)  # Aplanar completamente
+        if X.ndim != 3:
+            raise ValueError(
+                f"RandomForest espera datos 3D post-transform (n_frames, features, n_channels). Recibido {X.shape}"
+            )
 
-            # Caso 2D: (time_steps, features)
-            # Aplanar a 1D
-            elif X_sample.ndim == 2:
-                X_sample = X_sample.reshape(-1)
-
-            # Caso 1D: ya está aplanado
-            elif X_sample.ndim == 1:
-                pass
-
-            else:
-                raise ValueError(f"Datos con dimensionalidad no soportada: {X_sample.ndim}D en {x_path}")
-
-            X_list.append(X_sample)
-
-        # Concatenar todas las muestras
-        X = np.vstack(X_list) if len(X_list) > 1 else X_list[0].reshape(1, -1)
-
-        # Cargar y procesar etiquetas y
-        y_list = []
-        for y_path in y_paths:
-            y_sample = np.load(y_path, allow_pickle=True)
-            y_sample = np.array(y_sample).reshape(-1)
-
-            if y_sample.size == 0:
-                raise ValueError(f"Etiqueta vacía en {y_path}")
-
-            # Caso 1: Etiqueta escalar
-            if y_sample.size == 1:
-                y_list.append(int(y_sample[0]))
-
-            # Caso 2: Array de etiquetas por frame (estándar)
-            # Calcular moda
-            else:
-                # Convertir a int si es posible
-                y_clean = []
-                for val in y_sample:
-                    try:
-                        y_clean.append(int(val))
-                    except (ValueError, TypeError):
-                        y_clean.append(str(val))
-
-                # Calcular moda
-                counts = Counter(y_clean)
-                most_common_label = counts.most_common(1)[0][0]
-
-                try:
-                    y_list.append(int(most_common_label))
-                except (ValueError, TypeError):
-                    raise ValueError(f"La moda de las etiquetas en {y_path} no es un entero válido: {most_common_label}")
-
-        y = np.array(y_list, dtype=np.int64)
+        n_samples = X.shape[0]
+        flat_features = int(np.prod(X.shape[1:]))
+        X = X.reshape(n_samples, -1)
+        y = np.ravel(y)
 
         if X.shape[0] != y.shape[0]:
             raise ValueError(
-                f"X and y length mismatch: X={X.shape[0]} vs y={y.shape[0]}"
+                f"Mismatch X/y: {X.shape[0]} frames vs {y.shape[0]} labels. Cada frame debe tener una etiqueta."
             )
+
+        if verbose:
+            print(f"[RF._prepare_xy] X listo: {n_samples} ejemplos, {flat_features} features planos. y shape={y.shape}")
 
         return X, y
 
@@ -149,9 +161,15 @@ class RandomForest(Classifier):
         yTrain: List[str],
         metadata_train: Optional[List[dict]] = None,
         metadata_test: Optional[List[dict]] = None,
+        model_label: Optional[str] = None,
+        *,
+        verbose: bool = True,
     ) -> EvaluationMetrics:
         """
-        Entrena un RandomForest usando las rutas dadas y retorna EvaluationMetrics.
+        Entrena un RandomForest usando las rutas dadas (wrapper legacy).
+        
+        Este método mantiene compatibilidad con código existente retornando solo EvaluationMetrics.
+        Internamente delega a fit() para evitar duplicación de código.
 
         Args:
             instance: Instancia configurada de RandomForest
@@ -163,20 +181,64 @@ class RandomForest(Classifier):
                            (incluido por homogeneidad de API, no usado en RandomForest)
             metadata_test: Lista opcional de diccionarios con metadatos para test
                           (incluido por homogeneidad de API, no usado en RandomForest)
+            model_label: Etiqueta opcional para auto-guardar (e.g., "p300", "inner").
+                        Si se proporciona, guarda automáticamente en src/backend/models/{label}/
 
         Returns:
-            EvaluationMetrics con accuracy, precision, recall, F1, confusion matrix, AUC-ROC
-
-        Notes:
-            - Regla de negocio aplicada en _prepare_xy():
-              * Aplana cada muestra 3D/2D -> vector 1D
-              * Etiquetas por frame -> moda por muestra
-            - Los metadatos se incluyen para mantener API consistente con otros clasificadores
-              pero no se utilizan en el preprocesamiento de RandomForest
+            EvaluationMetrics: Solo las métricas de evaluación (para compatibilidad backward)
+            
+        Note:
+            Si necesitas acceso al modelo entrenado y más información, usa fit() en su lugar.
         """
+        # Delegar a fit() y extraer solo métricas (evita duplicación de código)
+        result = cls.fit(
+            instance=instance,
+            xTest=xTest,
+            yTest=yTest,
+            xTrain=xTrain,
+            yTrain=yTrain,
+            metadata_train=metadata_train,
+            metadata_test=metadata_test,
+            model_label=model_label,
+            verbose=verbose,
+        )
+        return result.metrics
+
+    @classmethod
+    def fit(
+        cls,
+        instance: "RandomForest",
+        xTest: List[str],
+        yTest: List[str],
+        xTrain: List[str],
+        yTrain: List[str],
+        metadata_train: Optional[List[dict]] = None,
+        metadata_test: Optional[List[dict]] = None,
+        model_label: Optional[str] = None,
+        *,
+        verbose: bool = True,
+    ) -> TrainResult:
+        """Entrena y devuelve paquete TrainResult (modelo + métricas).
+
+        No rompe `train()`: es una API paralela opt-in.
+        
+        Args:
+            model_label: Etiqueta opcional para auto-guardar (e.g., "p300", "inner").
+                        Si se proporciona, guarda automáticamente en src/backend/models/{label}/
+        """
+        if verbose:
+            print("[RandomForest.fit] Iniciando entrenamiento RandomForest")
+            print(f"[RandomForest.fit] Parámetros: n_estimators={instance.n_estimators} max_depth={instance.max_depth} criterion={instance.criterion} class_weight={instance.class_weight}")
+            print(f"[RandomForest.fit] Archivos train: X={len(xTrain)} y={len(yTrain)} | test: X={len(xTest)} y={len(yTest)}")
+
         # 1) Cargar y preparar datos
-        X_train, y_train = cls._prepare_xy(xTrain, yTrain)
-        X_test, y_test = cls._prepare_xy(xTest, yTest)
+        t_prepare = time.perf_counter()
+        X_train, y_train = cls._prepare_xy(xTrain, yTrain, metadata_list=metadata_train, verbose=verbose)
+        X_test, y_test = cls._prepare_xy(xTest, yTest, metadata_list=metadata_test, verbose=verbose)
+        prepare_seconds = time.perf_counter() - t_prepare
+
+        if verbose:
+            print(f"[RandomForest.fit] Datos preparados en {prepare_seconds:.3f}s | X_train={X_train.shape} y_train={y_train.shape} | X_test={X_test.shape} y_test={y_test.shape}")
 
         # Validaciones de shape
         if X_train.ndim != 2:
@@ -209,8 +271,15 @@ class RandomForest(Classifier):
         # 3) Entrenamiento y evaluación
         t0 = time.perf_counter()
         model.fit(X_train, y_train)
+        train_time = time.perf_counter() - t0
+        if verbose:
+            print(f"[RandomForest.fit] Entrenamiento completado en {train_time:.3f}s")
+        
+        t_eval = time.perf_counter()
         y_pred = model.predict(X_test)
-        eval_seconds = time.perf_counter() - t0
+        eval_seconds = time.perf_counter() - t_eval
+        if verbose:
+            print(f"[RandomForest.fit] Evaluación completada en {eval_seconds:.3f}s")
 
         # 4) Métricas
         acc = float(accuracy_score(y_test, y_pred))
@@ -240,8 +309,33 @@ class RandomForest(Classifier):
             evaluation_time=f"{eval_seconds:.4f}s",
         )
 
-        print(f"[RandomForest] Acc={acc:.3f} F1={f1:.3f} AUC={auc:.3f}")
-        return metrics
+        if verbose:
+            print(f"[RandomForest.fit] Métricas: Acc={acc:.3f} Prec={prec:.3f} Rec={rec:.3f} F1={f1:.3f} AUC={auc:.3f}")
+        
+        # Auto-guardar si se proporciona label
+        if model_label:
+            save_path = cls._generate_model_path(model_label)
+            if verbose:
+                print(f"[RandomForest.fit] Guardando modelo en {save_path}")
+            instance.save(save_path)
+        
+        return TrainResult(
+            metrics=metrics,
+            model=model,
+            model_name="RandomForest",
+            training_seconds=float(train_time),
+            history=None,  # RandomForest no tiene historia de entrenamiento por época
+            hyperparams={
+                "n_estimators": instance.n_estimators,
+                "max_depth": instance.max_depth,
+                "criterion": instance.criterion,
+                "random_state": instance.random_state,
+                "class_weight": instance.class_weight,
+                "n_jobs": instance.n_jobs,
+                "n_features": int(X_train.shape[1]),
+                "n_classes": int(len(np.unique(y_train))),
+            }
+        )
 
     @classmethod
     def query(

@@ -112,6 +112,7 @@ if __name__ == "__main__":
         print(f"⚠️ Error al crear experimento: {e}")
     
     
+    
     #app.run(debug=True) # comment this line if u want to test backend functionality 
     app.run(debug=True, use_reloader=False, port=8090, host="127.0.0.1")
     #print("🧐🔎🛠️💻  Backend Debug") # entry point to backend debug 
