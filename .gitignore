@@ -204,3 +204,4 @@ schemas.json
 src/SISTEMA_INTERACTIVO_MODELOS.md
 
 src\backend\models
+src/backend/Experiments/*
