@@ -168,6 +168,410 @@ UI renderiza columna derecha automáticamente
 
 ---
 
+<<<<<<< HEAD
+=======
+## Sistema de Pipeline de Historial (Pipeline History System)
+
+**Estado**: ✅ Fase 1 Completada (Backend Core) - 2025-11-03
+
+### Propósito
+
+El Sistema de Pipeline de Historial permite aplicar **TODOS** los filtros y transformadas del experimento de forma secuencial y automática, con caching inteligente para optimizar el rendimiento. En lugar de aplicar filtros y transformadas uno por uno, el sistema:
+
+1. Aplica todos los filtros en orden
+2. Luego aplica todas las transformadas en orden
+3. Guarda el resultado final en caché
+4. En navegaciones subsecuentes, carga directamente desde caché (hasta 100x más rápido)
+
+### Arquitectura de Backend (Fase 1)
+
+**Archivo**: `src/backend/classes/Experiment.py`
+
+Se agregaron 6 nuevos métodos para gestionar el pipeline completo:
+
+#### 1. `apply_history_pipeline()`
+
+**Líneas**: 425-772
+
+**Propósito**: Método principal que ejecuta el pipeline completo con caching inteligente.
+
+**Parámetros**:
+- `file_path`: Path al archivo .npy del evento
+- `force_recalculate`: Si es True, ignora caché y recalcula (default: False)
+- `save_intermediates`: Si es True, guarda resultados intermedios (default: True)
+- `verbose`: Si es True, imprime mensajes de progreso (default: True)
+
+**Retorna**:
+```python
+{
+    "signal": np.ndarray,           # Señal transformada final
+    "metadata": dict,                # Info de ejecución
+    "cache_used": bool,              # True si usó caché
+    "cache_path": str                # Path al archivo de caché
+}
+```
+
+**Workflow**:
+```
+1. Cargar experimento actual
+2. Construir paths de caché usando _get_pipeline_cache_path()
+3. Verificar si existe caché válido:
+   - Existe cache_file y metadata_file?
+   - Hash del pipeline coincide?
+   - Si SÍ → Cargar desde caché y retornar inmediatamente ⚡
+4. Si NO existe caché válido:
+   - Fase 1: Aplicar todos los filtros secuencialmente
+   - Fase 2: Aplicar todas las transformadas secuencialmente
+   - Guardar resultado final en cache_file
+   - Guardar metadata con hash del pipeline
+5. Retornar resultado con metadata
+```
+
+**Caching inteligente**:
+```python
+# Hash del pipeline = MD5(JSON serializado de filtros + transforms)
+current_config = {
+    "filters": experiment.filters,
+    "transforms": experiment.transform
+}
+pipeline_hash = hashlib.md5(
+    json.dumps(current_config, sort_keys=True).encode()
+).hexdigest()
+
+# Si el hash coincide → La configuración no ha cambiado → Caché válido
+if cached_metadata.get("pipeline_hash") == current_hash:
+    return cached_signal  # ⚡ Instant load
+```
+
+**Beneficios del caché**:
+- ✅ Primera carga: ~15-30 segundos (depende del número de filtros/transforms)
+- ✅ Cargas subsecuentes: ~0.15 segundos (hasta 100x más rápido)
+- ✅ Caché invalidado automáticamente si cambia la configuración del experimento
+- ✅ Cada evento tiene su propio caché (basado en MD5 del nombre del archivo)
+
+#### 2. `_get_pipeline_cache_path()`
+
+**Líneas**: 354-382
+
+**Propósito**: Construye paths de archivos de caché para un evento específico.
+
+**Estructura de carpetas creada**:
+```
+Dataset/
+└── Events/
+    └── Aux/
+        └── experiment_{id}/
+            ├── pipeline_cache/              # Resultados finales cacheados
+            │   ├── {evento}_{hash}_final.npy
+            │   └── {evento}_{hash}_metadata.json
+            └── intermediates/               # Pasos intermedios (debug)
+                ├── step_00_ICA_0.npy
+                ├── step_01_WaveletsBase_1.npy
+                ├── step_02_WaveletTransform_0.npy
+                └── step_03_FFTTransform_1.npy
+```
+
+**Hash del archivo**: Se usa MD5 de los primeros 8 caracteres del nombre del archivo para evitar colisiones y manejar nombres con caracteres especiales `[`, `]`, `{`, `}`.
+
+#### 3. `_reconstruct_filter_instance()`
+
+**Líneas**: 384-402
+
+**Propósito**: Reconstruye una instancia Pydantic de filtro desde la configuración JSON del experimento.
+
+**Workflow**:
+```python
+# JSON en experiment.filters:
+{
+    "id": 0,
+    "ICA": {
+        "id": "0",
+        "sp": 1024.0,
+        "numeroComponentes": 13,
+        "method": "fastica"
+    }
+}
+
+# ↓ _reconstruct_filter_instance("ICA", {...})
+
+# Instancia Pydantic:
+ICA(id="0", sp=1024.0, numeroComponentes=13, method="fastica")
+```
+
+**Uso en pipeline**:
+```python
+filter_instance = cls._reconstruct_filter_instance("ICA", config)
+filter_class.apply(filter_instance, file_path_in, file_path_out)
+```
+
+#### 4. `_reconstruct_transform_instance()`
+
+**Líneas**: 404-422
+
+**Propósito**: Reconstruye una instancia Pydantic de transformada desde la configuración JSON del experimento.
+
+**Workflow**: Idéntico a `_reconstruct_filter_instance()` pero para transformadas.
+
+**Uso en pipeline**:
+```python
+transform_instance = cls._reconstruct_transform_instance("WaveletTransform", config)
+transform_class.apply(transform_instance, file_path_in, directory_path_out, ...)
+```
+
+#### 5. `get_experiment_summary()`
+
+**Líneas**: 774-840
+
+**Propósito**: Retorna un resumen del experimento actual para mostrar en la UI.
+
+**Retorna**:
+```python
+{
+    "experiment_id": "573",
+    "filters": [
+        {"id": 0, "name": "ICA", "config": {...}},
+        {"id": 1, "name": "WaveletsBase", "config": {...}}
+    ],
+    "transforms": [
+        {"id": 0, "name": "WaveletTransform", "config": {...}},
+        {"id": 1, "name": "FFTTransform", "config": {...}}
+    ],
+    "total_steps": 4,
+    "cache_info": {
+        "size_mb": 45.23,
+        "files_count": 120
+    }
+}
+```
+
+**Uso futuro**: Este método será usado por el componente UI del visor de historial (Fase 2) para mostrar:
+- Accordion con todos los pasos del pipeline
+- Tamaño del caché
+- Botón "Ver JSON" para cada filtro/transformada
+
+#### 6. `clear_pipeline_cache()`
+
+**Líneas**: 842-899
+
+**Propósito**: Elimina todos los archivos de caché del pipeline para un experimento específico.
+
+**Uso**:
+```python
+# Limpiar caché del experimento actual
+result = Experiment.clear_pipeline_cache()
+
+# Limpiar caché de un experimento específico
+result = Experiment.clear_pipeline_cache(experiment_id="573")
+```
+
+**Retorna**:
+```python
+{
+    "files_deleted": 240,
+    "space_freed_mb": 156.78,
+    "experiments_affected": ["573"]
+}
+```
+
+**Qué elimina**:
+- Todos los archivos en `pipeline_cache/` (archivos .npy y .json)
+- Todos los archivos en `intermediates/` (pasos intermedios)
+- Las carpetas se eliminan completamente
+
+---
+
+### Flujo de Ejecución del Pipeline
+
+**Ejemplo con 2 filtros + 2 transformadas**:
+
+```
+apply_history_pipeline("/dataset/Events/abajo[123]{456}.npy")
+    ↓
+1. ¿Existe caché válido?
+   - Buscar: Aux/experiment_573/pipeline_cache/abajo[123]{456}_a1b2c3d4_final.npy
+   - Verificar hash del pipeline
+   - SÍ existe y es válido → RETORNAR INMEDIATAMENTE ⚡
+    ↓
+2. NO existe caché → Ejecutar pipeline completo:
+
+   FASE 1: FILTROS
+   ================
+   Señal original: (137 channels, 2612 samples)
+       ↓
+   → Aplicar ICA (id=0)
+       signal → temp_input.npy
+       ICA.apply() → temp_output.npy
+       Guardar: intermediates/step_00_ICA_0.npy
+       current_signal ← temp_output.npy
+   Señal después de ICA: (137 channels, 2612 samples)
+       ↓
+   → Aplicar WaveletsBase (id=1)
+       signal → temp_input.npy
+       WaveletsBase.apply() → temp_output.npy
+       Guardar: intermediates/step_01_WaveletsBase_1.npy
+       current_signal ← temp_output.npy
+   Señal después de Wavelets: (137 channels, 2612 samples)
+       ↓
+
+   FASE 2: TRANSFORMADAS
+   =====================
+   → Aplicar WaveletTransform (id=0)
+       signal → temp_input.npy
+       Generar etiquetas temporales
+       WaveletTransform.apply() → temp_output_dir/*.npy
+       Manejar array 3D si es necesario
+       Guardar: intermediates/step_02_WaveletTransform_0.npy
+       current_signal ← procesado
+   Señal después de WaveletTransform: (87, 30, 137) → (137, 2610)
+       ↓
+   → Aplicar FFTTransform (id=1)
+       signal → temp_input.npy
+       Generar etiquetas temporales
+       FFTTransform.apply() → temp_output_dir/*.npy
+       Guardar: intermediates/step_03_FFTTransform_1.npy
+       current_signal ← procesado
+   Señal después de FFT: (137, 1305)
+       ↓
+
+3. Guardar resultado final:
+   - Guardar: pipeline_cache/abajo[123]{456}_a1b2c3d4_final.npy
+   - Metadata: {
+       "pipeline_hash": "a1b2c3d4...",
+       "execution_time_seconds": 18.34,
+       "original_shape": [137, 2612],
+       "final_shape": [137, 1305],
+       "steps_applied": 4,
+       "execution_log": [...]
+     }
+   - Guardar: pipeline_cache/abajo[123]{456}_a1b2c3d4_metadata.json
+    ↓
+4. Retornar resultado con metadata
+
+======================
+Próxima carga del mismo evento:
+======================
+apply_history_pipeline("/dataset/Events/abajo[123]{456}.npy")
+    ↓
+1. ¿Existe caché válido?
+   - SÍ existe
+   - Hash coincide
+   - Cargar: pipeline_cache/abajo[123]{456}_a1b2c3d4_final.npy
+   - RETORNAR INMEDIATAMENTE (0.15s vs 18.34s) ⚡⚡⚡
+```
+
+---
+
+### Metadata del Pipeline
+
+Cada archivo de caché tiene un archivo `_metadata.json` asociado con información detallada:
+
+```json
+{
+  "pipeline_hash": "a1b2c3d4e5f6g7h8",
+  "experiment_id": "573",
+  "original_file": "/dataset/Events/abajo[123]{456}.npy",
+  "original_shape": [137, 2612],
+  "final_shape": [137, 1305],
+  "execution_time_seconds": 18.34,
+  "steps_applied": 4,
+  "execution_log": [
+    {
+      "step": 0,
+      "type": "filter",
+      "name": "ICA",
+      "id": 0,
+      "shape": [137, 2612]
+    },
+    {
+      "step": 1,
+      "type": "filter",
+      "name": "WaveletsBase",
+      "id": 1,
+      "shape": [137, 2612]
+    },
+    {
+      "step": 2,
+      "type": "transform",
+      "name": "WaveletTransform",
+      "id": 0,
+      "shape": [137, 2610]
+    },
+    {
+      "step": 3,
+      "type": "transform",
+      "name": "FFTTransform",
+      "id": 1,
+      "shape": [137, 1305]
+    }
+  ],
+  "timestamp": 1730678123.456
+}
+```
+
+**Usos de metadata**:
+- ✅ Validación de caché (comparar `pipeline_hash`)
+- ✅ Debugging (ver shapes en cada paso)
+- ✅ Análisis de performance (execution_time_seconds)
+- ✅ UI del visor de historial (mostrar execution_log)
+- ✅ Tracking de cambios dimensionales
+
+---
+
+### Manejo de Errores y Robustez
+
+El pipeline está diseñado para ser robusto ante fallos:
+
+**1. Filtro/Transformada falla**:
+```python
+try:
+    success = filter_class.apply(...)
+    if success:
+        current_signal = load_output()
+    else:
+        print("⚠️ Filtro falló, continuando con señal anterior")
+        # Continúa con la señal anterior, no aborta el pipeline
+except Exception as e:
+    print(f"❌ Error: {e}")
+    continue  # Salta al siguiente paso
+```
+
+**2. Configuración inválida**:
+```python
+if not filter_name or not filter_config:
+    print(f"⚠️ Filtro {filter_id} sin configuración válida, saltando")
+    continue
+```
+
+**3. Cleanup de archivos temporales**:
+```python
+# Siempre se limpian, incluso si hay error
+if temp_input.exists():
+    temp_input.unlink()
+if temp_output.exists():
+    temp_output.unlink()
+```
+
+**Resultado**: El pipeline completa tantos pasos como sea posible, incluso si algunos fallan.
+
+---
+
+### Próximas Fases
+
+**Fase 2: UI Viewer** (Pendiente)
+- Componente accordion para visualizar historial
+- Botones "Ver JSON" para cada filtro/transformada
+- Botón "Limpiar Caché"
+- Mostrar tamaño del caché y cantidad de archivos
+
+**Fase 3: Auto Integration** (Pendiente)
+- Toggle global para activar/desactivar pipeline automático (ON por defecto)
+- Integración con callbacks de navegación en `/filtros` y `/extractores`
+- Al navegar entre eventos, aplicar pipeline automáticamente
+- Al aplicar nuevo filtro/transformada, invalidar caché automáticamente
+
+---
+
+>>>>>>> eb8759879e9e26769687421c789cd6f7012457b4
 ## Sistema de Colores Dinámicos
 
 **Archivo**: `src/shared/class_colors.py`

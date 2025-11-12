@@ -12,7 +12,7 @@ from collections import Counter
 class WindowingTransform(Transform):
     """
     Transformada simple que ventanea señales crudas sin aplicar ningún procesamiento.
-    Convierte señales 2D en 3D mediante ventaneo sin overlap (hop = window_size).
+    Convierte señales 2D en 3D mediante ventaneo con soporte de overlap.
 
     Útil para:
     - Convertir señales crudas a formato consistente con otras transformadas
@@ -26,6 +26,14 @@ class WindowingTransform(Transform):
     window_size: int = Field(
         64, ge=2,
         description="Tamaño de cada ventana en muestras. Default: 64"
+    )
+    overlap: Optional[float] = Field(
+        None,
+        description="Solapamiento entre ventanas [0.0, 1.0). Si None, sin overlap (backward compatible). Default: None"
+    )
+    padding_mode: str = Field(
+        'constant',
+        description="Modo de padding cuando la señal no es múltiplo de window_size. Opciones: 'constant', 'edge', 'reflect'. Default: 'constant'"
     )
 
     @classmethod
@@ -68,34 +76,69 @@ class WindowingTransform(Transform):
 
         # ---------- Parámetros de ventaneo ----------
         window_size = int(instance.window_size)
-        hop = window_size  # Sin overlap
+        padding_mode = str(instance.padding_mode) if hasattr(instance, 'padding_mode') else 'constant'
 
-        # Calcular número de frames
-        n_frames = n_times // window_size
-        if n_frames < 1:
-            # Si la señal es más corta que window_size, pad y crear 1 frame
-            pad = window_size - n_times
-            X_raw = np.pad(X_raw, ((0, 0), (0, pad)), mode='edge')
-            n_frames = 1
-            n_times_usable = window_size
+        # Calcular hop (salto entre ventanas)
+        if instance.overlap is not None:
+            ov = float(instance.overlap)
+            if not (0.0 <= ov < 1.0):
+                raise ValueError(f"overlap debe estar en [0.0, 1.0), recibido: {ov}")
+            hop = max(1, int(round(window_size * (1.0 - ov))))
         else:
-            # Truncar al múltiplo más cercano
-            n_times_usable = n_frames * window_size
+            # Backward compatible: sin overlap
+            hop = window_size
 
-        # ---------- Ventaneo de datos sin overlap ----------
-        X_truncated = X_raw[:, :n_times_usable]  # (n_channels, n_frames * window_size)
+        # ---------- Preparar señal con padding si es necesario ----------
+        if n_times < window_size:
+            # Señal más corta que window_size: padding hasta window_size
+            pad_width = window_size - n_times
+            X_pad = np.pad(X_raw, ((0, 0), (0, pad_width)), mode=padding_mode)
+            n_times_eff = window_size
+            print(f"[WindowingTransform] ⚠️  Señal corta ({n_times} < {window_size}), padding {pad_width} muestras con mode='{padding_mode}'")
+        else:
+            X_pad = X_raw
+            n_times_eff = n_times
 
-        # Reshape: (n_channels, n_frames * window_size) → (n_frames, window_size, n_channels)
-        X_windowed = X_truncated.T.reshape(n_frames, window_size, n_channels).astype(np.float32)
+        # ---------- Calcular número de frames (fórmula estándar) ----------
+        n_frames = 1 + (n_times_eff - window_size) // hop
+        if n_frames <= 0:
+            n_frames = 1
 
-        # ESTANDARIZACIÓN: Asegurar que todas las ventanas tengan exactamente (window_size, n_channels)
-        if X_windowed.shape[1] != window_size:
-            X_fixed = np.zeros((X_windowed.shape[0], window_size, n_channels), dtype=np.float32)
-            min_len = min(X_windowed.shape[1], window_size)
-            X_fixed[:, :min_len, :] = X_windowed[:, :min_len, :]
-            X_windowed = X_fixed
+        # ---------- Ventaneo con stride_tricks ----------
+        # Crear ventanas usando stride_tricks para eficiencia
+        X_windowed_list = []
+        for ch in range(n_channels):
+            sig = X_pad[ch]
+            # Usar stride_tricks para crear ventanas
+            frames = np.lib.stride_tricks.as_strided(
+                sig,
+                shape=(n_frames, window_size),
+                strides=(sig.strides[0] * hop, sig.strides[0]),
+                writeable=False,
+            ).copy()
+            X_windowed_list.append(frames)
+
+        # Stack: (n_channels, n_frames, window_size) → (n_frames, window_size, n_channels)
+        X_windowed = np.stack(X_windowed_list, axis=-1).astype(np.float32)
+
+        # ---------- Verificar si necesitamos padding en el último frame ----------
+        last_frame_start = (n_frames - 1) * hop
+        last_frame_end = last_frame_start + window_size
+
+        if last_frame_end > n_times_eff:
+            # El último frame excede los datos disponibles
+            pad_needed = last_frame_end - n_times_eff
+            print(f"[WindowingTransform] ⚠️  Último frame incompleto, padding {pad_needed} muestras con mode='{padding_mode}'")
+            # El padding ya se aplicó con stride_tricks si n_times_eff fue ajustado
 
         output_shape = (int(X_windowed.shape[0]), int(X_windowed.shape[1]), int(X_windowed.shape[2]))
+
+        # Mensaje informativo sobre overlap
+        if instance.overlap is not None and instance.overlap > 0:
+            overlap_samples = window_size - hop
+            print(f"[WindowingTransform] ℹ️  Ventaneo con overlap={instance.overlap:.2f} ({overlap_samples} muestras, hop={hop})")
+        else:
+            print(f"[WindowingTransform] ℹ️  Ventaneo sin overlap (hop={hop})")
 
         # ---------- Etiquetas por frame (mayoría) ----------
         frame_labels = None
@@ -111,21 +154,20 @@ class WindowingTransform(Transform):
                 raise ValueError(f"Formato de etiquetas no soportado: shape={labels_arr.shape}")
 
             Llab = labels_arr.shape[0]
-            # Concordancia con n_times
-            if Llab < n_times:
-                labels_arr = np.concatenate([labels_arr, np.array(["None"] * (n_times - Llab), dtype=labels_arr.dtype)], axis=0)
-                print(f"[WindowingTransform.apply] WARNING: etiquetas ({Llab}) < n_times ({n_times}). Pad con 'None'.")
-            elif Llab > n_times:
-                labels_arr = labels_arr[:n_times]
-                print(f"[WindowingTransform.apply] WARNING: etiquetas ({Llab}) > n_times ({n_times}). Truncadas.")
+            # Concordancia con n_times (usar n_times_eff que incluye padding)
+            if Llab < n_times_eff:
+                # Padding de etiquetas - usar la última etiqueta válida
+                last_valid_label = labels_arr[-1] if len(labels_arr) > 0 else "None"
+                labels_arr = np.concatenate([labels_arr, np.array([last_valid_label] * (n_times_eff - Llab), dtype=labels_arr.dtype)], axis=0)
+                print(f"[WindowingTransform.apply] ℹ️  Etiquetas ({Llab}) < n_times_eff ({n_times_eff}). Padding con última etiqueta válida.")
+            elif Llab > n_times_eff:
+                labels_arr = labels_arr[:n_times_eff]
+                print(f"[WindowingTransform.apply] ℹ️  Etiquetas ({Llab}) > n_times_eff ({n_times_eff}). Truncadas.")
 
-            # Truncar etiquetas al mismo tamaño que datos
-            labels_arr = labels_arr[:n_times_usable]
-
-            # Mayoría por ventana sin overlap
+            # Mayoría por ventana (con soporte de overlap)
             maj = []
             for i in range(n_frames):
-                start = i * window_size
+                start = i * hop
                 end = start + window_size
                 window_labels = labels_arr[start:end]
                 if window_labels.size == 0:
@@ -159,6 +201,10 @@ class WindowingTransform(Transform):
             print(f"[WindowingTransform.apply] Guardado etiquetas por frame: {out_labels}")
 
         # ---------- registrar cambio de dimensionalidad ----------
+        # Documentar overlap en la semántica de ejes
+        overlap_desc = f" overlap={instance.overlap:.2f}" if instance.overlap is not None and instance.overlap > 0 else " no overlap"
+        axis0_desc = f"time_frames (start = i*{hop}, length = {window_size},{overlap_desc})"
+
         Experiment.set_last_transform_dimensionality_change(
             input_shape=input_shape,
             standardized_to="(n_channels, n_times)",
@@ -166,7 +212,7 @@ class WindowingTransform(Transform):
             orig_was_1d=bool(orig_was_1d),
             output_shape=output_shape,
             output_axes_semantics={
-                "axis0": "time_frames (start = i*window_size, length = window_size, no overlap)",
+                "axis0": axis0_desc,
                 "axis1": "time_in_frame",
                 "axis2": "channels"
             }

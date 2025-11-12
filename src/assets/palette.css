@@ -1,22 +1,22 @@
 /* ===== Paleta base ===== */
 :root {
   /* Colores base (los tuyos) */
---color-1: #050014;
---color-2: #0A0124;
---color-3: #F9F6FF;
---color-4: #FF00E5;
---color-5: #00FFF0;
---color-6: #38FF97;
---color-7: #FF235A;
---color-8: #FFD400;
---color-9: #1A0A3A;
---color-10: #0E0730;
---color-11: #07031A;
---color-12: #FF66F2;
---color-13: #6BFFF1;
---color-14: #7DFFC9;
---color-15: #FF6E94;
---color-16: #FFE476;
+    --color-1: #1E2127;
+    --color-2: #282C34;
+    --color-3: #ABB2BF;
+    --color-4: #C678DD;
+    --color-5: #61AFEF;
+    --color-6: #98C379;
+    --color-7: #E06C75;
+    --color-8: #E5C07B;
+    --color-9: #3E4451;
+    --color-10: #2C313C;
+    --color-11: #181A1F;
+    --color-12: #C678DD;
+    --color-13: #61AFEF;
+    --color-14: #98C379;
+    --color-15: #E06C75;
+    --color-16: #D19A66;
 
   /* ===== Mapeos semánticos (todo deriva de la paleta) ===== */
   --text:        var(--color-3);

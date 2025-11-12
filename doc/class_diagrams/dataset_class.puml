@@ -1,0 +1,117 @@
+@startuml
+title Dataset Class - EEG Signal Processing System
+
+class Dataset {
+  - path : str
+  - name : str
+  - extensions_enabled : List[str]
+
+  + __init__(path: str, name: str)
+  + upload_dataset(path_to_folder: str) : dict
+  + get_info() : str
+  + read_bdf(path: str) : mne.io.Raw
+  + read_edf(path: str) : mne.io.Raw
+  + read_brainvision(path: str) : mne.io.Raw
+
+  {static} + get_events_by_class(path_to_folder: str, class_name: str) : dict
+  {static} + load_events(path_to_folder: str) : dict
+  {static} + find_datasets() : void
+  {static} + load_signal_data(selected_file_path: str) : tuple
+  {static} + get_channel_mapping(dataset_name: str) : dict
+  {static} + get_channel_index(dataset_name: str, channel_name: str) : int
+  {static} + get_channels_indices(dataset_name: str, channel_names: List[str]) : List[int]
+  {static} + extract_channels(data_array: NDArray, channel_names: List[str], dataset_name: str) : NDArray
+  {static} + load_event_with_channels(event_path: str, channel_names: List[str], dataset_name: str) : dict
+  {static} + get_all_channel_names(dataset_name: str) : List[str]
+}
+
+package "Helper Functions" <<Cloud>> {
+  class InnerSpeechProcessing <<utility>> {
+    {static} + _inner_speech_cues(events: NDArray) : List
+    {static} + _detect_dataset_type(events: NDArray) : str
+    {static} + _generic_event_extraction(events: NDArray, event_id_mapping: dict) : tuple
+  }
+
+  class FileSystemHelpers <<utility>> {
+    {static} + _aux_root_for(path_to_folder: str) : str
+    {static} + _filter_largest_per_session(files: List[Path]) : List[Path]
+    {static} + _json_fallback(o: Any) : Any
+    {static} + _assert_npy_path(p: str) : None
+    {static} + _load_and_concat(paths: Sequence[str]) : NDArray
+  }
+
+  class SignalAnalysis <<utility>> {
+    {static} + _calculate_channel_stats(raw_data: mne.io.Raw) : dict
+    {static} + _infer_montage(channel_names: List[str]) : dict
+    {static} + _calculate_frequency_bands(raw_data: mne.io.Raw, sfreq: float) : dict
+    {static} + _detect_bad_channels(raw_data: mne.io.Raw, threshold_std: float) : List[str]
+    {static} + _calculate_session_stats(...) : dict
+  }
+}
+
+package "External Dependencies" <<Database>> {
+  class MNE {
+    + io.read_raw_bdf()
+    + io.read_raw_edf()
+    + io.read_raw_brainvision()
+    + find_events()
+    + events_from_annotations()
+  }
+
+  class NumPy {
+    + ndarray
+    + load()
+    + save()
+    + concatenate()
+  }
+
+  class SciPy {
+    + signal.welch()
+  }
+
+  class Pandas {
+    + read_excel()
+  }
+}
+
+package "Constants" <<Frame>> {
+  class GlobalConstants {
+    + LABELS : dict = {31: "arriba", 32: "abajo", 33: "derecha", 34: "izquierda"}
+    + CUE_IDS : set = {31, 32, 33, 34}
+  }
+}
+
+' Relationships
+Dataset ..> InnerSpeechProcessing : uses
+Dataset ..> FileSystemHelpers : uses
+Dataset ..> SignalAnalysis : uses
+Dataset ..> MNE : depends on
+Dataset ..> NumPy : depends on
+Dataset ..> SciPy : depends on
+Dataset ..> Pandas : depends on
+Dataset ..> GlobalConstants : uses
+
+InnerSpeechProcessing ..> GlobalConstants : uses
+SignalAnalysis ..> MNE : uses
+SignalAnalysis ..> NumPy : uses
+SignalAnalysis ..> SciPy : uses
+
+note right of Dataset
+  Main class for handling EEG datasets
+  Supports BDF, EDF, and BrainVision formats
+  Provides channel mapping and event extraction
+end note
+
+note bottom of InnerSpeechProcessing
+  Specific processing for Nieto's
+  Inner Speech dataset with
+  custom event ID mapping
+end note
+
+note bottom of SignalAnalysis
+  Calculates frequency bands:
+  delta, theta, alpha, beta, gamma
+  Detects bad channels and montage
+end note
+
+@enduml

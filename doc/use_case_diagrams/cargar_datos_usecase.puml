@@ -1,0 +1,150 @@
+@startuml
+title Casos de Uso - Página Cargar Datos (cargar_datos.py)
+
+' Actores
+actor "Usuario\nInvestigador" as user #lightblue
+
+' Sistema boundary
+rectangle "Sistema EGG-lab\n(Página Cargar Datos)" {
+
+  ' Casos de uso principales
+  usecase "Mostrar Datasets\nPendientes" as UC1 #lightgreen
+  usecase "Listar Datasets\nProcesados" as UC2 #lightblue
+  usecase "Procesar Dataset\nPendiente" as UC3 #yellow
+  usecase "Seleccionar Dataset\nProcesado" as UC4 #orange
+  usecase "Redirigir a Vista\nde Dataset" as UC5 #pink
+
+  ' Casos de uso secundarios / helpers
+  usecase "Obtener Datasets\nPendientes" as UC6 #lightyellow
+  usecase "Obtener Datasets\nProcesados" as UC7 #lightyellow
+  usecase "Validar Archivos\nEEG" as UC8 #lightyellow
+  usecase "Generar Archivos\n.npy y Metadata" as UC9 #lightyellow
+  usecase "Guardar Dataset en\nStore Global" as UC10 #lightyellow
+  usecase "Mostrar Feedback\nde Procesamiento" as UC11 #lightyellow
+}
+
+' Sistemas externos
+rectangle "Sistema de Archivos" {
+  usecase "Leer Carpeta\nData/" as EXT1 #lightgray
+  usecase "Leer Carpeta\nAux/" as EXT2 #lightgray
+  usecase "Escribir en\nAux/" as EXT3 #lightgray
+}
+
+rectangle "Backend" {
+  usecase "Dataset.upload_dataset()" as BACK1 #lavender
+  usecase "get_data_folders()" as BACK2 #lavender
+}
+
+' Relaciones usuario -> casos de uso principales
+user --> UC1 : "Clic en boton\nCargar Dataset"
+user --> UC2 : "Clic en boton\nListar Datasets"
+user --> UC3 : "Clic en dataset\npendiente"
+user --> UC4 : "Clic en dataset\nprocesado"
+
+' Relaciones entre casos de uso (include, extend)
+UC1 ..> UC6 : <<include>>
+UC1 ..> EXT1 : <<include>>
+UC1 ..> EXT2 : <<include>>
+
+UC2 ..> UC7 : <<include>>
+UC2 ..> EXT2 : <<include>>
+
+UC3 ..> UC8 : <<include>>
+UC3 ..> BACK1 : <<include>>
+UC3 ..> UC9 : <<include>>
+UC3 ..> UC11 : <<include>>
+UC3 ..> UC6 : <<include>>\nActualizar lista
+
+UC4 ..> UC10 : <<include>>
+UC4 ..> UC5 : <<include>>
+
+UC6 ..> EXT1 : <<include>>
+UC6 ..> EXT2 : <<include>>
+UC6 ..> UC8 : <<include>>
+
+UC7 ..> EXT2 : <<include>>
+
+UC8 ..> EXT1 : <<include>>
+
+UC9 ..> EXT3 : <<include>>
+UC9 ..> BACK1 : <<include>>
+
+UC5 --> user : "Navegar a\n/dataset"
+
+' Notas explicativas
+note right of UC1
+  **Flujo:**
+  1. Usuario hace clic en "Cargar Dataset"
+  2. Sistema busca datasets en Data/
+  3. Filtra los que NO tienen Aux/ procesado
+  4. Valida que tengan archivos .bdf/.edf/.vhdr
+  5. Muestra lista de pendientes con boton (refrescar)
+end note
+
+note right of UC2
+  **Flujo:**
+  1. Usuario hace clic en "Listar Datasets"
+  2. Sistema busca carpetas en Aux/
+  3. Verifica que tengan archivos .npy
+  4. Verifica metadata JSON (opcional)
+  5. Muestra lista de procesados (ok)
+end note
+
+note right of UC3
+  **Flujo:**
+  1. Usuario hace clic en dataset pendiente
+  2. Valida que exista Data/{nombre}/
+  3. Valida que tenga archivos EEG
+  4. Llama a Dataset.upload_dataset()
+  5. Genera .npy, Labels, Events, metadata
+  6. Muestra feedback de éxito/error
+  7. Actualiza lista de pendientes
+end note
+
+note right of UC4
+  **Flujo:**
+  1. Usuario hace clic en dataset procesado
+  2. Guarda nombre en store global
+  3. Redirige a página /dataset
+end note
+
+note bottom of UC6
+  **Criterios de validación:**
+  - Dataset en Data/ con archivos
+    .bdf, .edf o .vhdr
+  - NO tiene Aux/{nombre}/ con
+    archivos .npy procesados
+end note
+
+note bottom of UC7
+  **Criterios de validación:**
+  - Carpeta Aux/{nombre}/ existe
+  - Tiene archivos .npy procesados
+  - Opcionalmente dataset_metadata.json
+end note
+
+note bottom of UC9
+  **Archivos generados:**
+  - Aux/nombre/.npy (señales)
+  - Aux/{nombre}/Labels/.npy
+  - Aux/{nombre}/Events/.npy
+  - Aux/{nombre}/dataset_metadata.json
+end note
+
+' Estilos
+skinparam usecase {
+  BackgroundColor lightblue
+  BorderColor darkblue
+  ArrowColor darkblue
+}
+
+skinparam actor {
+  BackgroundColor lightblue
+  BorderColor darkblue
+}
+
+skinparam note {
+  BackgroundColor lightyellow
+  BorderColor orange
+}
+@enduml

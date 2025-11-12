@@ -164,6 +164,14 @@ class FFTTransform(Transform):
         if n_frames <= 0:
             n_frames = 1
 
+        # ---------- Verificar si necesitamos padding adicional para el último frame ----------
+        last_frame_end = (n_frames - 1) * hop + frame_length
+        if last_frame_end > n_times_eff:
+            pad_needed = last_frame_end - n_times_eff
+            X_pad = np.pad(X_pad, ((0, 0), (0, pad_needed)), mode="constant")
+            n_times_eff = X_pad.shape[1]
+            print(f"[FFTTransform] ℹ️  Padding último frame con {pad_needed} muestras (mode='constant')")
+
         # ---------- etiquetas -> ventaneo por mayoría ----------
         if labels_path is not None:
             labels_arr = np.load(str(labels_path), allow_pickle=True)

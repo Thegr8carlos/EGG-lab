@@ -128,17 +128,17 @@ def create_local_training_section(model_identifier: str) -> html.Div:
                     
                     # Train/Test split
                     html.Div([
-                        html.Label("División train/test", style={"fontSize": "13px", "color": "white"}),
+                        html.Label("División train/test (%)", style={"fontSize": "13px", "color": "white"}),
                         dbc.Input(
                             id={"type": "subset-train-split", "model": model_identifier},
                             type="number",
-                            min=0.1,
-                            max=0.9,
-                            value=0.8,
-                            step=0.05,
+                            min=1,
+                            max=99,
+                            value=80,
+                            step=5,
                             style={"fontSize": "14px", "height": "38px"}
                         ),
-                        html.Small("Fracción para entrenamiento (resto para test)", className="text-muted", style={"fontSize": "11px"})
+                        html.Small("Porcentaje para entrenamiento (resto para test)", className="text-muted", style={"fontSize": "11px"})
                     ], className="mb-3"),
                     
                     # Seed
@@ -756,10 +756,11 @@ def run_local_training(n_clicks, selected_path, subsets_list):
             test_manifest = json.load(f)
         
         # Extraer paths de eventos desde manifests
-        event_paths_train = [event["path"] for event in train_manifest["events"]]
-        event_paths_test = [event["path"] for event in test_manifest["events"]]
-        event_labels_train = [event["class"] for event in train_manifest["events"]]
-        event_labels_test = [event["class"] for event in test_manifest["events"]]
+        # Los manifests son listas directas, no dicts con key "events"
+        event_paths_train = [event["path"] for event in train_manifest]
+        event_paths_test = [event["path"] for event in test_manifest]
+        event_labels_train = [event["class"] for event in train_manifest]
+        event_labels_test = [event["class"] for event in test_manifest]
         
         print(f"[LocalTraining] Cargados {len(event_paths_train)} eventos train, {len(event_paths_test)} eventos test")
         print(f"[LocalTraining] Aplicando pipeline de transformaciones...")

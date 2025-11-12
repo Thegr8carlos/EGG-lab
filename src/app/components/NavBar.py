@@ -19,7 +19,7 @@ def get_navBar(page_registry):
         dbc.NavItem(
             dbc.NavLink(
                 "Cargar Datos",
-                href="/cargar-datos",
+                href="/cargardatos",
                 active="exact",
                 className="nav-link"
             )
@@ -52,6 +52,14 @@ def get_navBar(page_registry):
             dbc.NavLink(
                 "Modelado Inner Speech",
                 href="/inner-speech",
+                active="exact",
+                className="nav-link"
+            )
+        ),
+        dbc.NavItem(
+            dbc.NavLink(
+                "Simulación",
+                href="/simulation",
                 active="exact",
                 className="nav-link"
             )

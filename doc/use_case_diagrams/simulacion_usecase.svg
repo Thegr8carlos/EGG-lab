@@ -1,0 +1,321 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" contentStyleType="text/css" height="1275px" preserveAspectRatio="none" style="width:1842px;height:1275px;background:#FFFFFF;" version="1.1" viewBox="0 0 1842 1275" width="1842px" zoomAndPan="magnify"><defs/><g><rect fill="none" height="26.2969" id="_title" style="stroke:none;stroke-width:1.0;" width="396" x="716" y="5"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="386" x="721" y="22.9951">Casos de Uso - Pagina Simulacion (simulation.py)</text><!--MD5=[c81be3abf9629985330e9d9d7c07c50a]
+cluster Sistema EGG-lab\n(Simulacion Tiempo Real)--><g id="cluster_Sistema EGG-lab\n(Simulacion Tiempo Real)"><rect fill="none" height="875.5" rx="2.5" ry="2.5" style="stroke:#181818;stroke-width:1.0;" width="758" x="136" y="198.7969"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="129" x="450.5" y="213.792">Sistema EGG-lab</text><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="197" x="416.5" y="230.0889">(Simulacion Tiempo Real)</text></g><!--MD5=[349eac10d21292b40282f9be59980781]
+cluster Backend (Mock)--><g id="cluster_Backend (Mock)"><rect fill="none" height="104" rx="2.5" ry="2.5" style="stroke:#181818;stroke-width:1.0;" width="691" x="442" y="1141.2969"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="125" x="725" y="1156.292">Backend (Mock)</text></g><!--MD5=[26459395794b141176efb0bfb55374cf]
+cluster Componentes UI--><g id="cluster_Componentes UI"><rect fill="none" height="103" rx="2.5" ry="2.5" style="stroke:#181818;stroke-width:1.0;" width="455" x="918" y="567.2969"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="130" x="1080.5" y="582.292">Componentes UI</text></g><g id="elem_UC1"><ellipse cx="771.0887" cy="276.0341" fill="#90EE90" rx="107.0887" ry="26.2373" style="stroke:#00008B;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="134" x="701.0887" y="271.6333">Seleccionar Archivo</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="29" x="753.5887" y="287.9301">EEG</text></g><g id="elem_UC2"><ellipse cx="785.8909" cy="453.8545" fill="#ADD8E6" rx="87.8909" ry="26.0576" style="stroke:#00008B;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="106" x="731.093" y="449.0411">Visualizar Señal</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="108" x="730.093" y="465.3379">en Tiempo Real</text></g><g id="elem_UC3"><ellipse cx="372.832" cy="628.3441" fill="#FFFF00" rx="75.832" ry="26.0473" style="stroke:#00008B;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="75" x="335.332" y="623.0424">Ver Estado</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="91" x="327.332" y="639.3393">Modelo P300</text></g><g id="elem_UC4"><ellipse cx="261.7731" cy="712.3441" fill="#FFA500" rx="109.7731" ry="26.0473" style="stroke:#00008B;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="75" x="224.2731" y="707.0424">Ver Estado</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="139" x="192.2731" y="723.3393">Modelo Clasificacion</text></g><g id="elem_UC5"><ellipse cx="586.2254" cy="628.3441" fill="#FFC0CB" rx="65.2254" ry="26.0473" style="stroke:#00008B;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="52" x="560.2254" y="623.0424">Ver Log</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="76" x="548.2254" y="639.3393">de Pipeline</text></g><g id="elem_UC6"><ellipse cx="499.7893" cy="453.8547" fill="#E6E6FA" rx="120.7893" ry="26.5579" style="stroke:#00008B;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="155" x="419.2893" y="449.4539">Observar Predicciones</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="108" x="442.7893" y="465.7507">en Tiempo Real</text></g><g id="elem_UC7"><ellipse cx="781.9609" cy="628.4788" fill="#FFFFE0" rx="95.4609" ry="26.1819" style="stroke:#00008B;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="118" x="719.9609" y="624.0779">Actualizar Grafico</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="88" x="734.9609" y="640.3748">con Intervalo</text></g><g id="elem_UC8"><ellipse cx="555.8807" cy="848.8979" fill="#FFFFE0" rx="82.3807" ry="26.101" style="stroke:#00008B;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="100" x="502.8807" y="844.497">Detectar P300</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="79" x="513.3807" y="860.7939">en Ventana</text></g><g id="elem_UC9"><ellipse cx="336.834" cy="1032.4081" fill="#FFFFE0" rx="83.834" ry="26.1113" style="stroke:#00008B;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="102" x="282.834" y="1028.0072">Clasificar Señal</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="72" x="297.834" y="1044.3041">si P300=1</text></g><g id="elem_UC10"><ellipse cx="776.2282" cy="849.0148" fill="#D3D3D3" rx="102.7282" ry="26.218" style="stroke:#00008B;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="128" x="709.2282" y="844.614">Actualizar Leyenda</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="75" x="735.7282" y="860.9108">de Colores</text></g><g id="elem_BACK1"><ellipse cx="1009.2482" cy="1202.7465" fill="#E6E6FA" rx="107.7482" ry="23.9496" style="stroke:#00008B;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="181" x="918.7482" y="1205.5932">Dataset.load_signal_data()</text></g><g id="elem_BACK2"><ellipse cx="789.8661" cy="1202.8549" fill="#E6E6FA" rx="75.8661" ry="26.0581" style="stroke:#00008B;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="91" x="742.7894" y="1198.0521">Modelo P300</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="62" x="757.2894" y="1214.349">.predict()</text></g><g id="elem_BACK3"><ellipse cx="568.2225" cy="1202.5491" fill="#E6E6FA" rx="110.7225" ry="26.2522" style="stroke:#00008B;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="139" x="495.7225" y="1198.1482">Modelo Clasificacion</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="62" x="534.2225" y="1214.4451">.predict()</text></g><g id="elem_UI1"><ellipse cx="1018.0606" cy="628.4131" fill="#FFB6C1" rx="84.5606" ry="26.1162" style="stroke:#00008B;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="103" x="963.5606" y="624.0122">DataSimulation</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="82" x="974.0606" y="640.3091">Component</text></g><g id="elem_UI2"><ellipse cx="1246.7689" cy="628.5432" fill="#FFB6C1" rx="109.2689" ry="26.2463" style="stroke:#00008B;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="137" x="1175.2689" y="624.1423">Callbacks Clientside</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="68" x="1209.7689" y="640.4392">(Intervalo)</text></g><!--MD5=[8fc3522a43f8c7199df5e09e5bb0188e]
+entity user--><g id="elem_user"><ellipse cx="330" cy="51.2969" fill="#ADD8E6" rx="8" ry="8" style="stroke:#00008B;stroke-width:0.5;"/><path d="M330,59.2969 L330,86.2969 M317,67.2969 L343,67.2969 M330,86.2969 L317,101.2969 M330,86.2969 L343,101.2969 " fill="none" style="stroke:#00008B;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="52" x="288" y="115.792">Usuario</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="84" x="288" y="132.0889">Investigador</text></g><g id="elem_GMN91"><path d="M913,225.2969 L913,271.7969 L878.25,275.7969 L913,279.7969 L913,326.0938 A0,0 0 0 0 913,326.0938 L1157,326.0938 A0,0 0 0 0 1157,326.0938 L1157,235.2969 L1147,225.2969 L913,225.2969 A0,0 0 0 0 913,225.2969 " fill="#FFFFE0" style="stroke:#181818;stroke-width:0.5;"/><path d="M1147,225.2969 L1147,235.2969 L1157,235.2969 L1147,225.2969 " fill="#FFFFE0" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="72" x="919" y="242.3638">Flujo Inicial:</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="216" x="919" y="257.4966">1. Usuario selecciona archivo EEG</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="211" x="919" y="272.6294">2. Sistema carga señal completa</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="197" x="919" y="287.7622">3. Inicia simulacion automatica</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="223" x="919" y="302.895">4. Renderiza grafico en tiempo real</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="221" x="919" y="318.0278">5. Activa intervalo de actualizacion</text></g><g id="elem_GMN98"><path d="M1563,403.2969 L1563,449.7969 L874.27,453.7969 L1563,457.7969 L1563,504.0938 A0,0 0 0 0 1563,504.0938 L1835,504.0938 A0,0 0 0 0 1835,504.0938 L1835,413.2969 L1825,403.2969 L1563,403.2969 A0,0 0 0 0 1563,403.2969 " fill="#FFFFE0" style="stroke:#181818;stroke-width:0.5;"/><path d="M1825,403.2969 L1825,413.2969 L1835,413.2969 L1825,403.2969 " fill="#FFFFE0" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="119" x="1569" y="420.3638">Flujo Visualizacion:</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="251" x="1569" y="435.4966">1. Muestra ventana deslizante de señal</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="243" x="1569" y="450.6294">2. Actualiza cada 100ms con intervalo</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="221" x="1569" y="465.7622">3. Colorea segmentos segun clase</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="184" x="1569" y="480.895">4. Muestra leyenda dinamica</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="195" x="1569" y="496.0278">5. Scroll automatico horizontal</text></g><g id="elem_GMN101"><path d="M1563,790.7969 L1563,906.7266 L1825,906.7266 L1825,800.7969 L1815,790.7969 L1563,790.7969 " fill="#FFFFE0" style="stroke:#181818;stroke-width:0.5;"/><path d="M1815,790.7969 L1815,800.7969 L1825,800.7969 L1815,790.7969 " fill="#FFFFE0" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="137" x="1569" y="807.8638">Flujo Deteccion P300:</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="196" x="1569" y="822.9966">1. Lee ventana actual de señal</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="198" x="1569" y="838.1294">2. Ejecuta Modelo P300 (mock)</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="241" x="1569" y="853.2622">3. Retorna 0 o 1 (sin P300 / con P300)</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="181" x="1569" y="868.395">4. Actualiza panel de estado</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="218" x="1569" y="883.5278">5. Si P300=1, dispara clasificacion</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="159" x="1569" y="898.6606">6. Registra evento en log</text></g><g id="elem_GMN104"><path d="M157.5,1137.2969 L157.5,1268.3594 A0,0 0 0 0 157.5,1268.3594 L422.5,1268.3594 A0,0 0 0 0 422.5,1268.3594 L422.5,1147.2969 L412.5,1137.2969 L312.06,1137.2969 L329.96,1058.5269 L304.06,1137.2969 L157.5,1137.2969 A0,0 0 0 0 157.5,1137.2969 " fill="#FFFFE0" style="stroke:#181818;stroke-width:0.5;"/><path d="M412.5,1137.2969 L412.5,1147.2969 L422.5,1147.2969 L412.5,1137.2969 " fill="#FFFFE0" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="115" x="163.5" y="1154.3638">Flujo Clasificacion:</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="183" x="163.5" y="1169.4966">1. Solo se ejecuta si P300=1</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="203" x="163.5" y="1184.6294">2. Usa misma ventana de señal</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="244" x="163.5" y="1199.7622">3. Ejecuta Modelo Clasificacion (mock)</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="172" x="163.5" y="1214.895">4. Retorna clase detectada</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="145" x="175.5" y="1230.0278">(arriba, abajo, izq, der)</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="181" x="163.5" y="1245.1606">5. Actualiza panel de estado</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="203" x="163.5" y="1260.2935">6. Registra en log con confianza</text></g><g id="elem_GMN107"><path d="M914,768.2969 L914,929.625 L1148,929.625 L1148,778.2969 L1138,768.2969 L914,768.2969 " fill="#FFFFE0" style="stroke:#181818;stroke-width:0.5;"/><path d="M1138,768.2969 L1138,778.2969 L1148,778.2969 L1138,768.2969 " fill="#FFFFE0" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="100" x="920" y="785.3638">Log de Pipeline:</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="213" x="920" y="800.4966">- Muestra eventos en tiempo real</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="204" x="920" y="815.6294">- Formato: timestamp + evento</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="71" x="920" y="830.7622">- Ejemplos:</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="114" x="928" y="845.895">- Sistema iniciado</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="112" x="928" y="861.0278">- Archivo cargado</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="183" x="928" y="876.1606">- P300 detectado (conf 0.95)</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="162" x="928" y="891.2935">- Clase: arriba (conf 0.87)</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="121" x="920" y="906.4263">- Scroll automatico</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="146" x="920" y="921.5591">- Max 50 lineas visibles</text></g><g id="elem_GMN110"><path d="M1183.5,798.2969 L1183.5,899.0938 A0,0 0 0 0 1183.5,899.0938 L1456.5,899.0938 A0,0 0 0 0 1456.5,899.0938 L1456.5,808.2969 L1446.5,798.2969 L1255.49,798.2969 L1050.03,652.4769 L1247.49,798.2969 L1183.5,798.2969 A0,0 0 0 0 1183.5,798.2969 " fill="#FFFFE0" style="stroke:#181818;stroke-width:0.5;"/><path d="M1446.5,798.2969 L1446.5,808.2969 L1456.5,808.2969 L1446.5,798.2969 " fill="#FFFFE0" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="190" x="1189.5" y="815.3638">Componente DataSimulation:</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="195" x="1189.5" y="830.4966">- Maneja estado de simulacion</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="229" x="1189.5" y="845.6294">- Controla intervalo de actualizacion</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="191" x="1189.5" y="860.7622">- Gestiona ventana deslizante</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="252" x="1189.5" y="875.895">- Callbacks clientside para performance</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="220" x="1189.5" y="891.0278">- Usa WebGL para graficos rapidos</text></g><!--MD5=[e71913910ae60f5842a843a20d6ecd39]
+link user to UC1--><g id="link_user_UC1"><path d="M372.13,100.7969 C432.09,116.4969 544.78,148.7869 635,190.7969 C669.87,207.0369 706.84,230.3069 733.42,248.2369 " fill="none" id="user-to-UC1" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="737.59,251.0669,732.393,242.7008,733.454,248.2573,727.8976,249.3184,737.59,251.0669" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="170" x="612" y="178.8638">Seleccionar desde Sidebar</text></g><!--MD5=[20aeaa20d1880359803c0703a4b24425]
+link user to UC2--><g id="link_user_UC2"><path d="M353.99,136.2469 C383.16,188.3069 436.8,272.8369 503,326.2969 C539.29,355.5969 656.18,403.2169 727.89,430.9169 " fill="none" id="user-to-UC2" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="732.97,432.8769,726.0101,425.9084,728.3044,431.0791,723.1337,433.3734,732.97,432.8769" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="142" x="504" y="280.3638">Observar visualizacion</text></g><!--MD5=[17d4c6462e07b4f1b5dbb0e87d08d5e6]
+link user to UC3--><g id="link_user_UC3"><path d="M287.9,130.0569 C237.05,183.1269 161.42,281.1269 188,373.2969 C215.57,468.8869 297.75,557.1869 342.74,600.0769 " fill="none" id="user-to-UC3" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="346.44,603.5869,342.6455,594.4983,342.8057,600.1529,337.1511,600.3132,346.44,603.5869" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="97" x="189" y="369.3638">Ver panel P300</text></g><!--MD5=[b2cfa0738cc752f103aa40c770997175]
+link user to UC4--><g id="link_user_UC4"><path d="M287.97,94.6369 C200.31,106.2469 6,146.4669 6,274.7969 C6,274.7969 6,274.7969 6,543.7969 C6,627.2069 102.35,671.3169 176.83,692.9569 " fill="none" id="user-to-UC4" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="181.7,694.3469,174.1576,688.0135,176.8951,692.9639,171.9447,695.7014,181.7,694.3469" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="143" x="7" y="369.3638">Ver panel Clasificacion</text></g><!--MD5=[96bbf347eb6577790aa042b4af8d13f7]
+link user to UC5--><g id="link_user_UC5"><path d="M316.62,136.1169 C292.59,229.0669 254.41,440.3669 366,551.2969 C381.97,567.1669 445.48,552.6669 467,559.2969 C497.61,568.7369 528.93,587.0469 551.76,602.2969 " fill="none" id="user-to-UC5" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="555.92,605.1069,550.7032,596.7531,551.7774,602.3071,546.2235,603.3813,555.92,605.1069" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="120" x="293" y="369.3638">Ver log de eventos</text></g><!--MD5=[aca4be05126b783a6a2213ba86f9360e]
+link UC1 to BACK1--><g id="link_UC1_BACK1"><path d="M820.78,298.8169 C843.41,308.2269 870.73,318.7469 896,326.2969 C1029.49,366.1469 1510,313.4869 1510,452.7969 C1510,452.7969 1510,452.7969 1510,1033.2969 C1510,1117.7569 1250.99,1167.8669 1105.44,1189.3669 " fill="none" id="UC1-to-BACK1" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="1100.31,1190.1169,1109.796,1192.7657,1105.2569,1189.3898,1108.6327,1184.8507,1100.31,1190.1169" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="61" x="1511" y="716.8638">«include»</text></g><!--MD5=[1aa3f81a3bd80cff712043234baebedb]
+link UC1 to UC2--><g id="link_UC1_UC2"><path d="M773.15,302.0169 C775.86,333.7769 780.5,388.2969 783.4,422.3469 " fill="none" id="UC1-to-UC2" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="783.85,427.6269,787.0622,418.3166,783.4206,422.6454,779.0918,419.0037,783.85,427.6269" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="42" x="779" y="369.3638">trigger</text></g><!--MD5=[c9727c37d064c4283690b4b9222bd749]
+link UC2 to UC7--><g id="link_UC2_UC7"><path d="M785.42,479.8769 C784.7,510.9269 783.47,563.7469 782.7,597.0169 " fill="none" id="UC2-to-UC7" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="782.58,602.1869,786.7846,593.2806,782.6943,597.1882,778.7867,593.0978,782.58,602.1869" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="61" x="785" y="547.3638">«include»</text></g><!--MD5=[530bab53f4924f1ea453255a49eccfea]
+link UC2 to UI1--><g id="link_UC2_UI1"><path d="M817.77,478.4169 C860.81,510.4169 937.41,567.3769 982.36,600.7969 " fill="none" id="UC2-to-UI1" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="986.61,603.9569,981.7757,595.3761,982.598,600.9729,977.0013,601.7953,986.61,603.9569" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="61" x="909" y="547.3638">«include»</text></g><!--MD5=[84ffa62ad48678a9e940e17196035757]
+link UC2 to UI2--><g id="link_UC2_UI2"><path d="M851.32,471.3069 C919.6,489.4769 1029.24,521.2069 1120,559.2969 C1148.66,571.3269 1179.42,587.6969 1203.49,601.3669 " fill="none" id="UC2-to-UI2" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="1207.9,603.8869,1202.076,595.9445,1203.5605,601.4031,1198.102,602.8877,1207.9,603.8869" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="61" x="1094" y="547.3638">«include»</text></g><!--MD5=[7d564253072db69cb90ecf4633fad815]
+link UC3 to UC8--><g id="link_UC3_UC8"><path d="M385.63,654.3769 C397.76,677.3269 417.4,711.6669 439,738.2969 C464.12,769.2669 497.79,799.8869 522.56,820.8369 " fill="none" id="UC3-to-UC8" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="526.45,824.1069,522.1454,815.2485,522.6266,820.8849,516.9902,821.366,526.45,824.1069" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="61" x="440" y="716.8638">«include»</text></g><!--MD5=[553f9b986593943f6e01085dcf166857]
+link UC4 to UC9--><g id="link_UC4_UC9"><path d="M244.43,738.1369 C239.01,747.1969 233.75,757.7969 231,768.2969 C212.84,837.5069 202.98,863.4569 231,929.2969 C244.47,960.9569 273.11,987.5369 297.23,1005.6169 " fill="none" id="UC4-to-UC9" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="301.37,1008.6769,296.5014,1000.1155,297.3462,1005.7089,291.7527,1006.5537,301.37,1008.6769" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="61" x="232" y="853.3638">«include»</text></g><!--MD5=[d765f305b3c6c9e844789ed14999624b]
+link UC5 to UC8--><g id="link_UC5_UC8"><path d="M550.59,650.2069 C538.21,659.5369 525.73,671.7369 519,686.2969 C498.93,729.7269 520.56,784.8869 538.17,818.2169 " fill="none" id="UC5-to-UC8" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="540.73,822.9669,539.9812,813.1465,538.3578,818.5654,532.9389,816.9421,540.73,822.9669" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="74" x="520" y="716.8638">log eventos</text></g><!--MD5=[987d054697df763fb7c1b557c5f7d855]
+link UC5 to UC9--><g id="link_UC5_UC9"><path d="M547.66,649.5369 C532.08,659.1369 514.77,671.7069 502,686.2969 C484.98,705.7369 496.17,722.1469 476,738.2969 C432.75,772.9269 390.61,725.8469 355,768.2969 C299.15,834.8669 316.24,947.3669 328.8,1001.0469 " fill="none" id="UC5-to-UC9" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="330,1006.0569,331.8054,996.3749,328.8413,1001.193,324.0232,998.2289,330,1006.0569" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="99" x="356" y="853.3638">log clasificacion</text></g><!--MD5=[201bf5a1058d147bcf04206c7123a093]
+link UC6 to UC3--><g id="link_UC6_UC3"><path d="M445.93,477.5269 C421.92,490.5169 395.79,509.2669 381,534.2969 C369.92,553.0469 368.27,577.7269 369.2,596.9569 " fill="none" id="UC6-to-UC3" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="369.52,602.2269,372.9459,592.9931,369.2054,597.2368,364.9617,593.4964,369.52,602.2269" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="61" x="382" y="547.3638">«include»</text></g><!--MD5=[aa51ccb7921928330ad442e765fe1063]
+link UC6 to UC4--><g id="link_UC6_UC4"><path d="M499.98,480.6669 C499.36,533.5769 494.81,651.4769 467,678.2969 C455.41,689.4769 410.92,683.9169 395,686.2969 C380.18,688.5069 364.48,691.1769 349.27,693.9269 " fill="none" id="UC6-to-UC4" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="344.14,694.8569,353.7121,697.1751,349.0587,693.9587,352.275,689.3052,344.14,694.8569" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="61" x="499" y="547.3638">«include»</text></g><!--MD5=[504a2df40e7b84c805451b7a1e35c121]
+link UC7 to UC8--><g id="link_UC7_UC8"><path d="M736.56,651.2869 C716.23,660.5169 691.76,670.8369 669,678.2969 C653.84,683.2669 646.48,676.3569 634,686.2969 C612.12,703.7269 582.53,776.2669 566.83,817.9569 " fill="none" id="UC7-to-UC8" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="564.98,822.8769,571.8925,815.8613,566.7403,818.197,564.4047,813.0448,564.98,822.8769" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="135" x="635" y="716.8638">ejecutar cada 100ms</text></g><!--MD5=[f5c4e274000c7e350e185e93ca73978c]
+link UC7 to UC10--><g id="link_UC7_UC10"><path d="M781.31,654.3569 C780.2,694.7569 778.02,774.1069 776.83,817.5669 " fill="none" id="UC7-to-UC10" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="776.69,822.6869,780.92,813.7927,776.8185,817.6885,772.9227,813.587,776.69,822.6869" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="61" x="781" y="716.8638">«include»</text></g><!--MD5=[d957c22bb985d69bd62c1279ea174929]
+link UC8 to BACK2--><g id="link_UC8_BACK2"><path d="M572.45,874.5469 C614.5,937.7869 725.7,1105.0769 770.7,1172.7569 " fill="none" id="UC8-to-BACK2" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="773.56,1177.0769,771.8959,1167.3696,770.7865,1172.9166,765.2395,1171.8072,773.56,1177.0769" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="61" x="708" y="1036.8638">«include»</text></g><!--MD5=[65ca12ca68d169c698e552b09f1e4047]
+link UC8 to UC9--><g id="link_UC8_UC9"><path d="M527.37,873.5269 C486.71,907.2269 412.44,968.7769 369.68,1004.2169 " fill="none" id="UC8-to-UC9" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="365.64,1007.5669,375.1216,1004.9024,369.4893,1004.3758,370.0159,998.7435,365.64,1007.5669" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="111" x="421" y="972.3638">trigger si P300=1</text></g><!--MD5=[dbbe660e89f4f1f2817420d04b410200]
+link UC9 to BACK3--><g id="link_UC9_BACK3"><path d="M369.12,1056.7269 C411.39,1087.5669 485.58,1141.6769 530.41,1174.3769 " fill="none" id="UC9-to-BACK3" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#181818" points="534.66,1177.4769,529.7376,1168.9463,530.6176,1174.5343,525.0296,1175.4142,534.66,1177.4769" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="61" x="432" y="1103.3638">«include»</text></g><!--MD5=[82a2522908cad754a42680a3cb18f5f5]
+link UC8 to GMN101--><g id="link_UC8_GMN101"><path d="M570.77,823.1969 C589.98,792.7769 626.67,743.5969 673.5,723.2969 C759.64,685.9469 1429.1,694.6169 1518.5,723.2969 C1560.59,736.7969 1601.16,764.5169 1632.68,790.4769 " fill="none" id="UC8-GMN101" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/></g><!--MD5=[97626750919afe244c5810c103f10393]
+link UC5 to GMN107--><g id="link_UC5_GMN107"><path d="M615.47,651.5069 C630.63,661.6469 649.91,672.6269 669,678.2969 C707.81,689.8169 813.52,670.9969 851,686.2969 C894.15,703.9069 933.72,736.6169 964.7,768.0069 " fill="none" id="UC5-GMN107" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/></g><!--MD5=[af0f1a4b855410a6556fd1a329d1003c]
+@startuml
+title Casos de Uso - Pagina Simulacion (simulation.py)
+
+' Actor
+actor "Usuario\nInvestigador" as user #lightblue
+
+' Sistema boundary
+rectangle "Sistema EGG-lab\n(Simulacion Tiempo Real)" {
+
+  ' Casos de uso principales
+  usecase "Seleccionar Archivo\nEEG" as UC1 #lightgreen
+  usecase "Visualizar Señal\nen Tiempo Real" as UC2 #lightblue
+  usecase "Ver Estado\nModelo P300" as UC3 #yellow
+  usecase "Ver Estado\nModelo Clasificacion" as UC4 #orange
+  usecase "Ver Log\nde Pipeline" as UC5 #pink
+  usecase "Observar Predicciones\nen Tiempo Real" as UC6 #lavender
+
+  ' Casos de uso secundarios
+  usecase "Actualizar Grafico\ncon Intervalo" as UC7 #lightyellow
+  usecase "Detectar P300\nen Ventana" as UC8 #lightyellow
+  usecase "Clasificar Señal\nsi P300=1" as UC9 #lightyellow
+  usecase "Actualizar Leyenda\nde Colores" as UC10 #lightgray
+}
+
+' Sistemas externos
+rectangle "Backend (Mock)" {
+  usecase "Dataset.load_signal_data()" as BACK1 #lavender
+  usecase "Modelo P300\n.predict()" as BACK2 #lavender
+  usecase "Modelo Clasificacion\n.predict()" as BACK3 #lavender
+}
+
+rectangle "Componentes UI" {
+  usecase "DataSimulation\nComponent" as UI1 #lightpink
+  usecase "Callbacks Clientside\n(Intervalo)" as UI2 #lightpink
+}
+
+' Relaciones usuario -> casos de uso
+user - -> UC1 : "Seleccionar desde Sidebar"
+user - -> UC2 : "Observar visualizacion"
+user - -> UC3 : "Ver panel P300"
+user - -> UC4 : "Ver panel Clasificacion"
+user - -> UC5 : "Ver log de eventos"
+
+' Relaciones include
+UC1 ..> BACK1 : <<include>>
+UC1 ..> UC2 : trigger
+
+UC2 ..> UC7 : <<include>>
+UC2 ..> UI1 : <<include>>
+UC2 ..> UI2 : <<include>>
+
+UC3 ..> UC8 : <<include>>
+UC4 ..> UC9 : <<include>>
+UC5 ..> UC8 : log eventos
+UC5 ..> UC9 : log clasificacion
+
+UC6 ..> UC3 : <<include>>
+UC6 ..> UC4 : <<include>>
+
+UC7 ..> UC8 : ejecutar cada 100ms
+UC7 ..> UC10 : <<include>>
+
+UC8 ..> BACK2 : <<include>>
+UC8 ..> UC9 : trigger si P300=1
+
+UC9 ..> BACK3 : <<include>>
+
+' Notas
+note right of UC1
+  Flujo Inicial:
+  1. Usuario selecciona archivo EEG
+  2. Sistema carga señal completa
+  3. Inicia simulacion automatica
+  4. Renderiza grafico en tiempo real
+  5. Activa intervalo de actualizacion
+end note
+
+note right of UC2
+  Flujo Visualizacion:
+  1. Muestra ventana deslizante de señal
+  2. Actualiza cada 100ms con intervalo
+  3. Colorea segmentos segun clase
+  4. Muestra leyenda dinamica
+  5. Scroll automatico horizontal
+end note
+
+note right of UC8
+  Flujo Deteccion P300:
+  1. Lee ventana actual de señal
+  2. Ejecuta Modelo P300 (mock)
+  3. Retorna 0 o 1 (sin P300 / con P300)
+  4. Actualiza panel de estado
+  5. Si P300=1, dispara clasificacion
+  6. Registra evento en log
+end note
+
+note bottom of UC9
+  Flujo Clasificacion:
+  1. Solo se ejecuta si P300=1
+  2. Usa misma ventana de señal
+  3. Ejecuta Modelo Clasificacion (mock)
+  4. Retorna clase detectada
+     (arriba, abajo, izq, der)
+  5. Actualiza panel de estado
+  6. Registra en log con confianza
+end note
+
+note bottom of UC5
+  Log de Pipeline:
+  - Muestra eventos en tiempo real
+  - Formato: timestamp + evento
+  - Ejemplos:
+    - Sistema iniciado
+    - Archivo cargado
+    - P300 detectado (conf 0.95)
+    - Clase: arriba (conf 0.87)
+  - Scroll automatico
+  - Max 50 lineas visibles
+end note
+
+note bottom of UI1
+  Componente DataSimulation:
+  - Maneja estado de simulacion
+  - Controla intervalo de actualizacion
+  - Gestiona ventana deslizante
+  - Callbacks clientside para performance
+  - Usa WebGL para graficos rapidos
+end note
+
+' Estilos
+skinparam usecase {
+  BackgroundColor lightblue
+  BorderColor darkblue
+  ArrowColor darkblue
+}
+
+skinparam actor {
+  BackgroundColor lightblue
+  BorderColor darkblue
+}
+
+skinparam note {
+  BackgroundColor lightyellow
+  BorderColor orange
+}
+@enduml
+
+@startuml
+title Casos de Uso - Pagina Simulacion (simulation.py)
+
+actor "Usuario\nInvestigador" as user #lightblue
+
+rectangle "Sistema EGG-lab\n(Simulacion Tiempo Real)" {
+
+  usecase "Seleccionar Archivo\nEEG" as UC1 #lightgreen
+  usecase "Visualizar Señal\nen Tiempo Real" as UC2 #lightblue
+  usecase "Ver Estado\nModelo P300" as UC3 #yellow
+  usecase "Ver Estado\nModelo Clasificacion" as UC4 #orange
+  usecase "Ver Log\nde Pipeline" as UC5 #pink
+  usecase "Observar Predicciones\nen Tiempo Real" as UC6 #lavender
+
+  usecase "Actualizar Grafico\ncon Intervalo" as UC7 #lightyellow
+  usecase "Detectar P300\nen Ventana" as UC8 #lightyellow
+  usecase "Clasificar Señal\nsi P300=1" as UC9 #lightyellow
+  usecase "Actualizar Leyenda\nde Colores" as UC10 #lightgray
+}
+
+rectangle "Backend (Mock)" {
+  usecase "Dataset.load_signal_data()" as BACK1 #lavender
+  usecase "Modelo P300\n.predict()" as BACK2 #lavender
+  usecase "Modelo Clasificacion\n.predict()" as BACK3 #lavender
+}
+
+rectangle "Componentes UI" {
+  usecase "DataSimulation\nComponent" as UI1 #lightpink
+  usecase "Callbacks Clientside\n(Intervalo)" as UI2 #lightpink
+}
+
+user - -> UC1 : "Seleccionar desde Sidebar"
+user - -> UC2 : "Observar visualizacion"
+user - -> UC3 : "Ver panel P300"
+user - -> UC4 : "Ver panel Clasificacion"
+user - -> UC5 : "Ver log de eventos"
+
+UC1 ..> BACK1 : <<include>>
+UC1 ..> UC2 : trigger
+
+UC2 ..> UC7 : <<include>>
+UC2 ..> UI1 : <<include>>
+UC2 ..> UI2 : <<include>>
+
+UC3 ..> UC8 : <<include>>
+UC4 ..> UC9 : <<include>>
+UC5 ..> UC8 : log eventos
+UC5 ..> UC9 : log clasificacion
+
+UC6 ..> UC3 : <<include>>
+UC6 ..> UC4 : <<include>>
+
+UC7 ..> UC8 : ejecutar cada 100ms
+UC7 ..> UC10 : <<include>>
+
+UC8 ..> BACK2 : <<include>>
+UC8 ..> UC9 : trigger si P300=1
+
+UC9 ..> BACK3 : <<include>>
+
+note right of UC1
+  Flujo Inicial:
+  1. Usuario selecciona archivo EEG
+  2. Sistema carga señal completa
+  3. Inicia simulacion automatica
+  4. Renderiza grafico en tiempo real
+  5. Activa intervalo de actualizacion
+end note
+
+note right of UC2
+  Flujo Visualizacion:
+  1. Muestra ventana deslizante de señal
+  2. Actualiza cada 100ms con intervalo
+  3. Colorea segmentos segun clase
+  4. Muestra leyenda dinamica
+  5. Scroll automatico horizontal
+end note
+
+note right of UC8
+  Flujo Deteccion P300:
+  1. Lee ventana actual de señal
+  2. Ejecuta Modelo P300 (mock)
+  3. Retorna 0 o 1 (sin P300 / con P300)
+  4. Actualiza panel de estado
+  5. Si P300=1, dispara clasificacion
+  6. Registra evento en log
+end note
+
+note bottom of UC9
+  Flujo Clasificacion:
+  1. Solo se ejecuta si P300=1
+  2. Usa misma ventana de señal
+  3. Ejecuta Modelo Clasificacion (mock)
+  4. Retorna clase detectada
+     (arriba, abajo, izq, der)
+  5. Actualiza panel de estado
+  6. Registra en log con confianza
+end note
+
+note bottom of UC5
+  Log de Pipeline:
+  - Muestra eventos en tiempo real
+  - Formato: timestamp + evento
+  - Ejemplos:
+    - Sistema iniciado
+    - Archivo cargado
+    - P300 detectado (conf 0.95)
+    - Clase: arriba (conf 0.87)
+  - Scroll automatico
+  - Max 50 lineas visibles
+end note
+
+note bottom of UI1
+  Componente DataSimulation:
+  - Maneja estado de simulacion
+  - Controla intervalo de actualizacion
+  - Gestiona ventana deslizante
+  - Callbacks clientside para performance
+  - Usa WebGL para graficos rapidos
+end note
+
+skinparam usecase {
+  BackgroundColor lightblue
+  BorderColor darkblue
+  ArrowColor darkblue
+}
+
+skinparam actor {
+  BackgroundColor lightblue
+  BorderColor darkblue
+}
+
+skinparam note {
+  BackgroundColor lightyellow
+  BorderColor orange
+}
+@enduml
+
+PlantUML version 1.2022.7(Mon Aug 22 17:01:30 UTC 2022)
+(GPL source distribution)
+Java Runtime: OpenJDK Runtime Environment
+JVM: OpenJDK 64-Bit Server VM
+Default Encoding: UTF-8
+Language: en
+Country: null
+--></g></svg>

@@ -627,6 +627,14 @@ def pass_selected_path(selected_file_path, selected_class, selected_channels, pi
                         arr_processed = pipeline_result["signal"]
                         cache_used = pipeline_result.get("cache_used", False)
 
+                        # ✨ NUEVO: Detectar y aplanar arrays 3D (wavelets)
+                        if arr_processed.ndim == 3:
+                            # Wavelets: (frames, frame_size, channels) → (channels, time)
+                            frames, frame_size, channels = arr_processed.shape
+                            print(f"[filtros] 📊 Array 3D detectado: {arr_processed.shape} (frames, frame_size, canales)")
+                            arr_processed = arr_processed.transpose(2, 0, 1).reshape(channels, frames * frame_size)
+                            print(f"[filtros] ✅ Array 3D concatenado: {arr_processed.shape} (canales x tiempo)")
+
                         # Preparar datos procesados SOLO para columna derecha
                         n_samples_processed = arr_processed.shape[1] if arr_processed.ndim == 2 else arr_processed.shape[0]
                         duration_processed = n_samples_processed / sfreq
@@ -808,7 +816,7 @@ def enable_class_buttons(signal_data, selected_dataset):
 
 # CLIENTSIDE: Renderiza plots con WebGL + limpieza de contextos
 clientside_callback(
-    """
+    r"""
     function(storeData, selectedPathRaw, signalData, filteredData, channelRange) {
       try {
         // ===== ⚙️ CONFIGURACIÓN PRINCIPAL =====
@@ -1021,7 +1029,35 @@ clientside_callback(
 
           // Plot filtrado (columna derecha) - usar datos filtrados si existen
           const hasFilteredData = filteredData && Array.isArray(filteredData.matrix) && Array.isArray(filteredData.matrix[ch]);
-          const yFiltered = hasFilteredData ? filteredData.matrix[ch] : xy.y.map(() => 0);
+
+          // ✨ NUEVO: Detectar y manejar datos 3D (ej: wavelets)
+          let yFiltered;
+          let is3DData = false;
+          let numWindows = 0;
+
+          if (hasFilteredData) {
+            const channelData = filteredData.matrix[ch];
+
+            // Detectar si es 3D: el primer elemento es un array
+            if (Array.isArray(channelData) && Array.isArray(channelData[0])) {
+              is3DData = true;
+              numWindows = channelData.length;
+
+              // Convertir 3D a 2D: tomar la primera ventana
+              yFiltered = channelData[0];
+
+              // Alternativa: promediar todas las ventanas
+              // yFiltered = channelData[0].map((_, idx) => {
+              //   const sum = channelData.reduce((acc, window) => acc + window[idx], 0);
+              //   return sum / channelData.length;
+              // });
+            } else {
+              // Datos 2D normales
+              yFiltered = channelData;
+            }
+          } else {
+            yFiltered = xy.y.map(() => 0);
+          }
 
           const xyFiltered = USE_DOWNSAMPLING && hasFilteredData
             ? downsampling(xFull, yFiltered, { factor: DS_FACTOR, maxPoints: MAX_POINTS })
@@ -1048,6 +1084,25 @@ clientside_callback(
               borderpad: 6
             }
           ];
+
+          // ✨ NUEVO: Indicador de datos 3D (wavelets/ventanas)
+          if (is3DData && numWindows > 0) {
+            filteredAnnotations.push({
+              text: `📊 Datos venteados (ventana 1 de ${numWindows})`,
+              xref: 'paper',
+              yref: 'paper',
+              x: 0.98,
+              y: 0.98,
+              xanchor: 'right',
+              yanchor: 'top',
+              showarrow: false,
+              font: { size: 11, color: '#fbbf24', weight: '600' },  // Color amarillo
+              bgcolor: 'rgba(0,0,0,0.8)',
+              borderpad: 4,
+              bordercolor: '#fbbf24',
+              borderwidth: 1
+            });
+          }
 
           // Agregar mensaje "Sin filtro aplicado" si no hay datos filtrados
           if (!hasFilteredData) {

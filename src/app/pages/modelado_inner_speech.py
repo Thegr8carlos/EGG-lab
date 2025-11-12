@@ -1102,3 +1102,4 @@ def back_to_welcome(_):
 # NOTA: Los callbacks del checklist de canales ya están incluidos en register_transformation_callbacks
 # IMPORTANTE: Usar prefijo "inner" (sin -speech) para coincidir con callbacks registrados en RightColumn.py
 register_transformation_callbacks(prefix="inner", model_type="inner")
+

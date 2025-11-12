@@ -1,0 +1,147 @@
+@startuml
+title Casos de Uso - Pagina Simulacion (simulation.py)
+
+' Actor
+actor "Usuario\nInvestigador" as user #lightblue
+
+' Sistema boundary
+rectangle "Sistema EGG-lab\n(Simulacion Tiempo Real)" {
+
+  ' Casos de uso principales
+  usecase "Seleccionar Archivo\nEEG" as UC1 #lightgreen
+  usecase "Visualizar Señal\nen Tiempo Real" as UC2 #lightblue
+  usecase "Ver Estado\nModelo P300" as UC3 #yellow
+  usecase "Ver Estado\nModelo Clasificacion" as UC4 #orange
+  usecase "Ver Log\nde Pipeline" as UC5 #pink
+  usecase "Observar Predicciones\nen Tiempo Real" as UC6 #lavender
+
+  ' Casos de uso secundarios
+  usecase "Actualizar Grafico\ncon Intervalo" as UC7 #lightyellow
+  usecase "Detectar P300\nen Ventana" as UC8 #lightyellow
+  usecase "Clasificar Señal\nsi P300=1" as UC9 #lightyellow
+  usecase "Actualizar Leyenda\nde Colores" as UC10 #lightgray
+}
+
+' Sistemas externos
+rectangle "Backend (Mock)" {
+  usecase "Dataset.load_signal_data()" as BACK1 #lavender
+  usecase "Modelo P300\n.predict()" as BACK2 #lavender
+  usecase "Modelo Clasificacion\n.predict()" as BACK3 #lavender
+}
+
+rectangle "Componentes UI" {
+  usecase "DataSimulation\nComponent" as UI1 #lightpink
+  usecase "Callbacks Clientside\n(Intervalo)" as UI2 #lightpink
+}
+
+' Relaciones usuario -> casos de uso
+user --> UC1 : "Seleccionar desde Sidebar"
+user --> UC2 : "Observar visualizacion"
+user --> UC3 : "Ver panel P300"
+user --> UC4 : "Ver panel Clasificacion"
+user --> UC5 : "Ver log de eventos"
+
+' Relaciones include
+UC1 ..> BACK1 : <<include>>
+UC1 ..> UC2 : trigger
+
+UC2 ..> UC7 : <<include>>
+UC2 ..> UI1 : <<include>>
+UC2 ..> UI2 : <<include>>
+
+UC3 ..> UC8 : <<include>>
+UC4 ..> UC9 : <<include>>
+UC5 ..> UC8 : log eventos
+UC5 ..> UC9 : log clasificacion
+
+UC6 ..> UC3 : <<include>>
+UC6 ..> UC4 : <<include>>
+
+UC7 ..> UC8 : ejecutar cada 100ms
+UC7 ..> UC10 : <<include>>
+
+UC8 ..> BACK2 : <<include>>
+UC8 ..> UC9 : trigger si P300=1
+
+UC9 ..> BACK3 : <<include>>
+
+' Notas
+note right of UC1
+  Flujo Inicial:
+  1. Usuario selecciona archivo EEG
+  2. Sistema carga señal completa
+  3. Inicia simulacion automatica
+  4. Renderiza grafico en tiempo real
+  5. Activa intervalo de actualizacion
+end note
+
+note right of UC2
+  Flujo Visualizacion:
+  1. Muestra ventana deslizante de señal
+  2. Actualiza cada 100ms con intervalo
+  3. Colorea segmentos segun clase
+  4. Muestra leyenda dinamica
+  5. Scroll automatico horizontal
+end note
+
+note right of UC8
+  Flujo Deteccion P300:
+  1. Lee ventana actual de señal
+  2. Ejecuta Modelo P300 (mock)
+  3. Retorna 0 o 1 (sin P300 / con P300)
+  4. Actualiza panel de estado
+  5. Si P300=1, dispara clasificacion
+  6. Registra evento en log
+end note
+
+note bottom of UC9
+  Flujo Clasificacion:
+  1. Solo se ejecuta si P300=1
+  2. Usa misma ventana de señal
+  3. Ejecuta Modelo Clasificacion (mock)
+  4. Retorna clase detectada
+     (arriba, abajo, izq, der)
+  5. Actualiza panel de estado
+  6. Registra en log con confianza
+end note
+
+note bottom of UC5
+  Log de Pipeline:
+  - Muestra eventos en tiempo real
+  - Formato: timestamp + evento
+  - Ejemplos:
+    - Sistema iniciado
+    - Archivo cargado
+    - P300 detectado (conf 0.95)
+    - Clase: arriba (conf 0.87)
+  - Scroll automatico
+  - Max 50 lineas visibles
+end note
+
+note bottom of UI1
+  Componente DataSimulation:
+  - Maneja estado de simulacion
+  - Controla intervalo de actualizacion
+  - Gestiona ventana deslizante
+  - Callbacks clientside para performance
+  - Usa WebGL para graficos rapidos
+end note
+
+' Estilos
+skinparam usecase {
+  BackgroundColor lightblue
+  BorderColor darkblue
+  ArrowColor darkblue
+}
+
+skinparam actor {
+  BackgroundColor lightblue
+  BorderColor darkblue
+}
+
+skinparam note {
+  BackgroundColor lightyellow
+  BorderColor orange
+}
+
+@enduml

@@ -201,7 +201,8 @@ def register_transformation_callbacks(prefix: str = "p300", model_type: str = "p
         [
             Input("selected-file-path", "data"),
             Input(SELECTED_CLASS_STORE, "data"),
-            Input(SELECTED_CHANNELS_STORE, "data")
+            Input(SELECTED_CHANNELS_STORE, "data"),
+            Input(PIPELINE_UPDATE_TRIGGER, 'data')  # 🔥 Escuchar cambios en el pipeline
         ],
         [
             State("selected-dataset", "data"),
@@ -209,7 +210,7 @@ def register_transformation_callbacks(prefix: str = "p300", model_type: str = "p
         ],
         prevent_initial_call=True
     )
-    def load_event_and_apply_pipeline(selected_file_path, selected_class, selected_channels, dataset_name, auto_apply_enabled):
+    def load_event_and_apply_pipeline(selected_file_path, selected_class, selected_channels, pipeline_trigger, dataset_name, auto_apply_enabled):
         """Carga evento y opcionalmente aplica pipeline automáticamente"""
         if selected_file_path is None:
             return no_update, no_update
@@ -289,24 +290,46 @@ def register_transformation_callbacks(prefix: str = "p300", model_type: str = "p
                     "class_colors": class_color_map
                 }
 
-                if auto_apply_enabled:
+                # 🔥 Detectar si el trigger fue el pipeline-update para re-aplicar
+                from dash import ctx
+                triggered_id = ctx.triggered_id if hasattr(ctx, 'triggered_id') else None
+                should_apply_pipeline = auto_apply_enabled or (triggered_id == PIPELINE_UPDATE_TRIGGER)
+
+                if should_apply_pipeline:
                     try:
-                        print(f"[{prefix}] Auto-aplicando pipeline (model_type={model_type})…")
+                        if triggered_id == PIPELINE_UPDATE_TRIGGER:
+                            print(f"[{prefix}] 🔄 Re-aplicando pipeline tras actualización de historial...")
+                        else:
+                            print(f"[{prefix}] Auto-aplicando pipeline (model_type={model_type})…")
                         pipeline_result = Experiment.apply_history_pipeline(
                             file_path=first_evt,
-                            model_type=model_type,
                             force_recalculate=False,
                             save_intermediates=True,
                             verbose=True
                         )
                         if pipeline_result and "signal" in pipeline_result:
                             arr_processed = pipeline_result["signal"]
+                            cache_used = pipeline_result.get("cache_used", False)
+
+                            # 🔥 Detectar y aplanar arrays 3D (wavelets)
+                            if arr_processed.ndim == 3:
+                                frames, frame_size, channels = arr_processed.shape
+                                print(f"[{prefix}] 📊 Array 3D detectado: {arr_processed.shape} (frames, frame_size, canales)")
+                                arr_processed = arr_processed.transpose(2, 0, 1).reshape(channels, frames * frame_size)
+                                print(f"[{prefix}] ✅ Array 3D concatenado: {arr_processed.shape} (canales x tiempo)")
+
+                            # Calcular duración procesada
+                            n_samples_processed = arr_processed.shape[1] if arr_processed.ndim == 2 else arr_processed.shape[0]
+                            duration_processed = n_samples_processed / sfreq
+
                             transformed_payload = dict(data_payload)
                             transformed_payload.update({
                                 "matrix": arr_processed.tolist(),
                                 "shape": list(arr_processed.shape),
+                                "duration_sec": round(duration_processed, 3),
                                 "pipeline_applied": True,
-                                "cache_used": pipeline_result.get("cache_used", False),
+                                "cache_used": cache_used,
+                                "source": pipeline_result.get("cache_path", first_evt),
                                 "ts": time.time()
                             })
                             # Attach optional visualization payload (domain-aware cube) if provided
@@ -320,7 +343,9 @@ def register_transformation_callbacks(prefix: str = "p300", model_type: str = "p
                             print(f"[{prefix}] Pipeline no devolvió señal, limpiando transformada")
                             transformed_payload = {"ts": time.time(), "pipeline_applied": False}
                     except Exception as e:
-                        print(f"[{prefix}] Error aplicando pipeline: {e}")
+                        print(f"[{prefix}] ❌ Error aplicando pipeline: {e}")
+                        import traceback
+                        traceback.print_exc()
                         transformed_payload = {"ts": time.time(), "pipeline_applied": False}
                 else:
                     transformed_payload = {"ts": time.time(), "pipeline_applied": False}

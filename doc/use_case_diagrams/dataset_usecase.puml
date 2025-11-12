@@ -1,0 +1,200 @@
+@startuml
+title Casos de Uso - Pagina Dataset (dataset.py)
+
+' Actor
+actor "Usuario\nInvestigador" as user #lightblue
+
+' Sistema boundary
+rectangle "Sistema EGG-lab\n(Pagina Dataset)" {
+
+  ' Casos de uso principales (por cada tab)
+  usecase "Ver Overview\nGeneral" as UC1 #lightgreen
+  usecase "Analizar\nEstadisticas" as UC2 #lightblue
+  usecase "Visualizar\nTopomap Espacial" as UC3 #yellow
+  usecase "Ver Activacion\nTemporal Topomap" as UC4 #orange
+  usecase "Analizar Señal\nPor Canal" as UC5 #pink
+  usecase "Ver Señal\nRaw Completa" as UC6 #lavender
+  usecase "Visualizar\nHeatmap ERP" as UC7 #lightcyan
+  usecase "Analizar Bandas\nde Frecuencia" as UC8 #lightyellow
+  usecase "Ver Metricas\nde Calidad" as UC9 #lightgray
+
+  ' Casos de uso de datos y metadata
+  usecase "Cargar Metadata\nde Dataset" as UC10 #lightyellow
+  usecase "Seleccionar Archivo\nEEG (Sidebar)" as UC11 #lightyellow
+  usecase "Seleccionar Clase\nde Evento" as UC12 #lightyellow
+  usecase "Ajustar Punto\nTemporal" as UC13 #lightyellow
+  usecase "Cambiar de Tab\nActiva" as UC14 #lightyellow
+}
+
+' Sistemas externos
+rectangle "Backend y Sistema de Archivos" {
+  usecase "Dataset.load_signal_data()" as BACK1 #lavender
+  usecase "Dataset.get_events_by_class()" as BACK2 #lavender
+  usecase "get_dataset_metadata()" as BACK3 #lavender
+  usecase "Leer archivo\nmetadata.json" as EXT1 #lightgray
+  usecase "Cargar archivos\n.npy de eventos" as EXT2 #lightgray
+}
+
+' Componentes UI
+rectangle "Componentes de UI" {
+  usecase "Renderizar\nGraficos Plotly" as UI1 #lightpink
+  usecase "Mostrar Tabla\nDash DataTable" as UI2 #lightpink
+  usecase "Animar Topomap\ncon Slider" as UI3 #lightpink
+}
+
+' Relaciones usuario -> casos de uso principales
+user --> UC1 : "Abrir pagina\n/dataset"
+user --> UC2 : "Clic en tab\nEstadisticas"
+user --> UC3 : "Clic en tab\nTopomap"
+user --> UC11 : "Seleccionar archivo\nen Sidebar"
+user --> UC12 : "Elegir clase\nen dropdown"
+user --> UC13 : "Mover slider\nde tiempo"
+user --> UC5 : "Clic en tab\nPor Canal"
+user --> UC6 : "Clic en tab\nSeñal Raw"
+user --> UC7 : "Clic en tab\nHeatmap"
+user --> UC8 : "Clic en tab\nFrecuencias"
+user --> UC9 : "Clic en tab\nCalidad"
+
+' Relaciones include
+UC1 ..> UC10 : <<include>>
+UC1 ..> UI1 : <<include>>
+
+UC2 ..> UC10 : <<include>>
+UC2 ..> UI1 : <<include>>
+UC2 ..> UI2 : <<include>>
+
+UC3 ..> UC10 : <<include>>
+UC3 ..> UI1 : <<include>>
+
+UC4 ..> UC11 : <<include>>
+UC4 ..> UC12 : <<include>>
+UC4 ..> UC13 : <<include>>
+UC4 ..> BACK2 : <<include>>
+UC4 ..> EXT2 : <<include>>
+UC4 ..> UI3 : <<include>>
+
+UC3 ..> UC4 : <<extend>>\ncon archivo seleccionado
+
+UC5 ..> UC10 : <<include>>
+UC5 ..> UI2 : <<include>>
+
+UC6 ..> BACK1 : <<include>>
+UC6 ..> UI1 : <<include>>
+
+UC7 ..> UC10 : <<include>>
+
+UC8 ..> UC10 : <<include>>
+UC8 ..> UI1 : <<include>>
+UC8 ..> UI2 : <<include>>
+
+UC9 ..> UC10 : <<include>>
+UC9 ..> UI1 : <<include>>
+
+UC10 ..> EXT1 : <<include>>
+UC10 ..> BACK3 : <<include>>
+
+UC11 --> UC4 : trigger
+
+' Notas explicativas
+note right of UC1
+  Flujo:
+  1. Sistema carga metadata desde Store
+  2. Muestra resumen: nombre, clases,
+     archivos, frecuencia, duracion
+  3. Calcula score de calidad (estrellas)
+  4. Renderiza en Card con metricas clave
+end note
+
+note right of UC2
+  Flujo:
+  1. Lee class_counts_total de metadata
+  2. Genera grafico de barras (Plotly)
+  3. Lee sessions de metadata
+  4. Crea tabla paginada con DataTable
+  5. Muestra: Subject, Session,
+     Duracion, Eventos, Freq. Muestreo
+end note
+
+note right of UC3
+  Flujo:
+  1. Lee montage de metadata
+  2. Valida que tenga posiciones
+  3. Extrae coordenadas x,y de electrodos
+  4. Dibuja circulo de cabeza y nariz
+  5. Plotea electrodos con labels
+  6. Muestra tipo de montage detectado
+end note
+
+note right of UC4
+  Flujo:
+  1. Usuario selecciona archivo en Sidebar
+  2. Elige clase de dropdown
+  3. Ajusta tiempo con slider (0-3.2s)
+  4. Sistema carga primer evento de clase
+  5. Calcula indice de muestra (tiempo x sfreq)
+  6. Extrae valores de todos los canales
+  7. Mapea valores a coordenadas espaciales
+  8. Renderiza topomap con colormap RdBu
+end note
+
+note bottom of UC5
+  Flujo:
+  1. Lee channel_stats de metadata
+  2. Crea tabla con: Canal, Media, Desv. Std,
+     Min, Max, RMS (todos en notacion cientifica)
+  3. DataTable con paginacion, ordenamiento
+     y filtrado nativo
+  4. Muestra primeros 15 canales por pagina
+end note
+
+note bottom of UC6
+  Flujo:
+  1. Usuario selecciona archivo en Sidebar
+  2. Callback carga datos con
+     Dataset.load_signal_data()
+  3. Lee archivo .npy y labels
+  4. Serializa primeros 5000 puntos
+  5. Renderiza con callbacks clientside
+  6. Permite navegacion temporal
+end note
+
+note bottom of UC8
+  Flujo:
+  1. Lee frequency_bands de metadata
+  2. Crea grafico de barras con colores:
+     Delta (rojo), Theta (magenta),
+     Alpha (cyan), Beta (verde),
+     Gamma (amarillo)
+  3. Muestra potencia promedio (V²/Hz)
+  4. Tabla con rangos de frecuencia
+end note
+
+note bottom of UC9
+  Flujo:
+  1. Lee quality_metrics de metadata
+  2. Muestra 3 cards: Bad Channels,
+     Balance de Clases, Eventos Totales
+  3. Grafico de pastel para balance
+  4. Lista de bad channels detectados
+  5. Ratio de desbalance de clases
+  6. Info sobre metricas de calidad
+end note
+
+' Estilos
+skinparam usecase {
+  BackgroundColor lightblue
+  BorderColor darkblue
+  ArrowColor darkblue
+}
+
+skinparam actor {
+  BackgroundColor lightblue
+  BorderColor darkblue
+}
+
+skinparam note {
+  BackgroundColor lightyellow
+  BorderColor orange
+}
+
+@enduml
