@@ -2487,7 +2487,7 @@ def register_interactive_callbacks():
         Output({"type": "test-config-result", "model": MATCH}, "children"),
         Output({"type": "btn-cloud-training", "model": MATCH}, "disabled", allow_duplicate=True),
         Output({"type": "cloud-training-hint", "model": MATCH}, "children", allow_duplicate=True),
-        Output({"type": "model-validation-status", "model": MATCH}, "data"),
+        Output({"type": "model-validation-status", "model": MATCH}, "data", allow_duplicate=True),
         Input({"type": "test-config-btn", "model": MATCH}, "n_clicks"),
         [State({"type": "layer-config-input", "layer_index": ALL, "field": ALL}, "value"),
          State({"type": "layer-config-input", "layer_index": ALL, "field": ALL}, "id"),

@@ -770,14 +770,25 @@ def run_local_training(n_clicks, selected_path, subsets_list):
         # Necesitamos aplicar el pipeline (filters + transforms) para obtener las ventanas
         
         # Determinar model_type para el pipeline
-        model_type_for_pipeline = None
-        if metadata.get("experiment_snapshot", {}).get("classifier_config", {}).get("model_name"):
-            # Inferir si es P300 o InnerSpeech basado en el dataset
-            dataset_lower = metadata.get("dataset_name", "").lower()
-            if "p300" in dataset_lower or "speller" in dataset_lower:
-                model_type_for_pipeline = "p300"
-            else:
-                model_type_for_pipeline = "inner"
+        # Inferir si es P300 o InnerSpeech basado en el dataset
+        dataset_name = metadata.get("dataset_name", "")
+        dataset_lower = dataset_name.lower()
+
+        if "p300" in dataset_lower or "speller" in dataset_lower:
+            model_type_for_pipeline = "p300"
+        elif "inner" in dataset_lower or "speech" in dataset_lower:
+            model_type_for_pipeline = "inner"
+        else:
+            # Fallback: intentar inferir del experimento actual
+            model_type_for_pipeline = "p300"  # Default seguro
+            print(f"⚠️ [LocalTraining] No se pudo inferir tipo de modelo del dataset '{dataset_name}'. Usando 'p300' por defecto.")
+
+        print(f"\n{'='*70}")
+        print(f"[LocalTraining] CONFIGURACIÓN DE MODELO")
+        print(f"{'='*70}")
+        print(f"  Dataset: {dataset_name}")
+        print(f"  model_type_for_pipeline: {model_type_for_pipeline}")
+        print(f"{'='*70}\n")
         
         def apply_pipeline_to_events(event_paths, labels, split_name):
             """Aplica el pipeline completo a una lista de eventos y retorna paths a ventanas."""
@@ -978,6 +989,7 @@ def run_local_training(n_clicks, selected_path, subsets_list):
                 print(f"  Ejemplo yTrain[0]: {yTrain[0]}")
             print(f"{'='*70}\n")
 
+            # Entrenar SIN guardar automáticamente (sin model_label)
             if is_neural_network:
                 # Extraer hiperparámetros para redes neuronales
                 epochs = getattr(model_instance, 'epochs', 10)
@@ -997,29 +1009,63 @@ def run_local_training(n_clicks, selected_path, subsets_list):
                     epochs=epochs,
                     batch_size=batch_size,
                     lr=lr,
-                    model_label=None
+                    model_label=None  # NO guardamos automáticamente
                 )
             else:
-                # Modelos clásicos (no aceptan epochs, batch_size, lr)
-                print(f"[LocalTraining] Entrenando modelo clásico {model_name}")
+                # Modelos clásicos: usar fit() SIN auto-guardar
+                print(f"[LocalTraining] Entrenando modelo clásico {model_name} con fit()")
 
-                metrics = classifier_class.train(
-                    model_instance,
-                    xTrain=xTrain,
-                    yTrain=yTrain,
-                    xTest=xTest,
-                    yTest=yTest,
-                    metadata_train=None,
-                    metadata_test=None,
-                    model_label=None
-                )
-            
+                # Verificar si tiene método fit
+                if hasattr(classifier_class, 'fit'):
+                    result = classifier_class.fit(
+                        instance=model_instance,
+                        xTrain=xTrain,
+                        yTrain=yTrain,
+                        xTest=xTest,
+                        yTest=yTest,
+                        metadata_train=None,
+                        metadata_test=None,
+                        model_label=None,  # NO guardamos automáticamente
+                        verbose=True
+                    )
+                    metrics = result.metrics
+                else:
+                    # Fallback a train si no tiene fit
+                    metrics = classifier_class.train(
+                        model_instance,
+                        xTrain=xTrain,
+                        yTrain=yTrain,
+                        xTest=xTest,
+                        yTest=yTest,
+                        metadata_train=None,
+                        metadata_test=None,
+                        model_label=None  # NO guardamos automáticamente
+                    )
+
             print(f"[LocalTraining] Entrenamiento completado")
-            
-            # ========== PASO 4: MOSTRAR MÉTRICAS ==========
-            from app.components.CloudTrainingComponent import render_metrics_visualization
-            
-            # Convertir EvaluationMetrics a dict para visualización
+
+            # ========== GUARDAR MODELO CON METADATA USANDO ModelStorage ==========
+            from backend.helpers.model_storage import save_model_with_metadata
+
+            # Preparar snapshot del experimento
+            experiment_snapshot = {
+                "id": experiment.id,
+                "dataset": selected_subset["metadata"].get("dataset_name", "unknown"),
+                "filters": experiment.filters or [],
+                "transform": experiment.transform or [],
+                "classifier_config": {
+                    "model_name": model_name,
+                    "config": model_instance.dict() if hasattr(model_instance, 'dict') else {}
+                },
+                "subset_info": {
+                    "subset_path": selected_path,
+                    "n_train_events": selected_subset["metadata"].get("n_train_events", 0),
+                    "n_test_events": selected_subset["metadata"].get("n_test_events", 0),
+                    "classes": selected_subset["metadata"].get("classes", [])
+                }
+            }
+
+            # Preparar métricas para guardar
             if hasattr(metrics, 'model_dump'):
                 metrics_dict = metrics.model_dump()
             elif hasattr(metrics, 'dict'):
@@ -1035,17 +1081,60 @@ def run_local_training(n_clicks, selected_path, subsets_list):
                     "loss": getattr(metrics, 'loss', []),
                     "evaluation_time": getattr(metrics, 'evaluation_time', "N/A")
                 }
+
+            # Hiperparámetros
+            hyperparams = {}
+            if is_neural_network:
+                hyperparams = {
+                    "epochs": epochs,
+                    "batch_size": batch_size,
+                    "learning_rate": lr
+                }
+
+            # Guardar modelo con metadata completa
+            saved_model_path = save_model_with_metadata(
+                model_instance=model_instance,
+                model_name=model_name,
+                model_type=model_type_for_pipeline,
+                metrics=metrics_dict,
+                experiment_snapshot=experiment_snapshot,
+                hyperparams=hyperparams
+            )
+
+            print(f"✅ [LocalTraining] Modelo y metadata guardados exitosamente")
+            print(f"   📁 Ruta: {saved_model_path}")
+            print(f"   🏷️  Tipo: {model_type_for_pipeline}")
+            print(f"   🔬 Experimento: {experiment.id}")
             
+            # ========== PASO 4: MOSTRAR MÉTRICAS ==========
+            from app.components.CloudTrainingComponent import render_metrics_visualization
+
+            # Mensaje de éxito con información del guardado
             status_success = dbc.Alert(
                 [
                     html.I(className="fas fa-check-circle me-2"),
-                    f"Entrenamiento de {model_name} completado exitosamente"
+                    html.Div([
+                        html.Strong(f"Entrenamiento de {model_name} completado exitosamente", style={"fontSize": "15px"}),
+                        html.Br(),
+                        html.Div([
+                            html.I(className="fas fa-save me-1", style={"fontSize": "11px"}),
+                            f"Modelo guardado en: {saved_model_path}"
+                        ], style={"fontSize": "12px", "opacity": "0.9", "marginTop": "6px"}),
+                        html.Div([
+                            html.I(className="fas fa-flask me-1", style={"fontSize": "11px"}),
+                            f"Experimento: {experiment.id}"
+                        ], style={"fontSize": "12px", "opacity": "0.9", "marginTop": "4px"}),
+                        html.Div([
+                            html.I(className="fas fa-tag me-1", style={"fontSize": "11px"}),
+                            f"Tipo: {model_type_for_pipeline}"
+                        ], style={"fontSize": "12px", "opacity": "0.9", "marginTop": "4px"})
+                    ])
                 ],
                 color="success"
             )
-            
+
             metrics_display = render_metrics_visualization(metrics_dict)
-            
+
             return status_success, metrics_display
         
         except Exception as train_error:

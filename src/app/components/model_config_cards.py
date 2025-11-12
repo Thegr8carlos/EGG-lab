@@ -594,6 +594,7 @@ def _set_deep(dct, dotted_path, value):
     Output({"type": "classic-test-config-result", "model": MATCH}, "children"),
     Output({"type": "btn-cloud-training", "model": MATCH}, "disabled", allow_duplicate=True),
     Output({"type": "cloud-training-hint", "model": MATCH}, "children", allow_duplicate=True),
+    Output({"type": "model-validation-status", "model": MATCH}, "data", allow_duplicate=True),  # Habilitar Entrenamiento Local
     Input({"type": "classic-test-config-btn", "model": MATCH}, "n_clicks"),
     [
         State({"type": "config-input", "model": MATCH, "field": ALL}, "value"),
@@ -611,11 +612,11 @@ def test_classic_model_configuration(n_clicks, input_values, input_ids, classifi
         Output({"type": "cloud-training-hint", "model": MATCH}, "children", allow_duplicate=True),
     """
     if not n_clicks:
-        return no_update, no_update, no_update
+        return no_update, no_update, no_update, no_update
 
     # Si no hay inputs 'config-input', asumimos que no es una card clásica -> omitir
     if not input_ids or len(input_ids) == 0:
-        return no_update, no_update, no_update
+        return no_update, no_update, no_update, no_update
 
     # Determinar el nombre del modelo desde los IDs
     # (cualquier id trae {"model": "<Modelo>"})
@@ -647,7 +648,8 @@ def test_classic_model_configuration(n_clicks, input_values, input_ids, classifi
                     dismissable=True
                 ),
                 True,
-                "Corrige la configuración del modelo para habilitar el entrenamiento en la nube"
+                "Corrige la configuración del modelo para habilitar el entrenamiento en la nube",
+                False  # No habilitar Entrenamiento Local
             )
 
         try:
@@ -672,7 +674,8 @@ def test_classic_model_configuration(n_clicks, input_values, input_ids, classifi
                     dismissable=True
                 ),
                 True,
-                "Hay errores de validación. Corrígelos para habilitar el entrenamiento en la nube"
+                "Hay errores de validación. Corrígelos para habilitar el entrenamiento en la nube",
+                False  # No habilitar Entrenamiento Local
             )
 
         # ===== PASO 1: VERIFICACIÓN DE COMPILACIÓN =====
@@ -779,7 +782,8 @@ def test_classic_model_configuration(n_clicks, input_values, input_ids, classifi
                     duration=12000
                 ),
                 True,
-                "La compilación falló. Corrige los problemas para habilitar el entrenamiento en la nube"
+                "La compilación falló. Corrige los problemas para habilitar el entrenamiento en la nube",
+                False  # No habilitar Entrenamiento Local
             )
 
         # ===== PASO 2: INSTANCIAR EN EXPERIMENTO (solo si compilación OK) =====
@@ -819,7 +823,8 @@ def test_classic_model_configuration(n_clicks, input_values, input_ids, classifi
                     duration=8000
                 ),
                 False,
-                "Listo: puedes entrenar el modelo en la nube"
+                "Listo: puedes entrenar el modelo en la nube",
+                True  # ✅ HABILITAR Entrenamiento Local
             )
 
         except Exception as exp_err:
@@ -833,7 +838,8 @@ def test_classic_model_configuration(n_clicks, input_values, input_ids, classifi
                     dismissable=True
                 ),
                 True,
-                "No se pudo registrar el modelo. Corrige el problema para habilitar el entrenamiento"
+                "No se pudo registrar el modelo. Corrige el problema para habilitar el entrenamiento",
+                False  # No habilitar Entrenamiento Local
             )
 
     except Exception as e:
@@ -847,7 +853,8 @@ def test_classic_model_configuration(n_clicks, input_values, input_ids, classifi
                 dismissable=True
             ),
             True,
-            "Ocurrió un error inesperado. Intenta nuevamente"
+            "Ocurrió un error inesperado. Intenta nuevamente",
+            False  # No habilitar Entrenamiento Local
         )
 
 
