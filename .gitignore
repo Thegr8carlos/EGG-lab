@@ -205,3 +205,9 @@ src/SISTEMA_INTERACTIVO_MODELOS.md
 
 src\backend\models
 src/backend/Experiments/*
+
+# Large data files (EEG datasets)
+*.npy
+*.pack
+**/*inner*speech*.npy
+**/*sub-*_ses-*_task-*.npy
