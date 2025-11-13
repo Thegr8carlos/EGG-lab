@@ -183,8 +183,15 @@ class DCTTransform(Transform):
                 maj_label = max(counts.items(), key=lambda kv: kv[1])[0]
                 maj.append(maj_label)
             frame_labels = np.array(maj, dtype=str)
+
+            # ===== RE-ETIQUETAR A FORMATO NUMÉRICO =====
+            frame_labels_numeric, id_to_class = instance.relabel_for_model(frame_labels)
+            print(f"[DCTTransform.apply] Etiquetas convertidas a formato numérico:")
+            print(f"   Mapeo: {id_to_class}")
         else:
             print(f"[DCTTransform.apply] WARNING: No se encontró archivo de etiquetas en: {labels_dir} para {p_in.name}")
+            frame_labels_numeric = None
+            id_to_class = {}
 
         # ---------- DCT por frames sobre eje temporal ----------
         dct_type = int(instance.type if instance.type is not None else 2)
@@ -233,10 +240,18 @@ class DCTTransform(Transform):
         np.save(str(out_npy), coeffs_cube)
         print(f"[DCTTransform.apply] Guardado coeficientes (frames): {out_npy}")
 
-        if frame_labels is not None:
+        if frame_labels_numeric is not None:
+            # Guardar labels numéricas
             out_labels = dir_out_labels / f"{p_in.stem}_dct_{uid}_labels.npy"
-            np.save(str(out_labels), frame_labels)
-            print(f"[DCTTransform.apply] Guardado etiquetas por frame: {out_labels}")
+            np.save(str(out_labels), frame_labels_numeric)
+            print(f"[DCTTransform.apply] Guardado etiquetas numéricas: {out_labels}")
+
+            # Guardar mapping (id → clase string)
+            import json
+            out_mapping = dir_out_labels / f"{p_in.stem}_dct_{uid}_mapping.json"
+            with open(str(out_mapping), 'w') as f:
+                json.dump(id_to_class, f, indent=2)
+            print(f"[DCTTransform.apply] Guardado mapeo de clases: {out_mapping}")
 
         # ---------- registrar cambio de dimensionalidad (sin meta externo) ----------
         Experiment.set_last_transform_dimensionality_change(

@@ -829,10 +829,21 @@ class Dataset:
                 label_duration_sec = 3.2  # mantenemos tu valor actual
                 label_duration_samples = int(label_duration_sec * sfreq)
 
+                # Etiquetar eventos
                 for sample_idx, eid in inner_cues:
                     start = sample_idx
                     end = min(sample_idx + label_duration_samples, data.shape[1])
                     label_array[0, start:end] = labels_dict[eid]
+
+                # ===== RE-ETIQUETAR BACKGROUND (resto de la señal) =====
+                # Siempre usar "rest" como etiqueta de background
+                # Las transformadas se encargarán del re-etiquetado específico (P300 binario, etc.)
+                background_label = "rest"
+
+                # Llenar zonas sin etiquetar (donde es 0 o vacío)
+                background_mask = (label_array[0] == 0) | (label_array[0] == '') | (label_array[0] == '0')
+                label_array[0, background_mask] = background_label
+                print(f"[LABELS] Background re-etiquetado como 'rest': {background_mask.sum()} muestras")
 
                 label_array = label_array.astype(str)
 
@@ -905,6 +916,56 @@ class Dataset:
                         f"[Events] Guardado {out_path} | clase={class_name} | "
                         f"samples={start_sample}-{end_sample} | shape={X_event.shape}"
                     )
+
+                # ===== EXTRAER VENTANAS DE BACKGROUND =====
+                print(f"[BDF] Extrayendo ventanas de background (etiquetadas como '{background_label}')...")
+
+                # Encontrar índices donde está el background
+                background_indices = np.where(label_array[0] == background_label)[0]
+
+                if len(background_indices) > 0:
+                    # Segmentar en ventanas del mismo tamaño que eventos
+                    window_size = label_duration_samples
+                    n_windows = len(background_indices) // window_size
+
+                    background_count = 0
+                    for i in range(n_windows):
+                        start_idx = background_indices[i * window_size]
+                        end_idx = start_idx + window_size
+
+                        # Verificar que la ventana completa sea background (contigua)
+                        if end_idx <= data.shape[1]:
+                            window_labels = label_array[0, start_idx:end_idx]
+                            if np.all(window_labels == background_label):
+                                # Extraer ventana
+                                X_background = data[:, start_idx:end_idx].astype(np.float32)
+
+                                # Calcular tiempos
+                                start_time = start_idx / sfreq
+                                end_time = end_idx / sfreq
+
+                                # Nombre del archivo
+                                safe_label = re.sub(r'[\\/:*?"<>|]', "_", background_label)
+                                out_name = f"{safe_label}[{start_time:.3f}]{{{end_time:.3f}}}.npy"
+                                out_path = os.path.join(events_dir, out_name)
+
+                                # SKIP si ya existe
+                                if os.path.exists(out_path):
+                                    continue
+
+                                np.save(out_path, X_background)
+                                background_count += 1
+
+                    print(f"[BDF] Extraídas {background_count} ventanas de background | shape={X_background.shape if background_count > 0 else 'N/A'}")
+
+                    # Actualizar conteos (acumular correctamente)
+                    if background_label not in counts:
+                        counts[background_label] = 0
+                    counts[background_label] += background_count
+                    # Acumular en total (no sobrescribir)
+                    if background_label not in total_class_counts:
+                        total_class_counts[background_label] = 0
+                    total_class_counts[background_label] += background_count
 
                 # ===== Acumular METADATA GLOBAL =====
                 ch_names = list(raw_data.info["ch_names"])
@@ -1014,11 +1075,22 @@ class Dataset:
                 label_duration_sec = 3.2
                 label_duration_samples = int(label_duration_sec * sfreq_f)
 
+                # Etiquetar eventos
                 for event, label in zip(events, label_list):
                     sample_idx = event[0]
                     start = sample_idx
                     end = min(sample_idx + label_duration_samples, data.shape[1])
                     label_array[0, start:end] = label
+
+                # ===== RE-ETIQUETAR BACKGROUND (resto de la señal) =====
+                # Siempre usar "rest" como etiqueta de background
+                # Las transformadas se encargarán del re-etiquetado específico (P300 binario, etc.)
+                background_label = "rest"
+
+                # Llenar zonas sin etiquetar (donde es 0 o vacío)
+                background_mask = (label_array[0] == 0) | (label_array[0] == '') | (label_array[0] == '0')
+                label_array[0, background_mask] = background_label
+                print(f"[LABELS] Background re-etiquetado como 'rest': {background_mask.sum()} muestras")
 
                 label_array = label_array.astype(str)
 
@@ -1112,10 +1184,21 @@ class Dataset:
                 label_duration_sec = 3.2
                 label_duration_samples = int(label_duration_sec * sfreq)
 
+                # Etiquetar eventos
                 for sample_idx, eid in cues:
                     start = sample_idx
                     end = min(sample_idx + label_duration_samples, data.shape[1])
                     label_array[0, start:end] = labels_dict[eid]
+
+                # ===== RE-ETIQUETAR BACKGROUND (resto de la señal) =====
+                # Siempre usar "rest" como etiqueta de background
+                # Las transformadas se encargarán del re-etiquetado específico (P300 binario, etc.)
+                background_label = "rest"
+
+                # Llenar zonas sin etiquetar (donde es 0 o vacío)
+                background_mask = (label_array[0] == 0) | (label_array[0] == '') | (label_array[0] == '0')
+                label_array[0, background_mask] = background_label
+                print(f"[LABELS] Background re-etiquetado como 'rest': {background_mask.sum()} muestras")
 
                 label_array = label_array.astype(str)
 
@@ -1171,6 +1254,55 @@ class Dataset:
 
                     np.save(out_path, X_event)
                     print(f"[VHDR] Guardado evento: {out_path} | clase={class_name} | shape={X_event.shape}")
+
+                # ===== EXTRAER VENTANAS DE BACKGROUND =====
+                print(f"[VHDR] Extrayendo ventanas de background (etiquetadas como '{background_label}')...")
+
+                # Encontrar índices donde está el background
+                background_indices = np.where(label_array[0] == background_label)[0]
+
+                if len(background_indices) > 0:
+                    # Segmentar en ventanas del mismo tamaño que eventos
+                    window_size = label_duration_samples
+                    n_windows = len(background_indices) // window_size
+
+                    background_count = 0
+                    for i in range(n_windows):
+                        start_idx = background_indices[i * window_size]
+                        end_idx = start_idx + window_size
+
+                        # Verificar que la ventana completa sea background (contigua)
+                        if end_idx <= data.shape[1]:
+                            window_labels = label_array[0, start_idx:end_idx]
+                            if np.all(window_labels == background_label):
+                                # Extraer ventana
+                                X_background = data[:, start_idx:end_idx]
+
+                                # Calcular tiempos
+                                start_time = start_idx / sfreq
+                                end_time = end_idx / sfreq
+
+                                # Nombre del archivo
+                                out_name = f"{background_label}[{start_time:.3f}]{{{end_time:.3f}}}.npy"
+                                out_path = os.path.join(events_dir, out_name)
+
+                                # SKIP si ya existe
+                                if os.path.exists(out_path):
+                                    continue
+
+                                np.save(out_path, X_background)
+                                background_count += 1
+
+                    print(f"[VHDR] Extraídas {background_count} ventanas de background | shape={X_background.shape if background_count > 0 else 'N/A'}")
+
+                    # Actualizar conteos (acumular correctamente)
+                    if background_label not in counts:
+                        counts[background_label] = 0
+                    counts[background_label] += background_count
+                    # Acumular en total (no sobrescribir)
+                    if background_label not in total_class_counts:
+                        total_class_counts[background_label] = 0
+                    total_class_counts[background_label] += background_count
 
                 # ===== Acumular metadata global =====
                 ch_names = list(raw_data.info["ch_names"])

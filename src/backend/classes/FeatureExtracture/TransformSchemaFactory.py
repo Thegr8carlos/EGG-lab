@@ -228,6 +228,14 @@ def TransformCallbackRegister(boton_id: str, inputs_map: dict, model_type: str =
             datos["sp"] = float(sfreq)
             print(f"[TransformSchemaFactory] 📊 Usando frecuencia de muestreo: {sfreq} Hz")
 
+        # ⭐ NUEVO: Inyectar model_type según contexto
+        if model_type in ("p300", "inner"):
+            datos["model_type"] = model_type
+            print(f"[TransformSchemaFactory] 🏷️  Inyectando model_type: {model_type}")
+        elif "model_type" not in datos:
+            # Si no se especificó, dejar None (sin re-etiquetado)
+            datos["model_type"] = None
+
         try:
             from pathlib import Path
             import numpy as np

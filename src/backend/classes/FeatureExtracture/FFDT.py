@@ -211,8 +211,15 @@ class FFTTransform(Transform):
                 maj_label = max(counts.items(), key=lambda kv: kv[1])[0]
                 majority.append(maj_label)
             frame_labels = np.array(majority, dtype=str)
+
+            # ===== RE-ETIQUETAR A FORMATO NUMÉRICO =====
+            frame_labels_numeric, id_to_class = instance.relabel_for_model(frame_labels)
+            print(f"[FFTTransform.apply] Etiquetas convertidas a formato numérico:")
+            print(f"   Mapeo: {id_to_class}")
         else:
             print(f"[FFTTransform.apply] WARNING: No se encontró archivo de etiquetas en: {labels_dir} para {p_in.name}")
+            frame_labels_numeric = None
+            id_to_class = {}
 
         # ---------- precomputos FFT ----------
         freqs = np.fft.rfftfreq(nfft, d=1.0 / sfreq)
@@ -258,10 +265,18 @@ class FFTTransform(Transform):
         np.save(str(out_npy), power)
         print(f"[FFTTransform.apply] Guardado potencia: {out_npy}")
 
-        if frame_labels is not None:
+        if frame_labels_numeric is not None:
+            # Guardar labels numéricas
             out_labels = dir_out_labels / f"{p_in.stem}_fft_{uid}_labels.npy"
-            np.save(str(out_labels), frame_labels)
-            print(f"[FFTTransform.apply] Guardado etiquetas por frame: {out_labels}")
+            np.save(str(out_labels), frame_labels_numeric)
+            print(f"[FFTTransform.apply] Guardado etiquetas numéricas: {out_labels}")
+
+            # Guardar mapping (id → clase string)
+            import json
+            out_mapping = dir_out_labels / f"{p_in.stem}_fft_{uid}_mapping.json"
+            with open(str(out_mapping), 'w') as f:
+                json.dump(id_to_class, f, indent=2)
+            print(f"[FFTTransform.apply] Guardado mapeo de clases: {out_mapping}")
 
         # ---------- registrar cambio de dimensionalidad (sin guardar meta) ----------
         Experiment.set_last_transform_dimensionality_change(
