@@ -2813,30 +2813,55 @@ def register_interactive_callbacks():
                     print(f"⚠️ [INTERNO] No hay dataset seleccionado")
                 else:
                     from pathlib import Path
-                    dataset_path = Path(selected_dataset)
+                    from backend.classes.dataset import Dataset
+                    
+                    # Construir path del dataset con la estructura correcta
+                    # Usar el método get_events_by_class para encontrar los eventos automáticamente
+                    dataset_path = f"Aux/{selected_dataset}"
 
-                    # Verificar que la path del dataset existe
-                    if not dataset_path.exists():
-                        compilation_error = "El dataset seleccionado no existe en el sistema"
-                        print(f"⚠️ [INTERNO] Dataset no encontrado: {selected_dataset}")
+                    # Verificar que existen eventos usando get_events_by_class
+                    events_result = Dataset.get_events_by_class(dataset_path, class_name=None)
+                    
+                    if events_result["status"] != 200 or not events_result["event_files"]:
+                        compilation_error = f"No se encontraron eventos en el dataset: {events_result['message']}"
+                        print(f"⚠️ [INTERNO] {compilation_error}")
                     else:
-                        print(f"\n{'='*70}")
+                        events_dir = events_result["events_dir"]
+                        n_events = events_result["n_events"]
+                        
+                        print(f"{'='*70}")
                         print(f"🔧 VERIFICANDO CONFIGURACIÓN DEL MODELO")
                         print(f"{'='*70}")
                         print(f"📦 Modelo: {model_type}")
                         print(f"🎯 Experimento: {experiment_type_msg}")
-                        print(f"📂 Dataset: {selected_dataset}")
+                        print(f"📂 Dataset: {dataset_path}")
+                        print(f"📁 Eventos: {events_dir} ({n_events} eventos)")
                         print(f"\n⏳ Preparando datos de prueba...")
 
-                        # Generar mini dataset con pipeline completo (invisible para el usuario)
-                        mini_dataset = Experiment.generate_pipeline_dataset(
-                            dataset_path=str(selected_dataset),
-                            n_train=10,
-                            n_test=5,
-                            selected_classes=None,
-                            force_recalculate=False,
-                            verbose=False  # Sin output en consola
-                        )
+                        # Determinar model_type a partir de classifier_type
+                        model_type_for_pipeline = "p300" if classifier_type == "P300" else "inner"
+                        
+                        # Generar mini dataset - usar método apropiado según tipo de modelo
+                        if model_type in ["SVM", "KMeans"]:  # Modelos clásicos necesitan rutas de archivos
+                            mini_dataset = Experiment.generate_pipeline_dataset(
+                                dataset_path=dataset_path,
+                                model_type=model_type_for_pipeline,
+                                n_train=10,
+                                n_test=5,
+                                selected_classes=None,
+                                force_recalculate=False,
+                                verbose=False  # Sin output en consola
+                            )
+                        else:  # Redes neuronales usan arrays procesados
+                            mini_dataset = Experiment.generate_model_dataset(
+                                dataset_path=dataset_path,
+                                model_type=model_type_for_pipeline,
+                                n_train=10,
+                                n_test=5,
+                                selected_classes=None,
+                                force_recalculate=False,
+                                verbose=False  # Sin output en consola
+                            )
 
                         print(f"✅ Datos preparados: {mini_dataset['n_train']} train + {mini_dataset['n_test']} test")
 
@@ -2848,9 +2873,14 @@ def register_interactive_callbacks():
                             if model_type in ["LSTM", "GRU"] and hasattr(validated_instance, 'encoder'):
                                 import numpy as np
                                 try:
-                                    # Cargar un archivo de datos para inferir dimensionalidad
-                                    sample_data_path = mini_dataset['train_data'][0]
-                                    sample_data = np.load(sample_data_path)
+                                    # Verificar si los datos son rutas de archivos o arrays directos
+                                    if isinstance(mini_dataset['train_data'][0], str):
+                                        # Rutas de archivos (generate_pipeline_dataset)
+                                        sample_data_path = mini_dataset['train_data'][0]
+                                        sample_data = np.load(sample_data_path)
+                                    else:
+                                        # Arrays directos (generate_model_dataset)
+                                        sample_data = mini_dataset['train_data'][0]
 
                                     # Inferir dimensionalidad según shape:
                                     # - (timesteps, features): usar features

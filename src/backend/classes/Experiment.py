@@ -1344,6 +1344,16 @@ class Experiment(BaseModel):
                 print(f"📍 Fase 2: transform {sel_name} fuente={sel_source}{extra}")
             try:
                 tinst = cls._reconstruct_transform_instance(sel_name, sel_cfg)
+
+                # ✅ SOBRESCRIBIR model_type si se pasó como parámetro
+                # Esto permite que el mismo pipeline funcione con diferentes tipos de modelos
+                # sin contaminar entre P300 (binario) e Inner Speech (multiclase)
+                if model_type is not None and hasattr(tinst, 'model_type'):
+                    original_model_type = getattr(tinst, 'model_type', None)
+                    if original_model_type != model_type and verbose:
+                        print(f"  🔄 Sobrescribiendo model_type: {original_model_type} → {model_type}")
+                    tinst.model_type = model_type
+
                 from backend.classes.FeatureExtracture.TransformSchemaFactory import TransformSchemaFactory
                 tclass = TransformSchemaFactory.available_transforms[sel_name]
                 tmp_in = intermediates_dir / f"temp_step_{step_count}_input.npy"; np.save(str(tmp_in), current_signal)
@@ -1624,7 +1634,7 @@ class Experiment(BaseModel):
         en todas las verificaciones, a menos que el pipeline cambie.
 
         Args:
-            dataset_path: Ruta al dataset (ej: "Data/nieto_inner_speech")
+            dataset_path: Ruta al dataset (ej: "Aux/nieto_inner_speech")
             model_type: "p300" o "inner" para determinar qué transformación usar
             n_train: Número de ejemplos para entrenamiento
             n_test: Número de ejemplos para prueba
@@ -1646,7 +1656,7 @@ class Experiment(BaseModel):
 
         Example:
             >>> dataset = Experiment.generate_model_dataset(
-            ...     dataset_path="Data/p300_dataset",
+            ...     dataset_path="Aux/p300_dataset",
             ...     model_type="p300",
             ...     n_train=20,
             ...     n_test=10,
@@ -1673,8 +1683,8 @@ class Experiment(BaseModel):
 
         # Normalizar dataset_path
         dataset_path_normalized = dataset_path
-        if not dataset_path.startswith("Data/") and not dataset_path.startswith("/"):
-            dataset_path_normalized = f"Data/{dataset_path}"
+        if not dataset_path.startswith("Aux/") and not dataset_path.startswith("/"):
+            dataset_path_normalized = f"Aux/{dataset_path}"
 
         if verbose:
             print(f"\n{'='*70}")
@@ -1685,14 +1695,20 @@ class Experiment(BaseModel):
             print(f"🎨 Transformación: {list(model_transform.keys())[0] if model_transform else 'Ninguna'}")
             print(f"{'='*70}\n")
 
-        # Get all event files
-        dataset_root = Path(dataset_path_normalized)
-        if not dataset_root.exists():
-            raise FileNotFoundError(f"Dataset no encontrado: {dataset_root}")
-
-        event_files = list(dataset_root.glob("*.npy"))
+        # Get all event files using Dataset.get_events_by_class
+        from backend.classes.dataset import Dataset
+        
+        events_result = Dataset.get_events_by_class(dataset_path_normalized, class_name=None)
+        
+        if events_result["status"] != 200:
+            raise FileNotFoundError(f"No se encontraron eventos en {dataset_path_normalized}. Error: {events_result['message']}")
+        
+        event_files = [Path(f) for f in events_result["event_files"]]
         if not event_files:
-            raise ValueError(f"No se encontraron archivos .npy en {dataset_root}")
+            raise ValueError(f"No se encontraron archivos de eventos en {dataset_path_normalized}")
+
+        if verbose:
+            print(f"📁 Encontrados {len(event_files)} eventos en: {events_result['events_dir']}")
 
         # Group files by class
         files_by_class = defaultdict(list)
@@ -1755,12 +1771,14 @@ class Experiment(BaseModel):
 
         for idx, file_path in enumerate(train_files):
             try:
-                result = cls.apply_model_pipeline(
+                if verbose:
+                    print(f"  🔄 Procesando {file_path.name} ({idx+1}/{len(train_files)})...")
+                result = cls.dapply_model_pipeline(
                     file_path=str(file_path),
                     model_type=model_type,
                     force_recalculate=force_recalculate,
                     save_intermediates=False,
-                    verbose=False
+                    verbose=True  # Temporal: habilitar verbose para debug
                 )
                 signal = result["signal"]
                 train_data.append(signal)
@@ -1775,6 +1793,8 @@ class Experiment(BaseModel):
             except Exception as e:
                 if verbose:
                     print(f"  ⚠️ Error procesando {file_path.name}: {e}")
+                    import traceback
+                    traceback.print_exc()
                 continue
 
         if verbose:
@@ -1782,7 +1802,7 @@ class Experiment(BaseModel):
 
         for idx, file_path in enumerate(test_files):
             try:
-                result = cls.apply_model_pipeline(
+                result = cls.dapply_model_pipeline(
                     file_path=str(file_path),
                     model_type=model_type,
                     force_recalculate=force_recalculate,
@@ -1802,6 +1822,8 @@ class Experiment(BaseModel):
             except Exception as e:
                 if verbose:
                     print(f"  ⚠️ Error procesando {file_path.name}: {e}")
+                    import traceback
+                    traceback.print_exc()
                 continue
 
         # Usar etiquetas expandidas
@@ -1859,7 +1881,7 @@ class Experiment(BaseModel):
         en todas las verificaciones de modelos, a menos que el pipeline cambie.
 
         Args:
-            dataset_path: Ruta al dataset (ej: "Data/nieto_inner_speech")
+            dataset_path: Ruta al dataset (ej: "Aux/nieto_inner_speech")
             n_train: Número de ejemplos para entrenamiento
             n_test: Número de ejemplos para prueba
             selected_classes: Lista de clases a usar. Si es None, usa todas las disponibles
@@ -1879,7 +1901,7 @@ class Experiment(BaseModel):
 
         Example:
             >>> dataset = Experiment.generate_pipeline_dataset(
-            ...     dataset_path="Data/nieto_inner_speech",
+            ...     dataset_path="Aux/nieto_inner_speech",
             ...     n_train=20,
             ...     n_test=10,
             ...     selected_classes=["arriba", "abajo"]
@@ -1908,10 +1930,10 @@ class Experiment(BaseModel):
             json.dumps(current_config, sort_keys=True).encode()
         ).hexdigest()
 
-        # Normalizar dataset_path: si no empieza con "Data/" o "/", agregarlo
+        # Normalizar dataset_path: si no empieza con "Aux/" o "/", agregarlo
         dataset_path_normalized = dataset_path
-        if not dataset_path.startswith("Data/") and not dataset_path.startswith("/"):
-            dataset_path_normalized = f"Data/{dataset_path}"
+        if not dataset_path.startswith("Aux/") and not dataset_path.startswith("/"):
+            dataset_path_normalized = f"Aux/{dataset_path}"
 
         if verbose:
             print(f"\n{'='*70}")
@@ -2094,12 +2116,23 @@ class Experiment(BaseModel):
         processed_train = []
         processed_test = []
 
-        # Determinar model_type basándonos en el clasificador configurado
+        # ✅ Determinar model_type basándonos en el CLASIFICADOR CONFIGURADO
+        # Esto permite usar el mismo dataset (inner_speech) para entrenar AMBOS modelos:
+        #   - P300: clasificación binaria Target/NonTarget (rest=0, otros=1)
+        #   - Inner: clasificación multiclase entre direcciones (abajo=1, arriba=2, etc)
         model_type_for_pipeline = None
         if experiment.P300Classifier:
             model_type_for_pipeline = "p300"
         elif experiment.innerSpeachClassifier:
             model_type_for_pipeline = "inner"
+
+        if verbose and model_type_for_pipeline:
+            print(f"🏷️  Tipo de re-etiquetado: {model_type_for_pipeline.upper()}")
+            if model_type_for_pipeline == "p300":
+                print(f"     - rest → NonTarget (0)")
+                print(f"     - abajo/arriba/derecha/izquierda → Target (1)")
+            elif model_type_for_pipeline == "inner":
+                print(f"     - Multiclase: abajo=1, arriba=2, derecha=3, izquierda=4")
 
         def process_events(event_list, label_list, split_name):
             processed = []
@@ -2190,11 +2223,12 @@ class Experiment(BaseModel):
             label_file = labels_dir / f"train_label_{idx:04d}.npy"
 
             if proc_data.get("labels_path") and Path(proc_data["labels_path"]).exists():
-                # Las labels de la transformación vienen como STRINGS, convertir a enteros
-                labels_from_transform = np.load(proc_data["labels_path"], allow_pickle=True)
-                # Convertir todas las labels a ID numérico (todas deberían ser iguales a proc_data["label"])
-                labels_array = np.full(labels_from_transform.shape, proc_data["label"], dtype=np.int64)
-                np.save(label_file, labels_array)
+                # ✅ USAR DIRECTAMENTE LAS ETIQUETAS RE-ETIQUETADAS DE LA TRANSFORMACIÓN
+                # Las transformadas ya aplicaron relabel_for_model() y guardaron etiquetas numéricas
+                # (binario 0/1 para P300, multiclase 1/2/3... para inner)
+                # NO necesitamos re-mapear nada aquí, solo copiar las etiquetas que generó el pipeline
+                labels_from_transform = np.load(proc_data["labels_path"], allow_pickle=False)  # Ya son numéricas
+                np.save(label_file, labels_from_transform)  # ✅ Usar directamente las etiquetas re-etiquetadas
                 train_label_files.append(str(label_file))
             else:
                 # Crear archivo de labels POR FRAME desde la señal procesada
@@ -2222,11 +2256,12 @@ class Experiment(BaseModel):
             label_file = labels_dir / f"test_label_{idx:04d}.npy"
 
             if proc_data.get("labels_path") and Path(proc_data["labels_path"]).exists():
-                # Las labels de la transformación vienen como STRINGS, convertir a enteros
-                labels_from_transform = np.load(proc_data["labels_path"], allow_pickle=True)
-                # Convertir todas las labels a ID numérico
-                labels_array = np.full(labels_from_transform.shape, proc_data["label"], dtype=np.int64)
-                np.save(label_file, labels_array)
+                # ✅ USAR DIRECTAMENTE LAS ETIQUETAS RE-ETIQUETADAS DE LA TRANSFORMACIÓN
+                # Las transformadas ya aplicaron relabel_for_model() y guardaron etiquetas numéricas
+                # (binario 0/1 para P300, multiclase 1/2/3... para inner)
+                # NO necesitamos re-mapear nada aquí, solo copiar las etiquetas que generó el pipeline
+                labels_from_transform = np.load(proc_data["labels_path"], allow_pickle=False)  # Ya son numéricas
+                np.save(label_file, labels_from_transform)  # ✅ Usar directamente las etiquetas re-etiquetadas
                 test_label_files.append(str(label_file))
             else:
                 # Crear archivo de labels POR FRAME desde la señal procesada

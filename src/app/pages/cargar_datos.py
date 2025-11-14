@@ -75,7 +75,7 @@ layout = get_page_container(
         children=[
             dcc.Location(id="redirector", refresh=True),
 
-            # Barra de acciones - SOLO 2 BOTONES
+            # Barra de acciones
             html.Div(
                 style=TOOLBAR_STYLE,
                 children=[
@@ -92,6 +92,13 @@ layout = get_page_container(
                         n_clicks=0,
                         style={**BUTTON_STYLE, "borderColor": "var(--color-4)"},
                         title="Mostrar datasets ya procesados en el sistema"
+                    ),
+                    html.Button(
+                        "🧹 Limpiar Caché",
+                        id="clear-cache-btn",
+                        n_clicks=0,
+                        style={**BUTTON_STYLE, "borderColor": "rgba(255, 107, 107, 0.6)", "backgroundColor": "rgba(255, 107, 107, 0.15)"},
+                        title="Eliminar archivos de caché del pipeline para liberar espacio"
                     ),
                 ],
             ),
@@ -117,6 +124,7 @@ layout = get_page_container(
                     html.Ul([
                         html.Li("Cargar Dataset: Muestra datasets en Data/ que no tienen Aux/ generado. Al hacer clic, los procesa y genera archivos .npy, labels y eventos."),
                         html.Li("Listar Datasets: Muestra datasets ya procesados (con archivos en Aux/) listos para trabajar."),
+                        html.Li("Limpiar Caché: Elimina archivos intermedios del pipeline (filtros + transforms) para liberar espacio. Los datos originales NO se eliminan."),
                     ], style={"margin": "0 0 0.75rem 1.25rem", "color": "var(--color-3)", "opacity": 0.9}),
                 ],
                 style={"textAlign": "left"}
@@ -556,3 +564,90 @@ def redirect_to_dataset(n_clicks_list):
     print(f"👉 Dataset seleccionado: {nombre}")
 
     return "/dataset"
+
+# =============================================================================
+# Callback 6: Limpiar caché del pipeline
+# =============================================================================
+@callback(
+    Output("processing-feedback", "children", allow_duplicate=True),
+    Output("loading-output", "children", allow_duplicate=True),
+    Input("clear-cache-btn", "n_clicks"),
+    prevent_initial_call=True
+)
+def clear_pipeline_cache(n_clicks):
+    """
+    Limpia el caché del pipeline (archivos intermedios de filtros + transforms).
+    NO elimina datos originales ni subsets generados.
+    """
+    if not n_clicks:
+        raise PreventUpdate
+
+    try:
+        from backend.classes.Experiment import Experiment
+
+        print("\n🧹 [LIMPIEZA] Iniciando limpieza de caché del pipeline...")
+
+        # Llamar a la función de limpieza
+        result = Experiment.clear_pipeline_cache()
+
+        files_deleted = result.get("files_deleted", 0)
+        space_freed_mb = result.get("space_freed_mb", 0.0)
+        experiments_affected = result.get("experiments_affected", [])
+
+        print(f"✅ [LIMPIEZA] Eliminados {files_deleted} archivos")
+        print(f"✅ [LIMPIEZA] Liberados {space_freed_mb:.2f} MB")
+        print(f"✅ [LIMPIEZA] Experimentos afectados: {len(experiments_affected)}")
+
+        # Mensaje de éxito
+        feedback = html.Div([
+            html.Div([
+                html.Span("✅ Limpieza completada", style={"fontWeight": "bold", "color": "#00C8A0", "fontSize": "16px"}),
+            ], className="mb-2"),
+            html.Div([
+                html.Div([
+                    html.I(className="fas fa-trash-alt me-2", style={"fontSize": "12px"}),
+                    html.Span(f"Archivos eliminados: {files_deleted:,}", style={"fontSize": "14px"})
+                ], className="mb-1"),
+                html.Div([
+                    html.I(className="fas fa-hdd me-2", style={"fontSize": "12px"}),
+                    html.Span(f"Espacio liberado: {space_freed_mb:.2f} MB", style={"fontSize": "14px"})
+                ], className="mb-1"),
+                html.Div([
+                    html.I(className="fas fa-flask me-2", style={"fontSize": "12px"}),
+                    html.Span(f"Experimentos afectados: {len(experiments_affected)}", style={"fontSize": "14px"})
+                ])
+            ])
+        ], style={
+            "color": "var(--text)",
+            "padding": "1rem",
+            "backgroundColor": "rgba(0, 200, 160, 0.15)",
+            "border": "1px solid rgba(0, 200, 160, 0.3)",
+            "borderRadius": "10px",
+            "marginTop": "1rem",
+            "textAlign": "left",
+            "maxWidth": "500px",
+            "margin": "1rem auto"
+        })
+
+        return feedback, None
+
+    except Exception as e:
+        import traceback
+        print(f"❌ [LIMPIEZA] Error: {e}")
+        traceback.print_exc()
+
+        # Mensaje de error
+        error_feedback = html.Div([
+            html.Span("❌ Error: ", style={"fontWeight": "bold", "color": "#FF235A"}),
+            html.Span(f"No se pudo limpiar el caché: {str(e)}"),
+            html.Br(),
+            html.Span("Revisa la consola para más detalles.", style={"fontSize": "0.85rem", "opacity": "0.8"})
+        ], style={
+            "color": "var(--text)",
+            "padding": "0.5rem",
+            "backgroundColor": "rgba(255, 35, 90, 0.1)",
+            "borderRadius": "8px",
+            "marginTop": "1rem"
+        })
+
+        return error_feedback, None

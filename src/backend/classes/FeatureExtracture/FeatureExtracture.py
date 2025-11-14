@@ -51,18 +51,22 @@ class Transform(BaseModel):
 
         # Caso: P300 - Etiquetado binario (0/1)
         if self.model_type.lower() == "p300":
-            # 0 = NonTarget/rest (todo excepto Target)
-            # 1 = Target
-            numeric_labels = np.zeros(len(labels_array), dtype=int)
+            # Arquitectura de 2 etapas:
+            #   0 = NonTarget/rest (sin intención)
+            #   1 = Target (con intención: abajo, arriba, derecha, izquierda, etc.)
+            # Inicializar todas como Target (1) por defecto
+            numeric_labels = np.ones(len(labels_array), dtype=int)
 
-            # Considerar variaciones de "Target" (case-insensitive)
-            target_mask = np.char.lower(labels_array.astype(str)) == "target"
-            numeric_labels[target_mask] = 1
+            # Marcar como NonTarget (0) solo "rest" y variantes
+            # (case-insensitive, también acepta None/none)
+            labels_lower = np.char.lower(labels_array.astype(str))
+            nontarget_mask = (labels_lower == "rest") | (labels_lower == "none")
+            numeric_labels[nontarget_mask] = 0
 
             id_to_class = {0: "NonTarget", 1: "Target"}
 
-            n_target = np.sum(target_mask)
-            n_nontarget = len(labels_array) - n_target
+            n_nontarget = np.sum(nontarget_mask)
+            n_target = len(labels_array) - n_nontarget
             print(f"[Transform.relabel] P300 binario: {n_target} Target (1), {n_nontarget} NonTarget (0)")
             return numeric_labels, id_to_class
 

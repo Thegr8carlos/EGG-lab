@@ -35,18 +35,23 @@ class TransformSchemaFactory:
                 # Fallback Pydantic v1
                 schema = model.schema()
 
-            # Remover 'id' del schema publicado
+            # Remover 'id' y 'model_type' del schema publicado
+            # Estos campos se inyectan automáticamente desde el callback según el contexto
             props = schema.get("properties") or {}
-            if "id" in props:
-                props.pop("id", None)
-                if not props:
-                    schema.pop("properties", None)
-                else:
-                    schema["properties"] = props
+            fields_to_remove = ["id", "model_type"]
+
+            for field in fields_to_remove:
+                if field in props:
+                    props.pop(field, None)
+
+            if not props:
+                schema.pop("properties", None)
+            else:
+                schema["properties"] = props
 
             req = schema.get("required")
-            if isinstance(req, list) and "id" in req:
-                new_req = [x for x in req if x != "id"]
+            if isinstance(req, list):
+                new_req = [x for x in req if x not in fields_to_remove]
                 if new_req:
                     schema["required"] = new_req
                 else:

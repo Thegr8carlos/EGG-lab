@@ -1949,6 +1949,29 @@ def create_subset_dataset(dataset_name: str, percentage: float, train_split: flo
 
         print(f"[create_subset_dataset] Total: {n_total}, Train: {n_train}, Test: {n_test}")
 
+        # ===== CALCULAR DISTRIBUCIÓN DE CLASES POR SPLIT =====
+        class_distribution = {}
+        for class_name in classes:
+            # Contar cuántos eventos de esta clase hay en train
+            train_count = sum(1 for event_path in train_events
+                            if Path(event_path).stem.split('[')[0].strip() == class_name)
+
+            # Contar cuántos eventos de esta clase hay en test
+            test_count = sum(1 for event_path in test_events
+                           if Path(event_path).stem.split('[')[0].strip() == class_name)
+
+            total_class = train_count + test_count
+
+            class_distribution[class_name] = {
+                "total_selected": total_class,
+                "train": train_count,
+                "test": test_count,
+                "train_pct": round(train_count / n_train * 100, 2) if n_train > 0 else 0.0,
+                "test_pct": round(test_count / n_test * 100, 2) if n_test > 0 else 0.0
+            }
+
+            print(f"[create_subset_dataset]   {class_name}: Train={train_count} ({class_distribution[class_name]['train_pct']:.1f}%) | Test={test_count} ({class_distribution[class_name]['test_pct']:.1f}%)")
+
         # Crear directorio de salida con timestamp
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         subset_dir = Path("Aux") / dataset_name / "generated_datasets" / timestamp
@@ -1982,6 +2005,7 @@ def create_subset_dataset(dataset_name: str, percentage: float, train_split: flo
             "n_train_events": n_train,
             "n_test_events": n_test,
             "classes": classes,
+            "class_distribution": class_distribution,  # ✅ Distribución detallada por clase
             "train_files": [str(f) for f in train_events],  # Ruta completa (BIDS jerárquico)
             "test_files": [str(f) for f in test_events],    # Ruta completa (BIDS jerárquico)
             "events_source": events_source,  # Directorio base donde se buscaron eventos

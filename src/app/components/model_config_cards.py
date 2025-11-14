@@ -447,7 +447,14 @@ def create_config_card(model_name: str, schema: Dict[str, Any], classifier_type:
 
         return html.Div([
             # Store para guardar el tipo de clasificador - persiste durante la sesión
-            dcc.Store(id="classifier-type-store", data=classifier_type, storage_type='session'),
+            # ✅ Ahora con pattern matching para evitar conflictos entre modelos
+            # SVM → {"type": "classifier-type-store", "model": "SVM"}
+            # LSTM → {"type": "classifier-type-store", "model": "LSTM"}
+            dcc.Store(
+                id={"type": "classifier-type-store", "model": model_name},
+                data=classifier_type,
+                storage_type='session'
+            ),
 
             dbc.Card([
                 dbc.CardHeader([
@@ -599,7 +606,7 @@ def _set_deep(dct, dotted_path, value):
     [
         State({"type": "config-input", "model": MATCH, "field": ALL}, "value"),
         State({"type": "config-input", "model": MATCH, "field": ALL}, "id"),
-        State("classifier-type-store", "data"),
+        State({"type": "classifier-type-store", "model": MATCH}, "data"),  # ✅ Ahora con pattern matching
         State("selected-dataset", "data"),  # Agregar dataset seleccionado
     ],
     prevent_initial_call=True
@@ -693,30 +700,53 @@ def test_classic_model_configuration(n_clicks, input_values, input_ids, classifi
                 print(f"⚠️ [INTERNO] No se encontró dataset seleccionado")
             else:
                 from pathlib import Path
+                from backend.classes.dataset import Dataset
 
-                # Construir path del dataset (el nombre viene como "dataset_name")
-                # El dataset se encuentra en Data/dataset_name
-                dataset_path = f"Data/{selected_dataset}"
+                # Construir path del dataset con la estructura correcta
+                # Usar el método get_events_by_class para encontrar los eventos automáticamente
+                dataset_path = f"Aux/{selected_dataset}"
 
                 print(f"🔍 [INTERNO] Dataset seleccionado: {selected_dataset}")
                 print(f"🔍 [INTERNO] Path del dataset: {dataset_path}")
 
-                # Verificar que la path del dataset existe
-                if not dataset_path or not Path(dataset_path).exists():
-                    compilation_error = "El dataset configurado no existe en el sistema"
-                    print(f"⚠️ [INTERNO] Dataset no encontrado: {dataset_path}")
+                # Verificar que existen eventos usando get_events_by_class
+                events_result = Dataset.get_events_by_class(dataset_path, class_name=None)
+                
+                if events_result["status"] != 200 or not events_result["event_files"]:
+                    compilation_error = f"No se encontraron eventos en el dataset: {events_result['message']}"
+                    print(f"⚠️ [INTERNO] {compilation_error}")
                 else:
+                    events_dir = events_result["events_dir"]
+                    n_events = events_result["n_events"]
+                    print(f"✅ [INTERNO] Encontrados {n_events} eventos en: {events_dir}")
                     print(f"\n🧪 [INTERNO] Verificando compilación del modelo...")
 
-                    # Generar mini dataset con pipeline completo (invisible para el usuario)
-                    mini_dataset = Experiment.generate_pipeline_dataset(
-                        dataset_path=dataset_path,
-                        n_train=10,
-                        n_test=5,
-                        selected_classes=None,
-                        force_recalculate=False,
-                        verbose=False
-                    )
+                    # Determinar model_type a partir de classifier_type
+                    model_type_for_pipeline = "p300" if classifier_type == "P300" else "inner"
+                    
+                    # Para modelos clásicos (SVM, etc.), usar generate_pipeline_dataset que devuelve rutas
+                    # Para modelos de deep learning, usar generate_model_dataset que devuelve arrays procesados
+                    if model_name in ["SVM", "RandomForest", "KNN", "LogisticRegression"]:
+                        # Modelos clásicos: usar pipeline legacy que devuelve rutas
+                        mini_dataset = Experiment.generate_pipeline_dataset(
+                            dataset_path=dataset_path,
+                            n_train=10,
+                            n_test=5,
+                            selected_classes=None,
+                            force_recalculate=False,
+                            verbose=False
+                        )
+                    else:
+                        # Modelos de deep learning: usar pipeline de modelos que devuelve arrays
+                        mini_dataset = Experiment.generate_model_dataset(
+                            dataset_path=dataset_path,
+                            model_type=model_type_for_pipeline,
+                            n_train=10,
+                            n_test=5,
+                            selected_classes=None,
+                            force_recalculate=False,
+                            verbose=False
+                        )
 
                     if mini_dataset["n_train"] < 3:
                         compilation_error = "El pipeline de preprocesamiento no generó suficientes datos válidos"

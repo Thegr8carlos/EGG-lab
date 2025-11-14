@@ -327,6 +327,72 @@ def _check_compatibility(subset_metadata: Dict[str, Any], experiment_config: Dic
     return filters_match and transform_match
 
 
+def _format_class_distribution(class_distribution: Dict[str, Dict[str, Any]]) -> html.Div:
+    """
+    Formatea la distribución de clases para mostrar en la UI.
+
+    Args:
+        class_distribution: Diccionario con distribución por clase
+            {
+                "clase_name": {
+                    "total_selected": int,
+                    "train": int,
+                    "test": int,
+                    "train_pct": float,
+                    "test_pct": float
+                }
+            }
+
+    Returns:
+        Componente Dash con distribución de clases
+    """
+    if not class_distribution:
+        return None
+
+    # Crear items de distribución en grid 2 columnas
+    distribution_items = []
+    for class_name, stats in sorted(class_distribution.items()):
+        distribution_items.append(
+            html.Div([
+                html.Div(
+                    class_name,
+                    style={
+                        "fontSize": "11px",
+                        "fontWeight": "600",
+                        "color": "var(--color-5)",
+                        "marginBottom": "2px"
+                    }
+                ),
+                html.Div(
+                    f"Train: {stats['train']} ({stats['train_pct']:.1f}%) | Test: {stats['test']} ({stats['test_pct']:.1f}%)",
+                    style={
+                        "fontSize": "10px",
+                        "opacity": "0.8",
+                        "color": "rgba(255,255,255,0.9)"
+                    }
+                )
+            ], style={
+                "padding": "6px 8px",
+                "backgroundColor": "rgba(255,255,255,0.05)",
+                "borderRadius": "6px",
+                "border": "1px solid rgba(255,255,255,0.1)"
+            })
+        )
+
+    return html.Div([
+        html.Small("Distribución por clase (train/test):", className="text-muted", style={"fontSize": "11px"}),
+        html.Div(
+            distribution_items,
+            style={
+                "display": "grid",
+                "gridTemplateColumns": "1fr 1fr",
+                "gap": "8px",
+                "marginTop": "6px"
+            }
+        )
+    ], className="mb-3")
+
+
 def _format_subset_info(metadata: Dict[str, Any]) -> html.Div:
     """
     Formatea la información de un subset para mostrar en la UI.
@@ -382,7 +448,10 @@ def _format_subset_info(metadata: Dict[str, Any]) -> html.Div:
                     style={"fontSize": "12px", "color": "rgba(255,255,255,0.9)", "marginTop": "2px"}
                 )
             ], className="mb-3") if classes else None,
-            
+
+            # Distribución de clases por split
+            _format_class_distribution(metadata.get("class_distribution", {})),
+
             # Pipeline info
             html.Div([
                 html.Div([
@@ -689,9 +758,10 @@ def create_new_subset(n_clicks, percentage, train_split, seed, selected_dataset,
     Input({"type": "btn-local-training", "model": MATCH}, "n_clicks"),
     State({"type": "local-subset-selector", "model": MATCH}, "value"),
     State({"type": "local-subsets-list", "model": MATCH}, "data"),
+    State({"type": "classifier-type-store", "model": MATCH}, "data"),  # ✅ Acceder al classifier_type
     prevent_initial_call=True
 )
-def run_local_training(n_clicks, selected_path, subsets_list):
+def run_local_training(n_clicks, selected_path, subsets_list, classifier_type):
     """
     Ejecuta el entrenamiento local con el subset seleccionado.
     
@@ -770,23 +840,22 @@ def run_local_training(n_clicks, selected_path, subsets_list):
         # Necesitamos aplicar el pipeline (filters + transforms) para obtener las ventanas
         
         # Determinar model_type para el pipeline
-        # Inferir si es P300 o InnerSpeech basado en el dataset
+        # IMPORTANTE: Usar el classifier_type del modelo, NO el nombre del dataset
+        # Esto asegura que el pipeline use el mismo esquema de etiquetado que el modelo espera
+        
+        # Usar classifier_type inyectado desde el Store del componente
+        classifier_type = classifier_type or "P300"  # Fallback si no está definido
+        
+        # Mapear classifier_type a model_type para pipeline
+        model_type_for_pipeline = "p300" if classifier_type == "P300" else "inner"
+        
         dataset_name = metadata.get("dataset_name", "")
-        dataset_lower = dataset_name.lower()
-
-        if "p300" in dataset_lower or "speller" in dataset_lower:
-            model_type_for_pipeline = "p300"
-        elif "inner" in dataset_lower or "speech" in dataset_lower:
-            model_type_for_pipeline = "inner"
-        else:
-            # Fallback: intentar inferir del experimento actual
-            model_type_for_pipeline = "p300"  # Default seguro
-            print(f"⚠️ [LocalTraining] No se pudo inferir tipo de modelo del dataset '{dataset_name}'. Usando 'p300' por defecto.")
 
         print(f"\n{'='*70}")
         print(f"[LocalTraining] CONFIGURACIÓN DE MODELO")
         print(f"{'='*70}")
         print(f"  Dataset: {dataset_name}")
+        print(f"  classifier_type: {classifier_type}")
         print(f"  model_type_for_pipeline: {model_type_for_pipeline}")
         print(f"{'='*70}\n")
         
@@ -798,14 +867,10 @@ def run_local_training(n_clicks, selected_path, subsets_list):
             processed_paths = []
             processed_labels = []
             
-            # Crear mapeo de clases a IDs numéricos
-            unique_classes = sorted(set(labels))
-            class_to_id = {cls: idx for idx, cls in enumerate(unique_classes)}
-            print(f"   [{split_name}] Mapeo de clases: {class_to_id}")
-
-            # Crear directorio temporal para labels convertidos
-            temp_labels_dir = Path("Aux") / "temp_labels" / split_name.lower()
-            temp_labels_dir.mkdir(parents=True, exist_ok=True)
+            # Las etiquetas ya vienen re-etiquetadas del pipeline según model_type
+            # (binario 0/1 para P300, multiclase 1/2/3... para inner)
+            # NO necesitamos crear un mapeo manual aquí
+            print(f"   [{split_name}] Usando etiquetas re-etiquetadas del pipeline (model_type={model_type_for_pipeline})")
 
             for i, (event_path, label) in enumerate(zip(event_paths, labels)):
                 try:
@@ -834,21 +899,14 @@ def run_local_training(n_clicks, selected_path, subsets_list):
                             f"Verifica que la transformación esté configurada correctamente."
                         )
 
-                    # Cargar labels de la transformación (vienen como strings por frame)
-                    labels_from_transform = np.load(labels_path, allow_pickle=True)
-
-                    # Convertir strings a IDs numéricos usando el mapeo de clases
-                    label_id = class_to_id[label]
-                    labels_numeric = np.full(labels_from_transform.shape, label_id, dtype=np.int64)
-
-                    # Guardar labels convertidas a formato numérico
-                    event_name = Path(event_path).stem
-                    label_file_converted = temp_labels_dir / f"{event_name}_label.npy"
-                    np.save(label_file_converted, labels_numeric)
+                    # ✅ USAR DIRECTAMENTE LAS ETIQUETAS RE-ETIQUETADAS DE LA TRANSFORMACIÓN
+                    # Las transformadas ya aplicaron relabel_for_model() y guardaron etiquetas numéricas
+                    # No necesitamos re-mapear nada aquí, solo usar lo que generó el pipeline
+                    # labels_path ya apunta a las etiquetas re-etiquetadas en formato numérico
 
                     # SOLO agregar a las listas si TODO fue exitoso
                     processed_paths.append(window_path)
-                    processed_labels.append(str(label_file_converted))
+                    processed_labels.append(labels_path)  # ✅ Usar labels_path directamente
 
                 except Exception as e:
                     print(f"\n   ⚠️ [{split_name}] Error procesando evento {i+1}/{len(event_paths)}: {Path(event_path).name}")

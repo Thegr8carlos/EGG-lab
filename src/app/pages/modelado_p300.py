@@ -505,7 +505,7 @@ layout = html.Div([
     dcc.Store(id=SCHEMAS_STORE_ID, data=CLASSIFIER_SCHEMAS, storage_type='session'),
     dcc.Store(id=SELECTED_MODEL_STORE_ID, storage_type='session'),
     dcc.Store(id=CURRENT_STEP_STORE_ID, data="transform", storage_type='session'),  # Paso actual: transform o model
-    dcc.Store(id="page-classifier-type", data="P300", storage_type='session'),  # Tipo de clasificador para esta página
+    dcc.Store(id="page-classifier-type-p300", data="P300", storage_type='session'),  # Tipo de clasificador para esta página
     dcc.Store(id=TRAIN_CONFIG_STORE_ID, storage_type='session'),
     dcc.Store(id=TRAIN_STATUS_STORE_ID, storage_type='session'),
     dcc.Store(id=TRAIN_METRICS_STORE_ID, storage_type='session'),
@@ -1014,7 +1014,7 @@ def select_model(n_clicks_list, current_sel):
     Output(MAIN_VIEW_ID, "children", allow_duplicate=True),
     [Input(SELECTED_MODEL_STORE_ID, "data"),
      Input(SCHEMAS_STORE_ID, "data"),
-     Input("page-classifier-type", "data")],
+     Input("page-classifier-type-p300", "data")],
     State(CURRENT_STEP_STORE_ID, "data"),
     prevent_initial_call=True
 )
