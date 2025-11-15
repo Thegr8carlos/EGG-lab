@@ -2813,12 +2813,23 @@ def register_interactive_callbacks():
                     print(f"⚠️ [INTERNO] No hay dataset seleccionado")
                 else:
                     from pathlib import Path
+                    # Buscar dataset: primero en Aux/, luego en Data/
                     dataset_path = Path(selected_dataset)
+                    if not dataset_path.exists():
+                        # Intentar con Aux/ prefix
+                        aux_path = Path("Aux") / selected_dataset
+                        if aux_path.exists():
+                            dataset_path = aux_path
+                        else:
+                            # Intentar con Data/ prefix
+                            data_path = Path("Data") / selected_dataset
+                            if data_path.exists():
+                                dataset_path = data_path
 
                     # Verificar que la path del dataset existe
                     if not dataset_path.exists():
                         compilation_error = "El dataset seleccionado no existe en el sistema"
-                        print(f"⚠️ [INTERNO] Dataset no encontrado: {selected_dataset}")
+                        print(f"⚠️ [INTERNO] Dataset no encontrado: {selected_dataset} (buscado en: {selected_dataset}, Aux/{selected_dataset}, Data/{selected_dataset})")
                     else:
                         print(f"\n{'='*70}")
                         print(f"🔧 VERIFICANDO CONFIGURACIÓN DEL MODELO")

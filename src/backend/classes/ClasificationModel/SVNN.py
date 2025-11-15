@@ -66,8 +66,8 @@ class InputAdapter(BaseModel):
     )
     scale: ScaleMode = Field("standard", description="'none' o 'standard' (z-score por muestra).")
     allow_mixed_dims: bool = Field(
-        False,
-        description="Si True, permite que cada archivo tenga forma distinta (si es 'flatten', se rechaza por no poder apilar)."
+        True,  # Cambiado a True para soportar muestras de diferentes longitudes con auto-padding
+        description="Si True, permite que cada archivo tenga forma distinta (se aplica auto-padding con ceros)."
     )
 
     def transform_one(self, x: NDArray) -> NDArray:
@@ -325,6 +325,61 @@ class SVNN(Classifier):
 
 
     @classmethod
+    def _prepare_xy_with_padding(
+        cls,
+        instance: "SVNN",
+        x_paths: Sequence[str],
+        y_paths: Sequence[str],
+        target_dim: int,
+    ) -> Tuple[NDArray, NDArray]:
+        """
+        Prepara datos con padding a una dimensión específica.
+
+        Args:
+            instance: Instancia de SVNN
+            x_paths: Rutas a archivos .npy con features
+            y_paths: Rutas a archivos .npy con etiquetas
+            target_dim: Dimensión objetivo para padding
+
+        Returns:
+            X: (N, target_dim) - Features con padding
+            y: (N,) - Labels
+        """
+        print(f"[SVNN._prepare_xy_with_padding] Preparando {len(x_paths)} muestras con target_dim={target_dim}")
+
+        if len(x_paths) != len(y_paths):
+            raise ValueError("x_paths y y_paths deben tener la misma longitud.")
+
+        # Cargar y transformar cada muestra
+        vecs: List[NDArray] = []
+        for p in x_paths:
+            if not os.path.exists(p) or not p.endswith(".npy"):
+                raise FileNotFoundError(f"Archivo inválido: {p}")
+            x = np.load(p, allow_pickle=True)
+            v = instance.input_adapter.transform_one(x)
+            vecs.append(v)
+
+        # Crear matriz con padding a target_dim
+        X = np.zeros((len(vecs), target_dim), dtype=np.float32)
+        for i, v in enumerate(vecs):
+            # Si v es más largo que target_dim, truncar
+            # Si v es más corto, rellenar con ceros
+            if v.shape[0] > target_dim:
+                X[i, :] = v[:target_dim]
+            else:
+                X[i, : v.shape[0]] = v
+
+        # Cargar labels
+        y = cls._load_labels_scalar(y_paths)
+
+        print(f"[SVNN._prepare_xy_with_padding] Resultado: X.shape={X.shape}, y.shape={y.shape}")
+
+        if X.shape[0] != y.shape[0]:
+            raise ValueError(f"N muestras no coincide con N etiquetas: X={X.shape[0]} vs y={y.shape[0]}")
+
+        return X, y
+
+    @classmethod
     def _prepare_xy(
         cls,
         instance: "SVNN",
@@ -459,16 +514,53 @@ class SVNN(Classifier):
         # Limpiar backend de Keras para evitar reutilización de pesos previos
         keras.backend.clear_session()
 
-        # 1) Preparar datos
-        Xtr, ytr = cls._prepare_xy(instance, xTrain, yTrain, metadata_train)
-        Xte, yte = cls._prepare_xy(instance, xTest, yTest, metadata_test)
+        # 1) Preparar datos con padding global unificado
+        # IMPORTANTE: Si allow_mixed_dims=True, debemos calcular el max global
+        # entre train y test para que ambos tengan la misma dimensión final
+
+        if instance.input_adapter.allow_mixed_dims:
+            # Calcular dimensión máxima global (train + test)
+            print("[SVNN.fit] allow_mixed_dims=True, calculando dimensión máxima global...")
+
+            # Cargar y transformar UNA muestra de cada set para obtener dimensiones
+            sample_dims_train = []
+            sample_dims_test = []
+
+            for p in xTrain[:min(10, len(xTrain))]:  # Muestrear primeros 10
+                x = np.load(p, allow_pickle=True)
+                v = instance.input_adapter.transform_one(x)
+                sample_dims_train.append(v.shape[0])
+
+            for p in xTest[:min(10, len(xTest))]:
+                x = np.load(p, allow_pickle=True)
+                v = instance.input_adapter.transform_one(x)
+                sample_dims_test.append(v.shape[0])
+
+            max_train = max(sample_dims_train) if sample_dims_train else 0
+            max_test = max(sample_dims_test) if sample_dims_test else 0
+            global_max_dim = max(max_train, max_test)
+
+            print(f"   Max dim train (sample): {max_train}")
+            print(f"   Max dim test (sample):  {max_test}")
+            print(f"   Global max dim:         {global_max_dim}")
+
+            # Preparar datos con padding a dimensión global
+            print(f"[SVNN.fit] Preparando train set con padding...")
+            Xtr, ytr = cls._prepare_xy_with_padding(instance, xTrain, yTrain, target_dim=global_max_dim)
+            print(f"[SVNN.fit] Preparando test set con padding...")
+            Xte, yte = cls._prepare_xy_with_padding(instance, xTest, yTest, target_dim=global_max_dim)
+        else:
+            # Modo normal: asume que todas las muestras ya tienen misma dimensión
+            Xtr, ytr = cls._prepare_xy(instance, xTrain, yTrain, metadata_train)
+            Xte, yte = cls._prepare_xy(instance, xTest, yTest, metadata_test)
 
         # 1.1) Validación estricta: las dimensiones de features deben coincidir
         if Xtr.shape[1] != Xte.shape[1]:
             d_tr, d_te = int(Xtr.shape[1]), int(Xte.shape[1])
             raise ValueError(
                 f"Dimensión de features distinta entre train/test: {d_tr} vs {d_te}. "
-                "Asegura que ambos provengan del mismo pipeline/transform."
+                "Asegura que ambos provengan del mismo pipeline/transform. "
+                f"Considera activar allow_mixed_dims=True en input_adapter."
             )
 
         in_dim = int(Xtr.shape[1])
@@ -479,100 +571,220 @@ class SVNN(Classifier):
             n_classes = int(max(int(ytr.max()), int(yte.max()))) + 1
         out_dim = max(n_classes, int(instance.classification_units))
 
-        # 2) Construcción del modelo con TensorFlow/Keras
-        model_layers = []
-        d_in = in_dim
+        # 2) Función helper para construir el modelo
+        def build_svnn_model():
+            """Construye el modelo SVNN secuencial"""
+            model_layers = []
+            d_in = in_dim
 
-        # Capas ocultas según instance.layers
-        for i, lyr in enumerate(instance.layers):
-            # Configurar regularizador si se especifica
-            reg = None
-            if lyr.kernel_regularizer:
-                if lyr.kernel_regularizer.lower() == "l2":
-                    reg = regularizers.l2(lyr.regularizer_value)
-                elif lyr.kernel_regularizer.lower() == "l1":
-                    reg = regularizers.l1(lyr.regularizer_value)
-                elif lyr.kernel_regularizer.lower() == "l1_l2":
-                    reg = regularizers.l1_l2(l1=lyr.regularizer_value, l2=lyr.regularizer_value)
+            # Capas ocultas según instance.layers
+            for i, lyr in enumerate(instance.layers):
+                # Configurar regularizador si se especifica
+                reg = None
+                if lyr.kernel_regularizer:
+                    if lyr.kernel_regularizer.lower() == "l2":
+                        reg = regularizers.l2(lyr.regularizer_value)
+                    elif lyr.kernel_regularizer.lower() == "l1":
+                        reg = regularizers.l1(lyr.regularizer_value)
+                    elif lyr.kernel_regularizer.lower() == "l1_l2":
+                        reg = regularizers.l1_l2(l1=lyr.regularizer_value, l2=lyr.regularizer_value)
 
-            # Capa Dense
+                # Capa Dense
+                model_layers.append(
+                    layers.Dense(
+                        units=lyr.units,
+                        use_bias=True,
+                        kernel_initializer=lyr.kernel_initializer,
+                        bias_initializer=lyr.bias_initializer,
+                        kernel_regularizer=reg,
+                        name=f"dense_{i}"
+                    )
+                )
+                d_in = lyr.units
+
+                # BatchNormalization si se solicita
+                if lyr.batchnorm:
+                    model_layers.append(layers.BatchNormalization(name=f"bn_{i}"))
+
+                # Activación
+                a = lyr.activation.kind
+                if a == "relu":
+                    model_layers.append(layers.ReLU(name=f"relu_{i}"))
+                elif a == "tanh":
+                    model_layers.append(layers.Activation("tanh", name=f"tanh_{i}"))
+                elif a == "gelu":
+                    model_layers.append(layers.Activation("gelu", name=f"gelu_{i}"))
+                elif a == "sigmoid":
+                    model_layers.append(layers.Activation("sigmoid", name=f"sigmoid_{i}"))
+                elif a == "linear":
+                    pass  # Sin activación
+                elif a == "softmax":
+                    # No aplicar softmax en capas intermedias
+                    pass
+
+                # Dropout si se solicita
+                if lyr.dropout > 0:
+                    model_layers.append(layers.Dropout(rate=float(lyr.dropout), name=f"dropout_{i}"))
+
+            # Capa de salida
             model_layers.append(
                 layers.Dense(
-                    units=lyr.units,
-                    use_bias=True,
-                    kernel_initializer=lyr.kernel_initializer,
-                    bias_initializer=lyr.bias_initializer,
-                    kernel_regularizer=reg,
-                    name=f"dense_{i}"
+                    units=out_dim,
+                    activation="softmax",
+                    kernel_initializer="glorot_uniform",
+                    name="output"
                 )
             )
-            d_in = lyr.units
 
-            # BatchNormalization si se solicita
-            if lyr.batchnorm:
-                model_layers.append(layers.BatchNormalization(name=f"bn_{i}"))
-
-            # Activación
-            a = lyr.activation.kind
-            if a == "relu":
-                model_layers.append(layers.ReLU(name=f"relu_{i}"))
-            elif a == "tanh":
-                model_layers.append(layers.Activation("tanh", name=f"tanh_{i}"))
-            elif a == "gelu":
-                model_layers.append(layers.Activation("gelu", name=f"gelu_{i}"))
-            elif a == "sigmoid":
-                model_layers.append(layers.Activation("sigmoid", name=f"sigmoid_{i}"))
-            elif a == "linear":
-                pass  # Sin activación
-            elif a == "softmax":
-                # No aplicar softmax en capas intermedias
-                pass
-
-            # Dropout si se solicita
-            if lyr.dropout > 0:
-                model_layers.append(layers.Dropout(rate=float(lyr.dropout), name=f"dropout_{i}"))
-
-        # Capa de salida
-        model_layers.append(
-            layers.Dense(
-                units=out_dim,
-                activation="softmax",
-                kernel_initializer="glorot_uniform",
-                name="output"
-            )
-        )
-
-        # Construir modelo secuencial
-        model = keras.Sequential(model_layers, name="SVNN_MLP")
+            # Construir modelo secuencial
+            return keras.Sequential(model_layers, name="SVNN_MLP")
 
         # 3) Resolver hiperparámetros (UI override si se pasan)
         ep_val = int(epochs) if epochs is not None else int(instance.epochs)
         bs_val = int(batch_size) if batch_size is not None else int(instance.batch_size)
         lr_val = float(learning_rate) if learning_rate is not None else float(instance.learning_rate)
 
-        # Compilar modelo
-        model.compile(
-            optimizer=keras.optimizers.Adam(learning_rate=lr_val),
-            loss="sparse_categorical_crossentropy",
-            metrics=["accuracy"]
-        )
+        # IMPORTANTE: Configurar GPU ANTES de construir el modelo
+        import tensorflow as tf
+        import gc
 
-        # 4) Entrenamiento
-        t0 = time.perf_counter()
-        history = model.fit(
-            Xtr, ytr,
-            batch_size=bs_val,
-            epochs=ep_val,
-            validation_data=(Xte, yte),
-            verbose=0
-        )
-        train_time = time.perf_counter() - t0
+        # Limpiar sesión anterior
+        tf.keras.backend.clear_session()
+        gc.collect()
+
+        # 4) Entrenamiento con fallback GPU -> CPU
+        def train_with_fallback():
+            """Intenta entrenar en GPU, si falla cae a CPU automáticamente"""
+            nonlocal bs_val
+
+            # Fase 1: Intentar con GPU optimizada
+            print("🚀 [SVNN] Intentando entrenamiento en GPU con optimizaciones...")
+
+            # Configurar memory growth PRIMERO (antes de cualquier operación GPU)
+            try:
+                gpus = tf.config.list_physical_devices('GPU')
+                if gpus:
+                    for gpu in gpus:
+                        tf.config.experimental.set_memory_growth(gpu, True)
+                    print(f"   ✓ Memory growth habilitado en {len(gpus)} GPU(s)")
+            except Exception as e:
+                print(f"   ⚠️ No se pudo configurar memory growth: {e}")
+
+            # Habilitar Mixed Precision (usa menos memoria)
+            try:
+                from tensorflow.keras import mixed_precision
+                policy = mixed_precision.Policy('mixed_float16')
+                mixed_precision.set_global_policy(policy)
+                print("   ✓ Mixed Precision (FP16) habilitado")
+            except Exception as e:
+                print(f"   ⚠️ No se pudo habilitar Mixed Precision: {e}")
+
+            # Reducir batch_size inicial para GPU
+            gpu_batch_size = max(4, bs_val // 2)
+
+            max_gpu_retries = 2
+            model = None
+
+            for attempt in range(max_gpu_retries):
+                try:
+                    print(f"   Intento GPU {attempt + 1}/{max_gpu_retries} (batch_size={gpu_batch_size})")
+
+                    # Construir modelo DESPUÉS de configurar GPU
+                    model = build_svnn_model()
+                    model.compile(
+                        optimizer=keras.optimizers.Adam(learning_rate=lr_val),
+                        loss="sparse_categorical_crossentropy",
+                        metrics=["accuracy"]
+                    )
+
+                    # Entrenar en GPU
+                    t0 = time.perf_counter()
+                    history = model.fit(
+                        Xtr, ytr,
+                        batch_size=gpu_batch_size,
+                        epochs=ep_val,
+                        validation_data=(Xte, yte),
+                        verbose=1
+                    )
+                    train_time = time.perf_counter() - t0
+
+                    print(f"✅ [SVNN] Entrenamiento en GPU completado exitosamente!")
+                    print(f"   Tiempo: {train_time:.2f}s | Batch size: {gpu_batch_size}")
+                    return history, train_time, gpu_batch_size, model, 'GPU'
+
+                except Exception as e:
+                    error_str = str(e)
+                    is_memory_error = any(keyword in error_str for keyword in [
+                        "OOM", "RESOURCE_EXHAUSTED", "out of memory",
+                        "Failed copying input tensor", "Dst tensor is not initialized",
+                        "SameWorkerRecvDone", "unable to allocate"
+                    ])
+
+                    if is_memory_error and attempt < max_gpu_retries - 1:
+                        # Reducir batch_size y reintentar
+                        gpu_batch_size = max(2, gpu_batch_size // 2)
+                        print(f"   ⚠️ OOM en GPU, reduciendo batch_size a {gpu_batch_size}")
+
+                        tf.keras.backend.clear_session()
+                        gc.collect()
+                        continue
+                    else:
+                        # GPU falló, pasar a CPU
+                        print(f"   ❌ GPU no disponible: {str(e)[:100]}")
+                        break
+
+            # Fase 2: Fallback a CPU
+            print("🔄 [SVNN] Cambiando a entrenamiento en CPU...")
+            print("   (Esto será más lento pero garantiza que complete)")
+
+            # Limpiar configuración GPU
+            tf.keras.backend.clear_session()
+            from tensorflow.keras import mixed_precision
+            mixed_precision.set_global_policy('float32')
+            gc.collect()
+
+            # Usar batch_size más pequeño también en CPU para evitar OOM de RAM
+            cpu_batch_size = max(4, bs_val // 4)
+            print(f"   Usando batch_size reducido en CPU: {cpu_batch_size}")
+
+            # Forzar uso de CPU
+            with tf.device('/CPU:0'):
+                # Reconstruir modelo en CPU
+                model = build_svnn_model()
+                model.compile(
+                    optimizer=keras.optimizers.Adam(learning_rate=lr_val),
+                    loss="sparse_categorical_crossentropy",
+                    metrics=["accuracy"]
+                )
+
+                # Entrenar en CPU con batch_size reducido
+                t0 = time.perf_counter()
+                history = model.fit(
+                    Xtr, ytr,
+                    batch_size=cpu_batch_size,
+                    epochs=ep_val,
+                    validation_data=(Xte, yte),
+                    verbose=1
+                )
+                train_time = time.perf_counter() - t0
+
+                print(f"✅ [SVNN] Entrenamiento en CPU completado exitosamente!")
+                print(f"   Tiempo: {train_time:.2f}s | Batch size: {cpu_batch_size}")
+                return history, train_time, cpu_batch_size, model, 'CPU'
+
+        # Ejecutar entrenamiento con fallback
+        history, train_time, final_batch_size, model, device_used = train_with_fallback()
+        bs_val = final_batch_size  # Actualizar para predicción
 
         # 5) Evaluación + métricas completas
         t_eval = time.perf_counter()
 
-        # Predicciones y probabilidades
-        y_proba = model.predict(Xte, batch_size=max(64, int(instance.batch_size)), verbose=0)
+        # Predicciones y probabilidades - USAR EL MISMO DISPOSITIVO que entrenamiento
+        if device_used == 'CPU':
+            with tf.device('/CPU:0'):
+                y_proba = model.predict(Xte, batch_size=max(64, int(instance.batch_size)), verbose=0)
+        else:
+            y_proba = model.predict(Xte, batch_size=max(64, int(instance.batch_size)), verbose=0)
         y_pred = np.argmax(y_proba, axis=1)
         y_true = yte
 

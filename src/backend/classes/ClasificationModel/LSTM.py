@@ -474,27 +474,60 @@ class LSTMNet(BaseModel):
         """Entrena y devuelve paquete TrainResult (modelo + métricas + historia).
 
         No rompe `train()`: es una API paralela opt-in.
-        
+
         Args:
             model_label: Etiqueta opcional para auto-guardar (e.g., "p300", "inner").
                         Si se proporciona, guarda automáticamente en src/backend/models/{label}/
         """
         try:
-            seq_tr, len_tr, y_tr = cls._prepare_sequences_and_labels(
+            print(f"[LSTM.fit] Preparando datos con enfoque memory-efficient...")
+            print(f"  Train: {len(xTrain)} archivos")
+            print(f"  Test:  {len(xTest)} archivos")
+
+            # OPTIMIZACIÓN MEMORIA: Cargar solo una pequeña muestra para inferir dimensiones
+            # En lugar de cargar TODOS los archivos, cargamos solo los primeros 20
+            sample_size = min(20, len(xTrain), len(xTest))
+
+            print(f"[LSTM.fit] Cargando muestra ({sample_size} archivos) para inferir dimensiones...")
+            seq_tr_sample, len_tr_sample, y_tr_sample = cls._prepare_sequences_and_labels(
+                xTrain[:sample_size], yTrain[:sample_size],
+                pad_value=instance.encoder.pad_value,
+                metadata_list=metadata_train[:sample_size] if metadata_train else None
+            )
+            seq_te_sample, len_te_sample, y_te_sample = cls._prepare_sequences_and_labels(
+                xTest[:sample_size], yTest[:sample_size],
+                pad_value=instance.encoder.pad_value,
+                metadata_list=metadata_test[:sample_size] if metadata_test else None
+            )
+
+            # Inferir dimensiones globales
+            max_len_tr = int(len_tr_sample.max())
+            max_len_te = int(len_te_sample.max())
+            max_len_global = max(max_len_tr, max_len_te)
+            in_F = seq_tr_sample[0].shape[1]
+
+            # Inferir número de clases (necesitamos cargar TODOS los labels)
+            print(f"[LSTM.fit] Cargando etiquetas completas para inferir número de clases...")
+            _, _, y_tr = cls._prepare_sequences_and_labels(
                 xTrain, yTrain,
                 pad_value=instance.encoder.pad_value,
                 metadata_list=metadata_train
             )
-            seq_te, len_te, y_te = cls._prepare_sequences_and_labels(
+            _, _, y_te = cls._prepare_sequences_and_labels(
                 xTest, yTest,
                 pad_value=instance.encoder.pad_value,
                 metadata_list=metadata_test
             )
+
+            print(f"[LSTM.fit] Dimensiones inferidas:")
+            print(f"  max_len_global: {max_len_global}")
+            print(f"  input_features: {in_F}")
+            print(f"  train_samples:  {len(y_tr)}")
+            print(f"  test_samples:   {len(y_te)}")
         except Exception as e:
             raise RuntimeError(f"Error preparando dataset LSTM: {e}") from e
 
         d_enc, is_seq = instance.encoder.infer_output_signature()
-        in_F = instance.encoder.input_feature_dim
         n_classes = int(max(int(y_tr.max()), int(y_te.max()))) + 1
         if d_enc < 1 or in_F < 1 or n_classes < 2:
             raise ValueError("Dimensionalidades/num clases inválidas.")
@@ -515,21 +548,88 @@ class LSTMNet(BaseModel):
                 except RuntimeError as e:
                     print(f"GPU config error: {e}")
 
-            max_len_tr = int(len_tr.max())
-            max_len_te = int(len_te.max())
             pad_value = instance.encoder.pad_value
 
-            def pad_sequences(seqs: List[NDArray], max_len: int, pad_val: float) -> NDArray:
-                N = len(seqs)
-                F = seqs[0].shape[1]
-                padded = np.full((N, max_len, F), pad_val, dtype=np.float32)
-                for i, seq in enumerate(seqs):
-                    T = seq.shape[0]
-                    padded[i, :T, :] = seq
-                return padded
+            # =========================================================================
+            # GENERADOR DE DATOS MEMORY-EFFICIENT
+            # =========================================================================
+            def create_data_generator(x_paths, y_labels, metadata, batch_size, shuffle=True):
+                """
+                Generador que carga batches bajo demanda para reducir uso de memoria.
 
-            X_tr_padded = pad_sequences(seq_tr, max_len_tr, pad_value)
-            X_te_padded = pad_sequences(seq_te, max_len_te, pad_value)
+                Args:
+                    x_paths: Lista de rutas a archivos .npy
+                    y_labels: Array numpy con etiquetas (ya cargado, es pequeño)
+                    metadata: Lista de metadatos (puede ser None)
+                    batch_size: Tamaño de batch
+                    shuffle: Si True, mezcla los índices en cada época
+                """
+                n_samples = len(x_paths)
+                indices = np.arange(n_samples)
+
+                while True:  # Generador infinito para Keras
+                    if shuffle:
+                        np.random.shuffle(indices)
+
+                    for start_idx in range(0, n_samples, batch_size):
+                        end_idx = min(start_idx + batch_size, n_samples)
+                        batch_indices = indices[start_idx:end_idx]
+
+                        # Cargar batch bajo demanda
+                        batch_x = []
+                        batch_y = []
+
+                        for idx in batch_indices:
+                            # Cargar y procesar secuencia
+                            seq = cls._load_sequence(
+                                x_paths[idx],
+                                metadata=metadata[idx] if metadata and idx < len(metadata) else None
+                            )
+                            batch_x.append(seq)
+                            batch_y.append(y_labels[idx])
+
+                        # Padding del batch
+                        batch_size_actual = len(batch_x)
+                        X_batch = np.full((batch_size_actual, max_len_global, in_F), pad_value, dtype=np.float32)
+
+                        for i, seq in enumerate(batch_x):
+                            T = min(seq.shape[0], max_len_global)
+                            X_batch[i, :T, :] = seq[:T, :]
+
+                        y_batch = np.array(batch_y, dtype=np.int64)
+
+                        yield X_batch, y_batch
+
+            # Calcular steps por época
+            steps_per_epoch_train = int(np.ceil(len(xTrain) / batch_size))
+            steps_per_epoch_val = int(np.ceil(len(xTest) / batch_size))
+
+            print(f"[LSTM.fit] Configuración de generadores:")
+            print(f"  steps_per_epoch (train): {steps_per_epoch_train}")
+            print(f"  steps_per_epoch (val):   {steps_per_epoch_val}")
+            print(f"  batch_size:              {batch_size}")
+
+            # Crear generadores
+            train_generator = create_data_generator(xTrain, y_tr, metadata_train, batch_size, shuffle=True)
+            val_generator = create_data_generator(xTest, y_te, metadata_test, batch_size, shuffle=False)
+
+            # Para evaluación final, necesitamos cargar test completo (es más pequeño)
+            print(f"[LSTM.fit] Cargando test set completo para evaluación final...")
+            seq_te_full, _, _ = cls._prepare_sequences_and_labels(
+                xTest, yTest,
+                pad_value=instance.encoder.pad_value,
+                metadata_list=metadata_test
+            )
+
+            # Padding test set
+            X_te_padded = np.full((len(seq_te_full), max_len_global, in_F), pad_value, dtype=np.float32)
+            for i, seq in enumerate(seq_te_full):
+                T = min(seq.shape[0], max_len_global)
+                X_te_padded[i, :T, :] = seq[:T, :]
+
+            del seq_te_full  # Liberar memoria
+            import gc
+            gc.collect()
 
             def build(spec: LSTMNet, input_shape: Tuple[int, int]) -> keras.Model:
                 inputs = layers.Input(shape=input_shape, name='input')
@@ -597,24 +697,163 @@ class LSTMNet(BaseModel):
                 outputs = layers.Dense(instance.classification.units, activation='softmax', name='classification')(x)
                 return keras.Model(inputs=inputs, outputs=outputs, name='LSTMNet')
 
-            model = build(instance, input_shape=(X_tr_padded.shape[1], in_F))
-            model.compile(
-                optimizer=keras.optimizers.Adam(learning_rate=lr),
-                loss='sparse_categorical_crossentropy',
-                metrics=['accuracy']
-            )
-            t0 = time.perf_counter()
-            history = model.fit(
-                X_tr_padded, y_tr,
-                batch_size=batch_size,
-                epochs=epochs,
-                verbose=1,
-                validation_data=(X_te_padded, y_te)
-            )
-            train_time = time.perf_counter() - t0
+            # IMPORTANTE: Configurar GPU ANTES de construir el modelo
+            import tensorflow as tf
+            import gc
+
+            # Limpiar sesión anterior
+            tf.keras.backend.clear_session()
+            gc.collect()
+
+            # Configurar estrategia de entrenamiento con fallback GPU -> CPU
+            def train_with_fallback():
+                """Intenta entrenar en GPU, si falla cae a CPU automáticamente"""
+                nonlocal batch_size
+
+                # Fase 1: Intentar con GPU optimizada
+                print("🚀 [LSTM] Intentando entrenamiento en GPU con optimizaciones...")
+
+                # Configurar memory growth PRIMERO (antes de cualquier operación GPU)
+                try:
+                    gpus = tf.config.list_physical_devices('GPU')
+                    if gpus:
+                        for gpu in gpus:
+                            tf.config.experimental.set_memory_growth(gpu, True)
+                        print(f"   ✓ Memory growth habilitado en {len(gpus)} GPU(s)")
+                except Exception as e:
+                    print(f"   ⚠️ No se pudo configurar memory growth: {e}")
+
+                # Habilitar Mixed Precision (usa menos memoria)
+                try:
+                    from tensorflow.keras import mixed_precision
+                    policy = mixed_precision.Policy('mixed_float16')
+                    mixed_precision.set_global_policy(policy)
+                    print("   ✓ Mixed Precision (FP16) habilitado")
+                except Exception as e:
+                    print(f"   ⚠️ No se pudo habilitar Mixed Precision: {e}")
+
+                # Reducir batch_size inicial para GPU
+                gpu_batch_size = max(4, batch_size // 2)
+
+                max_gpu_retries = 2
+                model = None
+
+                for attempt in range(max_gpu_retries):
+                    try:
+                        print(f"   Intento GPU {attempt + 1}/{max_gpu_retries} (batch_size={gpu_batch_size})")
+
+                        # Recalcular steps si cambió batch_size
+                        steps_train = int(np.ceil(len(xTrain) / gpu_batch_size))
+                        steps_val = int(np.ceil(len(xTest) / gpu_batch_size))
+
+                        # Recrear generadores con nuevo batch_size
+                        train_gen = create_data_generator(xTrain, y_tr, metadata_train, gpu_batch_size, shuffle=True)
+                        val_gen = create_data_generator(xTest, y_te, metadata_test, gpu_batch_size, shuffle=False)
+
+                        # Construir modelo DESPUÉS de configurar GPU
+                        model = build(instance, input_shape=(max_len_global, in_F))
+                        model.compile(
+                            optimizer=keras.optimizers.Adam(learning_rate=lr),
+                            loss='sparse_categorical_crossentropy',
+                            metrics=['accuracy']
+                        )
+
+                        # Entrenar en GPU usando generador
+                        t0 = time.perf_counter()
+                        history = model.fit(
+                            train_gen,
+                            steps_per_epoch=steps_train,
+                            epochs=epochs,
+                            verbose=1,
+                            validation_data=val_gen,
+                            validation_steps=steps_val
+                        )
+                        train_time = time.perf_counter() - t0
+
+                        print(f"✅ [LSTM] Entrenamiento en GPU completado exitosamente!")
+                        print(f"   Tiempo: {train_time:.2f}s | Batch size: {gpu_batch_size}")
+                        return history, train_time, gpu_batch_size, model, 'GPU'
+
+                    except Exception as e:
+                        error_str = str(e)
+                        is_memory_error = any(keyword in error_str for keyword in [
+                            "OOM", "RESOURCE_EXHAUSTED", "out of memory",
+                            "Failed copying input tensor", "Dst tensor is not initialized",
+                            "SameWorkerRecvDone", "unable to allocate"
+                        ])
+
+                        if is_memory_error and attempt < max_gpu_retries - 1:
+                            # Reducir batch_size y reintentar
+                            gpu_batch_size = max(2, gpu_batch_size // 2)
+                            print(f"   ⚠️ OOM en GPU, reduciendo batch_size a {gpu_batch_size}")
+
+                            tf.keras.backend.clear_session()
+                            gc.collect()
+                            continue
+                        else:
+                            # GPU falló, pasar a CPU
+                            print(f"   ❌ GPU no disponible: {str(e)[:100]}")
+                            break
+
+                # Fase 2: Fallback a CPU
+                print("🔄 [LSTM] Cambiando a entrenamiento en CPU...")
+                print("   (Esto será más lento pero garantiza que complete)")
+
+                # Limpiar configuración GPU
+                tf.keras.backend.clear_session()
+                from tensorflow.keras import mixed_precision
+                mixed_precision.set_global_policy('float32')
+                gc.collect()
+
+                # Usar batch_size más pequeño también en CPU para evitar OOM de RAM
+                cpu_batch_size = max(4, batch_size // 4)
+                print(f"   Usando batch_size reducido en CPU: {cpu_batch_size}")
+
+                # Recalcular steps para CPU
+                steps_train_cpu = int(np.ceil(len(xTrain) / cpu_batch_size))
+                steps_val_cpu = int(np.ceil(len(xTest) / cpu_batch_size))
+
+                # Recrear generadores con batch_size reducido
+                train_gen_cpu = create_data_generator(xTrain, y_tr, metadata_train, cpu_batch_size, shuffle=True)
+                val_gen_cpu = create_data_generator(xTest, y_te, metadata_test, cpu_batch_size, shuffle=False)
+
+                # Forzar uso de CPU
+                with tf.device('/CPU:0'):
+                    # Reconstruir modelo en CPU
+                    model = build(instance, input_shape=(max_len_global, in_F))
+                    model.compile(
+                        optimizer=keras.optimizers.Adam(learning_rate=lr),
+                        loss='sparse_categorical_crossentropy',
+                        metrics=['accuracy']
+                    )
+
+                    # Entrenar en CPU con generador
+                    t0 = time.perf_counter()
+                    history = model.fit(
+                        train_gen_cpu,
+                        steps_per_epoch=steps_train_cpu,
+                        epochs=epochs,
+                        verbose=1,
+                        validation_data=val_gen_cpu,
+                        validation_steps=steps_val_cpu
+                    )
+                    train_time = time.perf_counter() - t0
+
+                    print(f"✅ [LSTM] Entrenamiento en CPU completado exitosamente!")
+                    print(f"   Tiempo: {train_time:.2f}s | Batch size: {cpu_batch_size}")
+                    return history, train_time, cpu_batch_size, model, 'CPU'
+
+            # Ejecutar entrenamiento con fallback
+            history, train_time, final_batch_size, model, device_used = train_with_fallback()
+            batch_size = final_batch_size  # Actualizar para predicción
 
             t_pred0 = time.perf_counter()
-            logits = model.predict(X_te_padded, batch_size=batch_size, verbose=0)
+            # Predicción - USAR EL MISMO DISPOSITIVO que entrenamiento
+            if device_used == 'CPU':
+                with tf.device('/CPU:0'):
+                    logits = model.predict(X_te_padded, batch_size=batch_size, verbose=0)
+            else:
+                logits = model.predict(X_te_padded, batch_size=batch_size, verbose=0)
             y_pred = np.argmax(logits, axis=1)
             y_true = y_te
             eval_seconds = time.perf_counter() - t_pred0

@@ -150,8 +150,11 @@ def get_processed_datasets():
     if not aux_path.exists():
         return []
 
-    # Obtener todas las carpetas en Aux/
-    aux_folders = [f.name for f in aux_path.iterdir() if f.is_dir()]
+    # Obtener todas las carpetas en Aux/, excluyendo carpetas temporales
+    aux_folders = [
+        f.name for f in aux_path.iterdir()
+        if f.is_dir() and not f.name.startswith('temp_')
+    ]
 
     # Verificar cuáles realmente tienen archivos .npy procesados
     truly_processed = []

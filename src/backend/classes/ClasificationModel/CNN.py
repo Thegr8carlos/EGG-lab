@@ -705,38 +705,153 @@ class CNN(BaseModel):
             # Limpiar modelo previo (cada fit() reconstruye desde cero)
             instance._tf_model = None
 
-            # Construir modelo
-            model = build_cnn_model(instance, in_shape=(H_in, W_in, 3))
-
             # Hiperparámetros (si no se proporcionan, usar defaults legacy)
             lr_val = float(learning_rate) if learning_rate is not None else 1e-3
             bs_val = int(batch_size) if batch_size is not None else 64
             ep_val = int(epochs) if epochs is not None else 2
 
-            # Compilar modelo
-            model.compile(
-                optimizer=keras.optimizers.Adam(learning_rate=lr_val),
-                loss='sparse_categorical_crossentropy',
-                metrics=['accuracy']
-            )
-
-            # Entrenar modelo
+            # IMPORTANTE: Configurar GPU ANTES de construir el modelo
             import time
-            t0 = time.perf_counter()
-            history = model.fit(
-                Xtr, ytr,
-                batch_size=bs_val,
-                epochs=ep_val,
-                verbose=1,
-                validation_data=(Xte, yte)
-            )
-            train_time = time.perf_counter() - t0
+            import tensorflow as tf
+            import gc
+
+            # Limpiar sesión anterior
+            tf.keras.backend.clear_session()
+            gc.collect()
+
+            # Configurar estrategia de entrenamiento con fallback GPU -> CPU
+            def train_with_fallback():
+                """Intenta entrenar en GPU, si falla cae a CPU automáticamente"""
+                nonlocal bs_val
+
+                # Fase 1: Intentar con GPU optimizada
+                print("🚀 [CNN] Intentando entrenamiento en GPU con optimizaciones...")
+
+                # Configurar memory growth PRIMERO (antes de cualquier operación GPU)
+                try:
+                    gpus = tf.config.list_physical_devices('GPU')
+                    if gpus:
+                        for gpu in gpus:
+                            tf.config.experimental.set_memory_growth(gpu, True)
+                        print(f"   ✓ Memory growth habilitado en {len(gpus)} GPU(s)")
+                except Exception as e:
+                    print(f"   ⚠️ No se pudo configurar memory growth: {e}")
+
+                # Habilitar Mixed Precision (usa menos memoria)
+                try:
+                    from tensorflow.keras import mixed_precision
+                    policy = mixed_precision.Policy('mixed_float16')
+                    mixed_precision.set_global_policy(policy)
+                    print("   ✓ Mixed Precision (FP16) habilitado")
+                except Exception as e:
+                    print(f"   ⚠️ No se pudo habilitar Mixed Precision: {e}")
+
+                # Reducir batch_size inicial para GPU
+                gpu_batch_size = max(4, bs_val // 2)
+
+                max_gpu_retries = 2
+                model = None
+
+                for attempt in range(max_gpu_retries):
+                    try:
+                        print(f"   Intento GPU {attempt + 1}/{max_gpu_retries} (batch_size={gpu_batch_size})")
+
+                        # Construir modelo DESPUÉS de configurar GPU
+                        model = build_cnn_model(instance, in_shape=(H_in, W_in, 3))
+                        model.compile(
+                            optimizer=keras.optimizers.Adam(learning_rate=lr_val),
+                            loss='sparse_categorical_crossentropy',
+                            metrics=['accuracy']
+                        )
+
+                        # Entrenar en GPU
+                        t0 = time.perf_counter()
+                        history = model.fit(
+                            Xtr, ytr,
+                            batch_size=gpu_batch_size,
+                            epochs=ep_val,
+                            verbose=1,
+                            validation_data=(Xte, yte)
+                        )
+                        train_time = time.perf_counter() - t0
+
+                        print(f"✅ [CNN] Entrenamiento en GPU completado exitosamente!")
+                        print(f"   Tiempo: {train_time:.2f}s | Batch size: {gpu_batch_size}")
+                        return history, train_time, gpu_batch_size, model, 'GPU'
+
+                    except Exception as e:
+                        error_str = str(e)
+                        is_memory_error = any(keyword in error_str for keyword in [
+                            "OOM", "RESOURCE_EXHAUSTED", "out of memory",
+                            "Failed copying input tensor", "Dst tensor is not initialized",
+                            "SameWorkerRecvDone", "unable to allocate"
+                        ])
+
+                        if is_memory_error and attempt < max_gpu_retries - 1:
+                            # Reducir batch_size y reintentar
+                            gpu_batch_size = max(2, gpu_batch_size // 2)
+                            print(f"   ⚠️ OOM en GPU, reduciendo batch_size a {gpu_batch_size}")
+
+                            tf.keras.backend.clear_session()
+                            gc.collect()
+                            continue
+                        else:
+                            # GPU falló, pasar a CPU
+                            print(f"   ❌ GPU no disponible: {str(e)[:100]}")
+                            break
+
+                # Fase 2: Fallback a CPU
+                print("🔄 [CNN] Cambiando a entrenamiento en CPU...")
+                print("   (Esto será más lento pero garantiza que complete)")
+
+                # Limpiar configuración GPU
+                tf.keras.backend.clear_session()
+                from tensorflow.keras import mixed_precision
+                mixed_precision.set_global_policy('float32')
+                gc.collect()
+
+                # Usar batch_size más pequeño también en CPU para evitar OOM de RAM
+                cpu_batch_size = max(4, bs_val // 4)
+                print(f"   Usando batch_size reducido en CPU: {cpu_batch_size}")
+
+                # Forzar uso de CPU
+                with tf.device('/CPU:0'):
+                    # Reconstruir modelo en CPU
+                    model = build_cnn_model(instance, in_shape=(H_in, W_in, 3))
+                    model.compile(
+                        optimizer=keras.optimizers.Adam(learning_rate=lr_val),
+                        loss="sparse_categorical_crossentropy",
+                        metrics=['accuracy']
+                    )
+
+                    # Entrenar en CPU con batch_size reducido
+                    t0 = time.perf_counter()
+                    history = model.fit(
+                        Xtr, ytr,
+                        batch_size=cpu_batch_size,
+                        epochs=ep_val,
+                        verbose=1,
+                        validation_data=(Xte, yte)
+                    )
+                    train_time = time.perf_counter() - t0
+
+                    print(f"✅ [CNN] Entrenamiento en CPU completado exitosamente!")
+                    print(f"   Tiempo: {train_time:.2f}s | Batch size: {cpu_batch_size}")
+                    return history, train_time, cpu_batch_size, model, 'CPU'
+
+            # Ejecutar entrenamiento con fallback
+            history, train_time, final_batch_size, model, device_used = train_with_fallback()
+            bs_val = final_batch_size  # Actualizar para predicción
 
             train_losses: List[float] = history.history['loss']
 
             # --- Evaluación y métricas ---
-            # Predicciones
-            logits = model.predict(Xte, batch_size=128, verbose=0)
+            # Predicciones - USAR EL MISMO DISPOSITIVO que entrenamiento
+            if device_used == 'CPU':
+                with tf.device('/CPU:0'):
+                    logits = model.predict(Xte, batch_size=128, verbose=0)
+            else:
+                logits = model.predict(Xte, batch_size=128, verbose=0)
             y_pred = np.argmax(logits, axis=1)
             y_true = yte
 

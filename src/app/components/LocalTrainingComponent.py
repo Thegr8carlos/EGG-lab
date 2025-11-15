@@ -790,21 +790,21 @@ def run_local_training(n_clicks, selected_path, subsets_list):
         print(f"  model_type_for_pipeline: {model_type_for_pipeline}")
         print(f"{'='*70}\n")
         
-        def apply_pipeline_to_events(event_paths, labels, split_name):
+        def apply_pipeline_to_events(event_paths, labels, split_name, experiment_id):
             """Aplica el pipeline completo a una lista de eventos y retorna paths a ventanas."""
             import numpy as np
             from pathlib import Path
-            
+
             processed_paths = []
             processed_labels = []
-            
+
             # Crear mapeo de clases a IDs numéricos
             unique_classes = sorted(set(labels))
             class_to_id = {cls: idx for idx, cls in enumerate(unique_classes)}
             print(f"   [{split_name}] Mapeo de clases: {class_to_id}")
 
-            # Crear directorio temporal para labels convertidos
-            temp_labels_dir = Path("Aux") / "temp_labels" / split_name.lower()
+            # Crear directorio temporal para labels convertidos (específico del experimento)
+            temp_labels_dir = Path("Aux") / "temp_labels" / f"experiment_{experiment_id}" / split_name.lower()
             temp_labels_dir.mkdir(parents=True, exist_ok=True)
 
             for i, (event_path, label) in enumerate(zip(event_paths, labels)):
@@ -869,10 +869,13 @@ def run_local_training(n_clicks, selected_path, subsets_list):
                 )
 
             return processed_paths, processed_labels
-        
+
+        # Cargar experimento para obtener el ID
+        experiment = Experiment._load_latest_experiment()
+
         # Aplicar pipeline a train y test
-        xTrain, yTrain = apply_pipeline_to_events(event_paths_train, event_labels_train, "TRAIN")
-        xTest, yTest = apply_pipeline_to_events(event_paths_test, event_labels_test, "TEST")
+        xTrain, yTrain = apply_pipeline_to_events(event_paths_train, event_labels_train, "TRAIN", experiment.id)
+        xTest, yTest = apply_pipeline_to_events(event_paths_test, event_labels_test, "TEST", experiment.id)
         
         if len(xTrain) == 0 or len(xTest) == 0:
             return (
@@ -895,10 +898,10 @@ def run_local_training(n_clicks, selected_path, subsets_list):
         print(f"  TEST:  {len(yTest)} archivos de labels")
         print(f"{'='*70}\n")
 
-        
+
         # ========== PASO 2: OBTENER CONFIGURACIÓN DEL MODELO ==========
-        experiment = Experiment._load_latest_experiment()
-        
+        # (El experimento ya fue cargado antes para obtener el ID)
+
         print(f"[LocalTraining] DEBUG - Experimento cargado ID: {experiment.id}")
         print(f"[LocalTraining] DEBUG - P300Classifier: {experiment.P300Classifier}")
         print(f"[LocalTraining] DEBUG - innerSpeachClassifier: {experiment.innerSpeachClassifier}")
@@ -1025,8 +1028,7 @@ def run_local_training(n_clicks, selected_path, subsets_list):
                         yTest=yTest,
                         metadata_train=None,
                         metadata_test=None,
-                        model_label=None,  # NO guardamos automáticamente
-                        verbose=True
+                        model_label=None  # NO guardamos automáticamente
                     )
                     metrics = result.metrics
                 else:

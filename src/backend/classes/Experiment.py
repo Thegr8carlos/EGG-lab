@@ -385,6 +385,17 @@ class Experiment(BaseModel):
         experiment = cls._load_latest_experiment()
         classifier_name = classifier.__class__.__name__
 
+        # Mapear nombres de clase a nombres registrados en ClassifierSchemaFactory
+        class_to_registered_name = {
+            "LSTMNet": "LSTM",
+            "GRUNet": "GRU",
+            "SVMNet": "SVM",
+            "SVNNNet": "SVNN",
+            "RandomForestNet": "RandomForest",
+            "CNNNet": "CNN"
+        }
+        classifier_name = class_to_registered_name.get(classifier_name, classifier_name)
+
         # Usar model_dump (Pydantic v2) y luego convertir numpy arrays
         if isinstance(classifier, BaseModel):
             try:
@@ -481,6 +492,17 @@ class Experiment(BaseModel):
 
         experiment = cls._load_latest_experiment()
         classifier_name = classifier.__class__.__name__
+
+        # Mapear nombres de clase a nombres registrados en ClassifierSchemaFactory
+        class_to_registered_name = {
+            "LSTMNet": "LSTM",
+            "GRUNet": "GRU",
+            "SVMNet": "SVM",
+            "SVNNNet": "SVNN",
+            "RandomForestNet": "RandomForest",
+            "CNNNet": "CNN"
+        }
+        classifier_name = class_to_registered_name.get(classifier_name, classifier_name)
 
         # Usar model_dump (Pydantic v2) y luego convertir numpy arrays
         if isinstance(classifier, BaseModel):
@@ -1107,7 +1129,7 @@ class Experiment(BaseModel):
         # Buscar "Events" en el path y usar su padre como dataset_dir
         if "Events" in parts:
             events_index = parts.index("Events")
-            dataset_dir = Path(*parts[:events_index + 1])
+            dataset_dir = Path(*parts[:events_index])  # No incluir "Events" en el path
         else:
             dataset_dir = event_path.parent
 
@@ -1146,7 +1168,7 @@ class Experiment(BaseModel):
         parts = event_path.parts
         if "Events" in parts:
             events_index = parts.index("Events")
-            dataset_dir = Path(*parts[:events_index + 1])
+            dataset_dir = Path(*parts[:events_index])  # No incluir "Events" en el path
         else:
             dataset_dir = event_path.parent
 
