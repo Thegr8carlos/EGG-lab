@@ -108,7 +108,7 @@ class TemporalPooling(BaseModel):
 # =====================================================================================
 # 5) Modelo LSTM completo: Encoder + Pooling + FC + Softmax
 # =====================================================================================
-class LSTMNet(BaseModel):
+class LSTM(BaseModel):
     # Encoder
     encoder: SequenceEncoder = Field(..., description="Bloque secuencial (LSTM apiladas).")
 
@@ -174,7 +174,7 @@ class LSTMNet(BaseModel):
         print(f"[LSTM] Modelo guardado en: {path}")
     
     @classmethod
-    def load(cls, path: str) -> "LSTMNet":
+    def load(cls, path: str) -> "LSTM":
         """
         Carga una instancia completa desde disco.
         
@@ -182,11 +182,11 @@ class LSTMNet(BaseModel):
             path: Ruta al archivo .pkl guardado previamente
         
         Returns:
-            Instancia de LSTMNet con modelo entrenado listo para query()
+            Instancia de LSTM con modelo entrenado listo para query()
         
         Example:
-            lstm_model = LSTMNet.load("src/backend/models/p300/lstm_20251109_143022.pkl")
-            predictions = LSTMNet.query(lstm_model, sequences)
+            lstm_model = LSTM.load("src/backend/models/p300/lstm_20251109_143022.pkl")
+            predictions = LSTM.query(lstm_model, sequences)
         """
         with open(path, 'rb') as f:
             instance = pickle.load(f)
@@ -226,7 +226,7 @@ class LSTMNet(BaseModel):
 
         Ejemplo:
             experiment = Experiment._load_latest_experiment()
-            metadata = LSTMNet.extract_metadata_from_experiment(experiment.dict(), [0, 1])
+            metadata = LSTM.extract_metadata_from_experiment(experiment.dict(), [0, 1])
         """
         transforms = experiment_dict.get("transform", [])
         if not transforms:
@@ -338,7 +338,7 @@ class LSTMNet(BaseModel):
 
         # Si hay metadatos 2D, aplicar interpretación específica de LSTM
         if X.ndim == 2 and metadata and (metadata.get("output_axes_semantics") or metadata.get("output_shape")):
-            _, needs_transpose = LSTMNet._interpret_metadata(metadata)
+            _, needs_transpose = LSTM._interpret_metadata(metadata)
             if needs_transpose:
                 X = X.T
 
@@ -393,7 +393,7 @@ class LSTMNet(BaseModel):
     @classmethod
     def train(
         cls,
-        instance: "LSTMNet",
+        instance: "LSTM",
         xTest: List[str],
         yTest: List[str],
         xTrain: List[str],
@@ -412,7 +412,7 @@ class LSTMNet(BaseModel):
         Internamente delega a fit() para evitar duplicación de código.
 
         Args:
-            instance: Instancia de LSTMNet con arquitectura configurada
+            instance: Instancia de LSTM con arquitectura configurada
             xTest: Lista de rutas a archivos .npy de test
             yTest: Lista de rutas a archivos .npy con etiquetas de test
             xTrain: Lista de rutas a archivos .npy de entrenamiento
@@ -458,7 +458,7 @@ class LSTMNet(BaseModel):
     @classmethod
     def fit(
         cls,
-        instance: "LSTMNet",
+        instance: "LSTM",
         xTest: List[str],
         yTest: List[str],
         xTrain: List[str],
@@ -470,6 +470,8 @@ class LSTMNet(BaseModel):
         lr: float = 1e-3,
         return_history: bool = True,
         model_label: Optional[str] = None,
+        *,
+        verbose: bool = True,
     ) -> TrainResult:
         """Entrena y devuelve paquete TrainResult (modelo + métricas + historia).
 
@@ -531,7 +533,7 @@ class LSTMNet(BaseModel):
             X_tr_padded = pad_sequences(seq_tr, max_len_tr, pad_value)
             X_te_padded = pad_sequences(seq_te, max_len_te, pad_value)
 
-            def build(spec: LSTMNet, input_shape: Tuple[int, int]) -> keras.Model:
+            def build(spec: LSTM, input_shape: Tuple[int, int]) -> keras.Model:
                 inputs = layers.Input(shape=input_shape, name='input')
                 x = layers.Masking(mask_value=spec.encoder.pad_value)(inputs)
                 for i, lstm_layer in enumerate(spec.encoder.layers):
@@ -595,7 +597,7 @@ class LSTMNet(BaseModel):
                     elif act == "sigmoid":
                         x = layers.Activation('sigmoid', name=f'fc_{i}_sigmoid')(x)
                 outputs = layers.Dense(instance.classification.units, activation='softmax', name='classification')(x)
-                return keras.Model(inputs=inputs, outputs=outputs, name='LSTMNet')
+                return keras.Model(inputs=inputs, outputs=outputs, name='LSTM')
 
             model = build(instance, input_shape=(X_tr_padded.shape[1], in_F))
             model.compile(
@@ -684,7 +686,7 @@ class LSTMNet(BaseModel):
     @classmethod
     def query(
         cls,
-        instance: "LSTMNet",
+        instance: "LSTM",
         sequences: List[NDArray],
         pad_value: float = 0.0,
         return_logits: bool = False
@@ -708,15 +710,13 @@ class LSTMNet(BaseModel):
 
 
 
-# Alias for backward compatibility
-LSTM = LSTMNet
 
 
 # ======================= Ejemplo de uso =======================
 """
 # Ejemplo 1: Construcción básica de modelo LSTM
 
-from backend.classes.ClasificationModel.LSTM import LSTMNet, LSTMLayer, SequenceEncoder, TemporalPooling, DenseLayer, ActivationFunction
+from backend.classes.ClasificationModel.LSTM import LSTM, LSTMLayer, SequenceEncoder, TemporalPooling, DenseLayer, ActivationFunction
 
 # Configurar capas LSTM
 lstm1 = LSTMLayer(
@@ -768,7 +768,7 @@ classification = DenseLayer(
 )
 
 # Construir modelo completo
-lstm_net = LSTMNet(
+lstm_net = LSTM(
     encoder=encoder,
     pooling=pooling,
     fc_layers=fc_layers,
@@ -781,11 +781,11 @@ from backend.classes.Experiment import Experiment
 
 # Extraer metadatos desde Experiment
 experiment = Experiment._load_latest_experiment()
-metadata_train = LSTMNet.extract_metadata_from_experiment(experiment.dict(), transform_indices=[0, 1])
-metadata_test = LSTMNet.extract_metadata_from_experiment(experiment.dict(), transform_indices=[0])
+metadata_train = LSTM.extract_metadata_from_experiment(experiment.dict(), transform_indices=[0, 1])
+metadata_test = LSTM.extract_metadata_from_experiment(experiment.dict(), transform_indices=[0])
 
 # Entrenar modelo
-metrics = LSTMNet.train(
+metrics = LSTM.train(
     lstm_net,
     xTest=["path/to/test1.npy"],
     yTest=["path/to/test1_label.npy"],
@@ -819,7 +819,7 @@ metadata_test = [
     }
 ]
 
-metrics = LSTMNet.train(
+metrics = LSTM.train(
     lstm_net,
     xTest=["path/to/test1.npy"],
     yTest=["path/to/test1_label.npy"],
@@ -833,7 +833,7 @@ metrics = LSTMNet.train(
 )
 
 # Ejemplo 4: Sin metadatos (fallback heurístico)
-metrics = LSTMNet.train(
+metrics = LSTM.train(
     lstm_net,
     xTest=["path/to/test1.npy"],
     yTest=["path/to/test1_label.npy"],

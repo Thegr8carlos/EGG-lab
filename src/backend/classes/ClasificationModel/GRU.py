@@ -107,7 +107,7 @@ class TemporalPooling(BaseModel):
 # =====================================================================================
 # 5) Clasificador completo tipo GRU: Encoder + Pooling + FC + Softmax
 # =====================================================================================
-class GRUNet(BaseModel):
+class GRU(BaseModel):
     # Encoder
     encoder: SequenceEncoder = Field(..., description="Bloque secuencial (GRU apiladas).")
 
@@ -178,7 +178,7 @@ class GRUNet(BaseModel):
         print(f"[GRU] Modelo guardado en: {path}")
     
     @classmethod
-    def load(cls, path: str) -> "GRUNet":
+    def load(cls, path: str) -> "GRU":
         """
         Carga una instancia completa desde disco.
         
@@ -186,11 +186,11 @@ class GRUNet(BaseModel):
             path: Ruta al archivo .pkl guardado previamente
         
         Returns:
-            Instancia de GRUNet con modelo entrenado listo para query()
+            Instancia de GRU con modelo entrenado listo para query()
         
         Example:
-            gru_model = GRUNet.load("src/backend/models/p300/gru_20251109_143022.pkl")
-            predictions = GRUNet.query(gru_model, sequences)
+            gru_model = GRU.load("src/backend/models/p300/gru_20251109_143022.pkl")
+            predictions = GRU.query(gru_model, sequences)
         """
         with open(path, 'rb') as f:
             instance = pickle.load(f)
@@ -230,7 +230,7 @@ class GRUNet(BaseModel):
 
         Ejemplo:
             experiment = Experiment._load_latest_experiment()
-            metadata = GRUNet.extract_metadata_from_experiment(experiment.dict(), [0, 1])
+            metadata = GRU.extract_metadata_from_experiment(experiment.dict(), [0, 1])
         """
         transforms = experiment_dict.get("transform", [])
         if not transforms:
@@ -326,7 +326,7 @@ class GRUNet(BaseModel):
     @classmethod
     def train(
         cls,
-        instance: "GRUNet",
+        instance: "GRU",
         xTest: List[str],
         yTest: List[str],
         xTrain: List[str],
@@ -345,7 +345,7 @@ class GRUNet(BaseModel):
         Internamente delega a fit() para evitar duplicación de código.
 
         Args:
-            instance: Instancia de GRUNet con arquitectura configurada
+            instance: Instancia de GRU con arquitectura configurada
             xTest: Lista de rutas a archivos .npy de test
             yTest: Lista de rutas a archivos .npy con etiquetas de test
             xTrain: Lista de rutas a archivos .npy de entrenamiento
@@ -384,7 +384,7 @@ class GRUNet(BaseModel):
     @classmethod
     def fit(
         cls,
-        instance: "GRUNet",
+        instance: "GRU",
         xTest: List[str],
         yTest: List[str],
         xTrain: List[str],
@@ -396,6 +396,8 @@ class GRUNet(BaseModel):
         lr: float = 1e-3,
         return_history: bool = True,
         model_label: Optional[str] = None,
+        *,
+        verbose: bool = True,
     ) -> TrainResult:
         """Entrena y devuelve paquete TrainResult (modelo + métricas + historia).
 
@@ -465,12 +467,12 @@ class GRUNet(BaseModel):
             X_te_padded = pad_sequences(seq_te, max_len_te, pad_value)  # (N_te, T_te, F)
 
             # ------- Construcción del modelo con TensorFlow/Keras -------
-            def build_gru_model(spec: GRUNet, input_shape: Tuple[int, int]) -> keras.Model:
+            def build_gru_model(spec: GRU, input_shape: Tuple[int, int]) -> keras.Model:
                 """
                 Construye modelo GRU usando Keras.
 
                 Args:
-                    spec: Especificación GRUNet
+                    spec: Especificación GRU
                     input_shape: (max_seq_len, feature_dim)
                 """
                 model_layers = []
@@ -557,7 +559,7 @@ class GRUNet(BaseModel):
                 # Classification layer
                 outputs = layers.Dense(spec.classification.units, activation='softmax', name='classification')(x)
 
-                return keras.Model(inputs=inputs, outputs=outputs, name='GRUNet')
+                return keras.Model(inputs=inputs, outputs=outputs, name='GRU')
 
             # Construir modelo
             model = build_gru_model(instance, input_shape=(X_tr_padded.shape[1], in_F))
@@ -677,7 +679,7 @@ class GRUNet(BaseModel):
     @classmethod
     def query(
         cls,
-        instance: "GRUNet",
+        instance: "GRU",
         data: List[NDArray],
         metadata_list: Optional[List[dict]] = None,
         batch_size: int = 64
@@ -686,7 +688,7 @@ class GRUNet(BaseModel):
         Realiza inferencia con el modelo GRU entrenado.
 
         Args:
-            instance: Instancia de GRUNet con modelo entrenado (_tf_model debe existir)
+            instance: Instancia de GRU con modelo entrenado (_tf_model debe existir)
             data: Lista de secuencias como NDArray (cada una con shape (T, F))
             metadata_list: Lista opcional de diccionarios con metadatos (misma estructura que train)
             batch_size: Tamaño de batch para predicción
@@ -743,14 +745,14 @@ class GRUNet(BaseModel):
 
 
 # Alias for backward compatibility
-GRU = GRUNet
+
 
 
 # ======================= Ejemplo de uso =======================
 """
 # Ejemplo 1: Construcción básica de modelo GRU
 
-from backend.classes.ClasificationModel.GRU import GRUNet, GRULayer, SequenceEncoder, TemporalPooling, DenseLayer, ActivationFunction
+from backend.classes.ClasificationModel.GRU import GRU, GRULayer, SequenceEncoder, TemporalPooling, DenseLayer, ActivationFunction
 
 # Configurar capas GRU
 gru1 = GRULayer(
@@ -800,7 +802,7 @@ classification = DenseLayer(
 )
 
 # Construir modelo completo
-gru_net = GRUNet(
+gru_net = GRU(
     encoder=encoder,
     pooling=pooling,
     fc_layers=fc_layers,
@@ -813,11 +815,11 @@ from backend.classes.Experiment import Experiment
 
 # Extraer metadatos desde Experiment
 experiment = Experiment._load_latest_experiment()
-metadata_train = GRUNet.extract_metadata_from_experiment(experiment.dict(), transform_indices=[0, 1])
-metadata_test = GRUNet.extract_metadata_from_experiment(experiment.dict(), transform_indices=[0])
+metadata_train = GRU.extract_metadata_from_experiment(experiment.dict(), transform_indices=[0, 1])
+metadata_test = GRU.extract_metadata_from_experiment(experiment.dict(), transform_indices=[0])
 
 # Entrenar modelo
-metrics = GRUNet.train(
+metrics = GRU.train(
     gru_net,
     xTest=["path/to/test1.npy"],
     yTest=["path/to/test1_label.npy"],
@@ -851,7 +853,7 @@ metadata_test = [
     }
 ]
 
-metrics = GRUNet.train(
+metrics = GRU.train(
     gru_net,
     xTest=["path/to/test1.npy"],
     yTest=["path/to/test1_label.npy"],
@@ -865,7 +867,7 @@ metrics = GRUNet.train(
 )
 
 # Ejemplo 4: Sin metadatos (fallback heurístico)
-metrics = GRUNet.train(
+metrics = GRU.train(
     gru_net,
     xTest=["path/to/test1.npy"],
     yTest=["path/to/test1_label.npy"],

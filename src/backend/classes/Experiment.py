@@ -1214,6 +1214,115 @@ class Experiment(BaseModel):
         return transform_class(**config)
 
     @classmethod
+    def normalize_event_shapes(
+        cls,
+        cache_paths: List[str],
+        verbose: bool = False
+    ) -> List[str]:
+        """
+        Normaliza todos los eventos al mínimo número de frames.
+        Trunca todos los archivos .npy al número mínimo de frames encontrado.
+
+        Args:
+            cache_paths: Lista de rutas a archivos .npy procesados
+            verbose: Mostrar información de debug
+
+        Returns:
+            Lista de cache_paths (misma que la entrada, archivos modificados in-place)
+        """
+        import numpy as np
+        from pathlib import Path
+
+        if not cache_paths:
+            return cache_paths
+
+        # ========== PASO 1: Encontrar mínimo de frames ==========
+        shapes = []
+        valid_paths = []
+
+        for path in cache_paths:
+            if not Path(path).exists():
+                if verbose:
+                    print(f"⚠️ [normalize_event_shapes] Archivo no existe: {path}")
+                continue
+
+            try:
+                data = np.load(path, allow_pickle=True)
+                shapes.append(data.shape)
+                valid_paths.append(path)
+            except Exception as e:
+                if verbose:
+                    print(f"⚠️ [normalize_event_shapes] Error cargando {Path(path).name}: {e}")
+                    print(f"   Archivo probablemente corrupto, será omitido")
+                continue
+
+        if not shapes:
+            return cache_paths
+
+        # Verificar consistencia de dimensionalidad
+        dims = [len(s) for s in shapes]
+        unique_dims = set(dims)
+
+        if len(unique_dims) > 1:
+            if verbose:
+                print(f"\n⚠️ [normalize_event_shapes] ADVERTENCIA: Dimensionalidades inconsistentes detectadas:")
+                print(f"   Dimensiones encontradas: {unique_dims}")
+                print(f"   Esto indica que hay archivos de diferentes transformaciones mezclados en el cache")
+                print(f"   Se recomienda limpiar el cache y regenerar")
+
+        # Verificar si hay eventos 3D con diferentes números de frames
+        shapes_3d = [s for s in shapes if len(s) == 3]
+        if not shapes_3d:
+            # No hay eventos 3D, no necesitamos normalizar
+            return cache_paths
+
+        frame_counts = [s[0] for s in shapes_3d]
+        unique_frames = set(frame_counts)
+
+        if len(unique_frames) <= 1:
+            # Todos tienen el mismo número de frames
+            if verbose:
+                print(f"✅ [normalize_event_shapes] Todos los eventos 3D tienen {frame_counts[0]} frames")
+            return cache_paths
+
+        # Encontrar mínimo
+        min_frames = min(frame_counts)
+
+        if verbose:
+            print(f"\n[normalize_event_shapes] ⚠️  Detectadas diferentes duraciones:")
+            print(f"   Frames encontrados: {sorted(unique_frames)}")
+            print(f"   Normalizando a mínimo: {min_frames} frames")
+
+        # ========== PASO 2: Truncar todos al mínimo ==========
+        truncated_count = 0
+        for path in valid_paths:
+            if not Path(path).exists():
+                continue
+
+            data = np.load(path, allow_pickle=True)
+
+            # Solo truncar si es 3D y tiene más frames que el mínimo
+            if data.ndim == 3 and data.shape[0] > min_frames:
+                # Truncar señal
+                data_truncated = data[:min_frames, :, :]
+                np.save(path, data_truncated)
+
+                # También truncar labels si existen
+                labels_path = str(Path(path).parent / f"{Path(path).stem}_labels.npy")
+                if Path(labels_path).exists():
+                    labels = np.load(labels_path, allow_pickle=True)
+                    if len(labels) > min_frames:
+                        labels_truncated = labels[:min_frames]
+                        np.save(labels_path, labels_truncated)
+
+                truncated_count += 1
+
+        if verbose:
+            print(f"   Truncados: {truncated_count}/{len(cache_paths)} eventos")
+
+        return cache_paths
+
+    @classmethod
     def apply_history_pipeline(
         cls,
         file_path: str,
@@ -2207,6 +2316,17 @@ class Experiment(BaseModel):
         if verbose:
             print(f"\n🔧 Procesando split TEST...")
         processed_test = process_events(test_events, test_labels, "TEST")
+
+        # ========== NORMALIZAR SHAPES DE EVENTOS ==========
+        # Asegurar que todos los eventos tengan el mismo número de frames
+        if verbose:
+            print(f"\n🔧 Normalizando shapes de eventos...")
+
+        all_cache_paths = []
+        all_cache_paths.extend([p["cache_path"] for p in processed_train if "cache_path" in p])
+        all_cache_paths.extend([p["cache_path"] for p in processed_test if "cache_path" in p])
+
+        Experiment.normalize_event_shapes(all_cache_paths, verbose=verbose)
 
         # Get pipeline summary
         # IMPORTANTE: Usar Experiment explícitamente

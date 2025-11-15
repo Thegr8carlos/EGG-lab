@@ -65,10 +65,6 @@ class InputAdapter(BaseModel):
         )
     )
     scale: ScaleMode = Field("standard", description="'none' o 'standard' (z-score por muestra).")
-    allow_mixed_dims: bool = Field(
-        False,
-        description="Si True, permite que cada archivo tenga forma distinta (si es 'flatten', se rechaza por no poder apilar)."
-    )
 
     def transform_one(self, x: NDArray) -> NDArray:
         """
@@ -103,32 +99,39 @@ class InputAdapter(BaseModel):
     def transform_batch(self, paths: Sequence[str]) -> NDArray:
         """
         Carga una lista de rutas .npy y devuelve una matriz (N, D).
-        Si las longitudes varían y allow_mixed_dims=True, se rellena a la máxima con ceros.
+        Todas las muestras deben tener la misma dimensión.
         """
         vecs: List[NDArray] = []
         dims: List[int] = []
-        for p in paths:
+
+        for i, p in enumerate(paths):
             if (not os.path.exists(p)) or (not p.endswith(".npy")):
                 raise FileNotFoundError(f"Archivo inválido: {p} (debe existir y ser .npy)")
             x = np.load(p, allow_pickle=True)
             v = self.transform_one(x)
             vecs.append(v)
-            dims.append(int(v.shape[0]))
+            dims.append(v.shape[0])
 
-        if len(set(dims)) == 1:
-            return np.stack(vecs, axis=0)
+            if i < 3:  # Debug primeras 3 muestras
+                print(f"[InputAdapter] Muestra {i}: path={p}")
+                print(f"[InputAdapter]   - shape original x: {x.shape}")
+                print(f"[InputAdapter]   - shape después de transform_one: {v.shape}")
 
-        if not self.allow_mixed_dims:
+        # Verificar que todas las dimensiones sean iguales
+        unique_dims = set(dims)
+        if len(unique_dims) > 1:
+            print(f"\n❌ [InputAdapter] ERROR: Dimensiones inconsistentes detectadas:")
+            print(f"   Dimensiones encontradas: {unique_dims}")
+            print(f"   Distribución: {dict((d, dims.count(d)) for d in unique_dims)}")
+            for i, (p, d) in enumerate(zip(paths, dims)):
+                if i < 10:  # Mostrar primeros 10
+                    print(f"   [{i}] dim={d}, path={p}")
             raise ValueError(
-                "Las muestras tienen distinta longitud de features. "
-                "Activa allow_mixed_dims=True para auto-padding."
+                f"Las muestras tienen diferentes dimensiones de features: {unique_dims}. "
+                f"Todas las ventanas deben tener el mismo tamaño después de la transformación."
             )
 
-        D = max(dims)
-        out = np.zeros((len(vecs), D), dtype=np.float32)
-        for i, v in enumerate(vecs):
-            out[i, : v.shape[0]] = v
-        return out
+        return np.stack(vecs, axis=0)
 
 # ========= SVNN (MLP) =========
 class SVNN(Classifier):
@@ -441,6 +444,7 @@ class SVNN(Classifier):
         epochs: Optional[int] = None,
         batch_size: Optional[int] = None,
         learning_rate: Optional[float] = None,
+        verbose: bool = True,
     ) -> TrainResult:
         """Entrena y devuelve paquete TrainResult (modelo + métricas + historia).
 

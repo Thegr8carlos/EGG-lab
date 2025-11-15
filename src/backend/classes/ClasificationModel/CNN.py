@@ -568,6 +568,7 @@ class CNN(BaseModel):
         epochs: Optional[int] = None,
         batch_size: Optional[int] = None,
         learning_rate: Optional[float] = None,
+        verbose: bool = True,
     ) -> TrainResult:
         """
         Entrena y devuelve paquete TrainResult (modelo + métricas + historia).

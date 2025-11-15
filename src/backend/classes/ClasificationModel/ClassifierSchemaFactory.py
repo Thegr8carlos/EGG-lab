@@ -3,8 +3,8 @@ import json
 from typing import Dict, Any, Type
 from pydantic import BaseModel
 from backend.classes.ClasificationModel.CNN import CNN
-from backend.classes.ClasificationModel.LSTM import LSTMNet as LSTM
-from backend.classes.ClasificationModel.GRU import GRUNet as GRU
+from backend.classes.ClasificationModel.LSTM import  LSTM
+from backend.classes.ClasificationModel.GRU import  GRU
 from backend.classes.ClasificationModel.SVM import SVM
 from backend.classes.ClasificationModel.SVNN import SVNN
 from backend.classes.ClasificationModel.RandomForest import RandomForest

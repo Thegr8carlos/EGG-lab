@@ -426,11 +426,14 @@ def create_config_card(model_name: str, schema: Dict[str, Any], classifier_type:
     Usa el sistema interactivo para redes neuronales y formulario simple para modelos clásicos.
 
     Args:
-        model_name: Nombre del modelo (LSTM, GRU, SVM, etc.)
+        model_name: Nombre del modelo (LSTM, GRU, CNN, SVNN, SVM, RandomForest)
         schema: Schema del modelo
         classifier_type: Tipo de clasificador - "P300" o "InnerSpeech" (default: "P300")
     """
     # Determinar si es una red neuronal compleja (usa sistema interactivo)
+    # Según ClassifierSchemaFactory:
+    # - Redes neuronales con construcción interactiva: LSTM, GRU, CNN, SVNN
+    # - Modelos clásicos con formulario simple: SVM, RandomForest
     is_neural_network = model_name in ["LSTM", "GRU", "CNN", "SVNN"]
 
     if is_neural_network:
@@ -446,15 +449,9 @@ def create_config_card(model_name: str, schema: Dict[str, Any], classifier_type:
         )
 
         return html.Div([
-            # Store para guardar el tipo de clasificador - se limpia al cambiar de página
-            # ✅ Ahora con pattern matching para evitar conflictos entre modelos
-            # SVM → {"type": "classifier-type-store", "model": "SVM"}
-            # LSTM → {"type": "classifier-type-store", "model": "LSTM"}
-            dcc.Store(
-                id={"type": "classifier-type-store", "model": model_name},
-                data=classifier_type,
-                storage_type='memory'  # ✅ Cambiar a 'memory' para limpiar entre páginas
-            ),
+            # NOTA: El classifier-type-store ahora se crea estáticamente en cada página
+            # (modelado_p300.py y modelado_inner_speech.py) para evitar problemas de timing
+            # con callbacks que usan pattern matching
 
             dbc.Card([
                 dbc.CardHeader([
@@ -724,30 +721,20 @@ def test_classic_model_configuration(n_clicks, input_values, input_ids, classifi
                     # Determinar model_type a partir de classifier_type
                     model_type_for_pipeline = "p300" if classifier_type == "P300" else "inner"
 
-                    # Para modelos clásicos (SVM, etc.), usar generate_pipeline_dataset que devuelve rutas
-                    # Para modelos de deep learning, usar generate_model_dataset que devuelve arrays procesados
-                    if model_name in ["SVM", "RandomForest", "KNN", "LogisticRegression"]:
-                        # Modelos clásicos: usar pipeline legacy que devuelve rutas
-                        mini_dataset = Experiment.generate_pipeline_dataset(
-                            dataset_path=dataset_path,
-                            n_train=10,
-                            n_test=5,
-                            selected_classes=None,
-                            force_recalculate=False,
-                            verbose=False,
-                            model_type=model_type_for_pipeline  # ✅ Pasar model_type
-                        )
-                    else:
-                        # Modelos de deep learning: usar pipeline de modelos que devuelve arrays
-                        mini_dataset = Experiment.generate_model_dataset(
-                            dataset_path=dataset_path,
-                            model_type=model_type_for_pipeline,
-                            n_train=10,
-                            n_test=5,
-                            selected_classes=None,
-                            force_recalculate=False,
-                            verbose=False
-                        )
+                    # Según ClassifierSchemaFactory:
+                    # - Modelos clásicos (formulario simple): SVM, RandomForest -> usan generate_pipeline_dataset
+                    # - Redes neuronales (sistema interactivo): LSTM, GRU, CNN, SVNN -> usan generate_model_dataset
+                   
+                    mini_dataset = Experiment.generate_pipeline_dataset(
+                        dataset_path=dataset_path,
+                        n_train=10,
+                        n_test=5,
+                        selected_classes=None,
+                        force_recalculate=False,
+                        verbose=False,
+                        model_type=model_type_for_pipeline  # ✅ Pasar model_type
+                    )
+                    
 
                     if mini_dataset["n_train"] < 3:
                         compilation_error = "El pipeline de preprocesamiento no generó suficientes datos válidos"

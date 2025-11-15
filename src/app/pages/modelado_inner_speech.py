@@ -573,6 +573,13 @@ layout = html.Div([
     dcc.Store(id=TRAIN_METRICS_STORE_ID, storage_type='session'),
     dcc.Interval(id=TRAIN_INTERVAL_ID, interval=1000, disabled=True),
 
+    # Stores con pattern matching para classifier-type de cada modelo (para entrenamiento local)
+    *[dcc.Store(
+        id={"type": "classifier-type-store", "model": model_name},
+        data="InnerSpeech",
+        storage_type='memory'
+    ) for model_name in MODEL_NAMES],
+
     # ← NUEVO: Stores para visualización de transformaciones
     dcc.Store(id=DATA_STORE_IS),
     dcc.Store(id=TRANSFORMED_DATA_STORE_IS),

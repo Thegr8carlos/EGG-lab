@@ -618,7 +618,7 @@ def build_model_config_from_layers(
         config["batch_size"] = batch_size
         config["hidden_size"] = config.get("hidden_size", 64)  # Default del test
         config["classification_units"] = num_classes
-        config["input_adapter"] = InputAdapter(reduce_3d="flatten", scale="standard")  # ← flatten requerido para contrato path-based
+        config["input_adapter"] = InputAdapter(reduce_3d="flatten", scale="standard")
         config["fc_activation_common"] = ActivationFunction(kind="relu")
 
         # ✅ Las capas densas van en "layers" (NO "hidden_layers")
@@ -2842,26 +2842,21 @@ def register_interactive_callbacks():
                         model_type_for_pipeline = "p300" if classifier_type == "P300" else "inner"
                         
                         # Generar mini dataset - usar método apropiado según tipo de modelo
-                        if model_type in ["SVM", "KMeans"]:  # Modelos clásicos necesitan rutas de archivos
-                            mini_dataset = Experiment.generate_pipeline_dataset(
-                                dataset_path=dataset_path,
-                                model_type=model_type_for_pipeline,
-                                n_train=10,
-                                n_test=5,
-                                selected_classes=None,
-                                force_recalculate=False,
-                                verbose=False  # Sin output en consola
-                            )
-                        else:  # Redes neuronales usan arrays procesados
-                            mini_dataset = Experiment.generate_model_dataset(
-                                dataset_path=dataset_path,
-                                model_type=model_type_for_pipeline,
-                                n_train=10,
-                                n_test=5,
-                                selected_classes=None,
-                                force_recalculate=False,
-                                verbose=False  # Sin output en consola
-                            )
+                        # Según ClassifierSchemaFactory:
+                        # - Modelos clásicos (formulario simple): SVM, RandomForest
+                        # - Redes neuronales (sistema interactivo): LSTM, GRU, CNN, SVNN
+                        
+                        mini_dataset = Experiment.generate_pipeline_dataset(
+                            dataset_path=dataset_path,
+                            n_train=10,
+                            n_test=5,
+                            selected_classes=None,
+                            force_recalculate=False,
+                            verbose=False,
+                            model_type=model_type_for_pipeline  # ✅ Pasar model_type
+                        )
+                            
+                       
 
                         print(f"✅ Datos preparados: {mini_dataset['n_train']} train + {mini_dataset['n_test']} test")
 

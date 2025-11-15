@@ -959,7 +959,7 @@ def run_local_training(n_clicks, selected_path, subsets_list, classifier_type):
         # Aplicar pipeline a train y test
         xTrain, yTrain = apply_pipeline_to_events(event_paths_train, event_labels_train, "TRAIN")
         xTest, yTest = apply_pipeline_to_events(event_paths_test, event_labels_test, "TEST")
-        
+
         if len(xTrain) == 0 or len(xTest) == 0:
             return (
                 dbc.Alert(
@@ -971,6 +971,12 @@ def run_local_training(n_clicks, selected_path, subsets_list, classifier_type):
                 ),
                 no_update
             )
+
+        # ========== NORMALIZAR SHAPES DE EVENTOS ==========
+        # Asegurar que todos los eventos tengan el mismo número de frames
+        print(f"\n🔧 [LocalTraining] Normalizando shapes de eventos...")
+        all_cache_paths = xTrain + xTest
+        Experiment.normalize_event_shapes(all_cache_paths, verbose=True)
 
         print(f"\n{'='*70}")
         print(f"[LocalTraining] RESUMEN DE DATOS PREPARADOS")
@@ -1016,14 +1022,21 @@ def run_local_training(n_clicks, selected_path, subsets_list, classifier_type):
         elif experiment.innerSpeachClassifier and isinstance(experiment.innerSpeachClassifier, dict):
             print(f"[LocalTraining] DEBUG - innerSpeachClassifier keys: {list(experiment.innerSpeachClassifier.keys())}")
             for name, config in experiment.innerSpeachClassifier.items():
+                print(f"[LocalTraining] DEBUG - Procesando modelo: {name}")
+                print(f"[LocalTraining] DEBUG - Config type: {type(config)}")
                 model_name = name
                 classifier_class = ClassifierSchemaFactory.available_classifiers.get(name)
+                print(f"[LocalTraining] DEBUG - Classifier class found: {classifier_class}")
                 if classifier_class:
                     config_clean = {k: v for k, v in config.items() if k != "transform"}
+                    print(f"[LocalTraining] DEBUG - Config clean keys: {list(config_clean.keys())}")
                     try:
                         model_instance = classifier_class(**config_clean)
+                        print(f"[LocalTraining] DEBUG - Instancia creada exitosamente")
                     except Exception as e:
                         print(f"[LocalTraining] DEBUG - Error creando instancia: {e}")
+                        import traceback
+                        traceback.print_exc()
                 break
         
         if not model_instance:
@@ -1052,13 +1065,13 @@ def run_local_training(n_clicks, selected_path, subsets_list, classifier_type):
         
         # Obtener clase del modelo para llamar a train()
         classifier_class = ClassifierSchemaFactory.available_classifiers.get(model_name)
-        
-        # Determinar si el modelo acepta hiperparámetros de entrenamiento
-        # Modelos basados en redes neuronales: LSTM, GRU, CNN, Transformer
-        # Modelos clásicos (SVM-based): SVNN, RandomForest, etc.
-        neural_network_models = ['LSTM', 'GRU', 'GRUNet', 'CNN', 'Transformer', 'EEGNet', 'DeepConvNet']
-        is_neural_network = model_name in neural_network_models
-        
+
+        # Determinar si el modelo acepta hiperparámetros de entrenamiento como parámetros del método train()
+        # Solo LSTM y GRU aceptan epochs/batch_size/lr en el método train()
+        # CNN y SVNN usan la configuración de la instancia directamente
+        models_with_train_params = ['LSTM', 'GRU']
+        accepts_train_params = model_name in models_with_train_params
+
         # Llamar a train() con parámetros apropiados según el tipo de modelo
         try:
             print(f"\n{'='*70}")
@@ -1075,14 +1088,16 @@ def run_local_training(n_clicks, selected_path, subsets_list, classifier_type):
                 print(f"  Ejemplo yTrain[0]: {yTrain[0]}")
             print(f"{'='*70}\n")
 
-            # Entrenar SIN guardar automáticamente (sin model_label)
-            if is_neural_network:
-                # Extraer hiperparámetros para redes neuronales
-                epochs = getattr(model_instance, 'epochs', 10)
-                batch_size = getattr(model_instance, 'batch_size', 32)
-                lr = getattr(model_instance, 'learning_rate', 0.001)
+            # Extraer hiperparámetros de la instancia (para todos los modelos)
+            epochs = getattr(model_instance, 'epochs', 10)
+            batch_size = getattr(model_instance, 'batch_size', 32)
+            lr = getattr(model_instance, 'learning_rate', 0.001)
 
-                print(f"[LocalTraining] Entrenando red neuronal con epochs={epochs}, batch_size={batch_size}, lr={lr}")
+            # Entrenar SIN guardar automáticamente (sin model_label)
+            if accepts_train_params:
+                # Solo LSTM y GRU: pasar hiperparámetros al método train()
+
+                print(f"[LocalTraining] Entrenando {model_name} con epochs={epochs}, batch_size={batch_size}, lr={lr}")
 
                 metrics = classifier_class.train(
                     model_instance,
@@ -1098,8 +1113,8 @@ def run_local_training(n_clicks, selected_path, subsets_list, classifier_type):
                     model_label=None  # NO guardamos automáticamente
                 )
             else:
-                # Modelos clásicos: usar fit() SIN auto-guardar
-                print(f"[LocalTraining] Entrenando modelo clásico {model_name} con fit()")
+                # CNN, SVNN, SVM, RandomForest: usan configuración de la instancia
+                print(f"[LocalTraining] Entrenando {model_name} (configuración en instancia)")
 
                 # Verificar si tiene método fit
                 if hasattr(classifier_class, 'fit'):
@@ -1170,7 +1185,7 @@ def run_local_training(n_clicks, selected_path, subsets_list, classifier_type):
 
             # Hiperparámetros
             hyperparams = {}
-            if is_neural_network:
+            if accepts_train_params:
                 hyperparams = {
                     "epochs": epochs,
                     "batch_size": batch_size,

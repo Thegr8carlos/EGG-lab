@@ -84,7 +84,8 @@ class Transform(BaseModel):
             else:
                 unique_classes = sorted(set(labels_array))
 
-            class_to_id = {cls: idx + 1 for idx, cls in enumerate(unique_classes)}  # +1 para empezar desde 1
+            # Mapeo 0-indexed para compatibilidad con sparse_categorical_crossentropy
+            class_to_id = {cls: idx for idx, cls in enumerate(unique_classes)}
             id_to_class = {idx: cls for cls, idx in class_to_id.items()}
 
             numeric_labels = np.array([class_to_id[label] for label in labels_array], dtype=int)
@@ -92,13 +93,13 @@ class Transform(BaseModel):
             # Solo contar las clases presentes en labels_array
             present_classes = set(labels_array)
             class_counts = {f"{cls} ({class_to_id[cls]})": np.sum(labels_array == cls) for cls in present_classes}
-            print(f"[Transform.relabel] Inner Speech multiclase: {len(unique_classes)} clases totales (IDs desde 1) → presentes: {class_counts}")
+            print(f"[Transform.relabel] Inner Speech multiclase: {len(unique_classes)} clases totales (IDs desde 0) → presentes: {class_counts}")
             return numeric_labels, id_to_class
 
         else:
             raise ValueError(
                 f"model_type desconocido: '{self.model_type}'. "
-                f"Use 'p300' (binario 0/1) o 'inner' (multiclase desde 1)."
+                f"Use 'p300' (binario 0/1) o 'inner' (multiclase desde 0)."
             )
 
 
