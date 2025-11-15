@@ -35,10 +35,10 @@ class TransformSchemaFactory:
                 # Fallback Pydantic v1
                 schema = model.schema()
 
-            # Remover 'id' y 'model_type' del schema publicado
+            # Remover 'id', 'model_type' y 'all_classes' del schema publicado
             # Estos campos se inyectan automáticamente desde el callback según el contexto
             props = schema.get("properties") or {}
-            fields_to_remove = ["id", "model_type"]
+            fields_to_remove = ["id", "model_type", "all_classes"]
 
             for field in fields_to_remove:
                 if field in props:
@@ -240,6 +240,10 @@ def TransformCallbackRegister(boton_id: str, inputs_map: dict, model_type: str =
         elif "model_type" not in datos:
             # Si no se especificó, dejar None (sin re-etiquetado)
             datos["model_type"] = None
+
+        # ⭐ Inyectar all_classes (se sobrescribirá en apply_history_pipeline con clases reales)
+        if "all_classes" not in datos:
+            datos["all_classes"] = None
 
         try:
             from pathlib import Path

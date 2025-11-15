@@ -427,6 +427,10 @@ class Experiment(BaseModel):
         transform_name = transform.__class__.__name__
         transform_data = transform.dict() if isinstance(transform, BaseModel) else vars(transform)
 
+        # ✅ Limpiar all_classes antes de guardar (se inyectará en tiempo de ejecución)
+        if "all_classes" in transform_data:
+            transform_data["all_classes"] = None
+
         # Si no hay clasificador P300 aún, crear estructura básica
         if not experiment.P300Classifier or not isinstance(experiment.P300Classifier, dict):
             experiment.P300Classifier = {
@@ -523,6 +527,10 @@ class Experiment(BaseModel):
 
         transform_name = transform.__class__.__name__
         transform_data = transform.dict() if isinstance(transform, BaseModel) else vars(transform)
+
+        # ✅ Limpiar all_classes antes de guardar (se inyectará en tiempo de ejecución)
+        if "all_classes" in transform_data:
+            transform_data["all_classes"] = None
 
         # Si no hay clasificador Inner Speech aún, crear estructura básica
         if not experiment.innerSpeachClassifier or not isinstance(experiment.innerSpeachClassifier, dict):
@@ -1213,10 +1221,14 @@ class Experiment(BaseModel):
         save_intermediates: bool = True,
         verbose: bool = True,
         model_type: Optional[str] = None,
+        all_classes: Optional[list] = None,
     ) -> Dict[str, Any]:
         """
         Aplica el pipeline histórico bajo el contrato: n filtros + 1 transformación.
         Ver histórico completo solo como referencia; no se ejecutan múltiples transformaciones.
+
+        Args:
+            all_classes: Lista de todas las clases disponibles en el dataset (para mapeo consistente en multiclase)
         """
         import numpy as np, time, hashlib, os, json
         from pathlib import Path
@@ -1257,7 +1269,7 @@ class Experiment(BaseModel):
         if cache_exists and not force_recalculate:
             with open(metadata_file,'r') as f:
                 cached_meta = json.load(f)
-            current_cfg = {"filters": experiment.filters, "transforms": experiment.transform, "model_type": model_type}
+            current_cfg = {"filters": experiment.filters, "transforms": experiment.transform, "model_type": model_type, "all_classes": all_classes}
             current_hash = hashlib.md5(json.dumps(current_cfg, sort_keys=True).encode()).hexdigest()
             if cached_meta.get('pipeline_hash') == current_hash:
                 if verbose:
@@ -1353,6 +1365,13 @@ class Experiment(BaseModel):
                     if original_model_type != model_type and verbose:
                         print(f"  🔄 Sobrescribiendo model_type: {original_model_type} → {model_type}")
                     tinst.model_type = model_type
+
+                # ✅ SOBRESCRIBIR all_classes si se pasó como parámetro
+                # Esto permite mapeo consistente de clases en multiclase
+                if all_classes is not None and hasattr(tinst, 'all_classes'):
+                    tinst.all_classes = all_classes
+                    if verbose:
+                        print(f"  🏷️  Clases disponibles para mapeo: {sorted(all_classes)}")
 
                 from backend.classes.FeatureExtracture.TransformSchemaFactory import TransformSchemaFactory
                 tclass = TransformSchemaFactory.available_transforms[sel_name]
@@ -1866,7 +1885,8 @@ class Experiment(BaseModel):
         n_test: int = 5,
         selected_classes: Optional[List[str]] = None,
         force_recalculate: bool = False,
-        verbose: bool = True
+        verbose: bool = True,
+        model_type: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         [LEGACY - DEPRECATED] Usa generate_model_dataset() en su lugar.
@@ -2120,13 +2140,22 @@ class Experiment(BaseModel):
         # Esto permite usar el mismo dataset (inner_speech) para entrenar AMBOS modelos:
         #   - P300: clasificación binaria Target/NonTarget (rest=0, otros=1)
         #   - Inner: clasificación multiclase entre direcciones (abajo=1, arriba=2, etc)
-        model_type_for_pipeline = None
-        if experiment.P300Classifier:
+
+        # Si se pasó model_type como parámetro, usarlo (tiene prioridad)
+        # De lo contrario, determinarlo del experimento
+        if model_type is not None:
+            model_type_for_pipeline = model_type
+        elif experiment.P300Classifier:
             model_type_for_pipeline = "p300"
         elif experiment.innerSpeachClassifier:
             model_type_for_pipeline = "inner"
+        else:
+            raise ValueError(
+                "No se pudo determinar el model_type. "
+                "Debe pasar model_type como parámetro o tener un clasificador configurado en el experimento."
+            )
 
-        if verbose and model_type_for_pipeline:
+        if verbose:
             print(f"🏷️  Tipo de re-etiquetado: {model_type_for_pipeline.upper()}")
             if model_type_for_pipeline == "p300":
                 print(f"     - rest → NonTarget (0)")
@@ -2148,7 +2177,8 @@ class Experiment(BaseModel):
                         force_recalculate=force_recalculate,
                         save_intermediates=False,
                         verbose=False,
-                        model_type=model_type_for_pipeline  # ← Pasar model_type para aplicar transform correcta
+                        model_type=model_type_for_pipeline,  # ← Pasar model_type para aplicar transform correcta
+                        all_classes=class_names_sorted  # ← Pasar todas las clases para mapeo consistente
                     )
 
                     processed.append({

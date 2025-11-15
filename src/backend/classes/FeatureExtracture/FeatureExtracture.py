@@ -11,6 +11,10 @@ class Transform(BaseModel):
         None,
         description="Tipo de modelo: 'p300' (binario 0/1) o 'inner' (multiclase desde 1). Si None, no se re-etiqueta."
     )
+    all_classes: Optional[list] = Field(
+        None,
+        description="Lista de todas las clases posibles del dataset (para mapeo consistente en multiclase)"
+    )
 
     def get_sp(self) -> float:
         return self.sp
@@ -18,12 +22,13 @@ class Transform(BaseModel):
     def get_id(self) -> str:
         return self.id
 
-    def relabel_for_model(self, labels_array: np.ndarray) -> Tuple[np.ndarray, Dict[int, str]]:
+    def relabel_for_model(self, labels_array: np.ndarray, all_classes: Optional[list] = None) -> Tuple[np.ndarray, Dict[int, str]]:
         """
         Re-etiqueta ventanas a formato numérico según model_type.
 
         Args:
             labels_array: Array de etiquetas string (e.g., ["Target", "rest", "word_1", ...])
+            all_classes: Lista opcional de todas las clases posibles del dataset (para mapeo consistente en multiclase)
 
         Returns:
             Tuple[np.ndarray, Dict[int, str]]:
@@ -72,15 +77,22 @@ class Transform(BaseModel):
 
         # Caso: Inner Speech - Multiclase (desde 1, sin 0)
         elif self.model_type.lower() == "inner":
-            # Mapeo: cada clase única → ID desde 1 (alfabéticamente)
-            unique_classes = sorted(set(labels_array))
+            # Usar all_classes si está disponible para mapeo consistente entre eventos
+            # De lo contrario, usar las clases únicas del array actual
+            if all_classes is not None:
+                unique_classes = sorted(set(all_classes))
+            else:
+                unique_classes = sorted(set(labels_array))
+
             class_to_id = {cls: idx + 1 for idx, cls in enumerate(unique_classes)}  # +1 para empezar desde 1
             id_to_class = {idx: cls for cls, idx in class_to_id.items()}
 
             numeric_labels = np.array([class_to_id[label] for label in labels_array], dtype=int)
 
-            class_counts = {f"{cls} ({class_to_id[cls]})": np.sum(labels_array == cls) for cls in unique_classes}
-            print(f"[Transform.relabel] Inner Speech multiclase: {len(unique_classes)} clases (IDs desde 1) → {class_counts}")
+            # Solo contar las clases presentes en labels_array
+            present_classes = set(labels_array)
+            class_counts = {f"{cls} ({class_to_id[cls]})": np.sum(labels_array == cls) for cls in present_classes}
+            print(f"[Transform.relabel] Inner Speech multiclase: {len(unique_classes)} clases totales (IDs desde 1) → presentes: {class_counts}")
             return numeric_labels, id_to_class
 
         else:

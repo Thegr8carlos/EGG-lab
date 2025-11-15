@@ -657,9 +657,10 @@ def display_subset_info(selected_path, subsets_list):
     State({"type": "subset-seed", "model": MATCH}, "value"),
     State("selected-dataset", "data"),
     State({"type": "local-subsets-list", "model": MATCH}, "data"),
+    State({"type": "classifier-type-store", "model": MATCH}, "data"),  # ✅ Agregar classifier_type
     prevent_initial_call=True
 )
-def create_new_subset(n_clicks, percentage, train_split, seed, selected_dataset, current_subsets):
+def create_new_subset(n_clicks, percentage, train_split, seed, selected_dataset, current_subsets, classifier_type):
     """
     Crea un nuevo subset del dataset.
     """
@@ -680,14 +681,30 @@ def create_new_subset(n_clicks, percentage, train_split, seed, selected_dataset,
     
     try:
         from backend.classes.dataset import create_subset_dataset
-        
+
+        # Verificar que classifier_type esté definido
+        if not classifier_type:
+            return (
+                dbc.Alert(
+                    "Error: No se pudo determinar el tipo de clasificador. Recarga la página.",
+                    color="danger",
+                    dismissable=True
+                ),
+                no_update,
+                no_update
+            )
+
+        # Determinar model_type según classifier_type
+        model_type = "p300" if classifier_type == "P300" else "inner"
+
         # Crear subset
         result = create_subset_dataset(
             dataset_name=selected_dataset,
             percentage=percentage,
             train_split=train_split,
             seed=seed,
-            materialize=False
+            materialize=False,
+            model_type=model_type  # ✅ Pasar model_type para filtrado y balanceo de clases
         )
         
         if result["status"] != 200:
@@ -834,21 +851,30 @@ def run_local_training(n_clicks, selected_path, subsets_list, classifier_type):
         
         print(f"[LocalTraining] Cargados {len(event_paths_train)} eventos train, {len(event_paths_test)} eventos test")
         print(f"[LocalTraining] Aplicando pipeline de transformaciones...")
-        
+
         # ========== PASO 1.5: APLICAR PIPELINE A EVENTOS ==========
         # Los eventos en el manifest son paths a archivos .npy originales
         # Necesitamos aplicar el pipeline (filters + transforms) para obtener las ventanas
-        
+
         # Determinar model_type para el pipeline
         # IMPORTANTE: Usar el classifier_type del modelo, NO el nombre del dataset
         # Esto asegura que el pipeline use el mismo esquema de etiquetado que el modelo espera
-        
+
         # Usar classifier_type inyectado desde el Store del componente
-        classifier_type = classifier_type or "P300"  # Fallback si no está definido
-        
+        # ❌ NO usar fallback - si falta classifier_type, es un error de configuración
+        if not classifier_type:
+            return dbc.Alert(
+                "Error: No se pudo determinar el tipo de clasificador para el entrenamiento. Recarga la página.",
+                color="danger",
+                dismissable=True
+            ), no_update
+
         # Mapear classifier_type a model_type para pipeline
         model_type_for_pipeline = "p300" if classifier_type == "P300" else "inner"
-        
+
+        # ✅ Determinar todas las clases disponibles para mapeo consistente
+        all_classes_available = sorted(set(event_labels_train + event_labels_test))
+
         dataset_name = metadata.get("dataset_name", "")
 
         print(f"\n{'='*70}")
@@ -857,8 +883,9 @@ def run_local_training(n_clicks, selected_path, subsets_list, classifier_type):
         print(f"  Dataset: {dataset_name}")
         print(f"  classifier_type: {classifier_type}")
         print(f"  model_type_for_pipeline: {model_type_for_pipeline}")
+        print(f"  Clases disponibles: {all_classes_available}")
         print(f"{'='*70}\n")
-        
+
         def apply_pipeline_to_events(event_paths, labels, split_name):
             """Aplica el pipeline completo a una lista de eventos y retorna paths a ventanas."""
             import numpy as np
@@ -883,7 +910,8 @@ def run_local_training(n_clicks, selected_path, subsets_list, classifier_type):
                         force_recalculate=False,  # Usar caché si existe
                         save_intermediates=False,
                         verbose=False,
-                        model_type=model_type_for_pipeline
+                        model_type=model_type_for_pipeline,
+                        all_classes=all_classes_available  # ← Pasar clases para mapeo consistente
                     )
 
                     # El resultado contiene cache_path (ventana transformada) y labels_path

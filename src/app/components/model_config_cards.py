@@ -446,14 +446,14 @@ def create_config_card(model_name: str, schema: Dict[str, Any], classifier_type:
         )
 
         return html.Div([
-            # Store para guardar el tipo de clasificador - persiste durante la sesión
+            # Store para guardar el tipo de clasificador - se limpia al cambiar de página
             # ✅ Ahora con pattern matching para evitar conflictos entre modelos
             # SVM → {"type": "classifier-type-store", "model": "SVM"}
             # LSTM → {"type": "classifier-type-store", "model": "LSTM"}
             dcc.Store(
                 id={"type": "classifier-type-store", "model": model_name},
                 data=classifier_type,
-                storage_type='session'
+                storage_type='memory'  # ✅ Cambiar a 'memory' para limpiar entre páginas
             ),
 
             dbc.Card([
@@ -723,7 +723,7 @@ def test_classic_model_configuration(n_clicks, input_values, input_ids, classifi
 
                     # Determinar model_type a partir de classifier_type
                     model_type_for_pipeline = "p300" if classifier_type == "P300" else "inner"
-                    
+
                     # Para modelos clásicos (SVM, etc.), usar generate_pipeline_dataset que devuelve rutas
                     # Para modelos de deep learning, usar generate_model_dataset que devuelve arrays procesados
                     if model_name in ["SVM", "RandomForest", "KNN", "LogisticRegression"]:
@@ -734,7 +734,8 @@ def test_classic_model_configuration(n_clicks, input_values, input_ids, classifi
                             n_test=5,
                             selected_classes=None,
                             force_recalculate=False,
-                            verbose=False
+                            verbose=False,
+                            model_type=model_type_for_pipeline  # ✅ Pasar model_type
                         )
                     else:
                         # Modelos de deep learning: usar pipeline de modelos que devuelve arrays

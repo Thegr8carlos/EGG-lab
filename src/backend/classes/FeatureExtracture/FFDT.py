@@ -213,7 +213,8 @@ class FFTTransform(Transform):
             frame_labels = np.array(majority, dtype=str)
 
             # ===== RE-ETIQUETAR A FORMATO NUMÉRICO =====
-            frame_labels_numeric, id_to_class = instance.relabel_for_model(frame_labels)
+            # Pasar all_classes para mapeo consistente en multiclase
+            frame_labels_numeric, id_to_class = instance.relabel_for_model(frame_labels, all_classes=instance.all_classes)
             print(f"[FFTTransform.apply] Etiquetas convertidas a formato numérico:")
             print(f"   Mapeo: {id_to_class}")
         else:

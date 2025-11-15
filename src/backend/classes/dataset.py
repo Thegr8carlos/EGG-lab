@@ -1858,7 +1858,7 @@ def _load_and_concat(paths: Sequence[str]) -> NDArray:
     return np.concatenate(arrays, axis=0)
 
 
-def create_subset_dataset(dataset_name: str, percentage: float, train_split: float, seed: int = 42, materialize: bool = False):
+def create_subset_dataset(dataset_name: str, percentage: float, train_split: float, seed: int = 42, materialize: bool = False, model_type: str = None):
     """
     Crea un subset del dataset especificado.
 
@@ -1868,6 +1868,7 @@ def create_subset_dataset(dataset_name: str, percentage: float, train_split: flo
         train_split: Porcentaje para entrenamiento (0-100)
         seed: Semilla para reproducibilidad
         materialize: Si crear archivos físicos o solo metadata
+        model_type: Tipo de modelo ('p300' o 'inner') para filtrar y balancear clases
 
     Returns:
         dict: {"status": int, "message": str, "subset_dir": str}
@@ -1920,21 +1921,36 @@ def create_subset_dataset(dataset_name: str, percentage: float, train_split: flo
                 events_by_class[class_name] = []
             events_by_class[class_name].append(event_file)
 
+        # ✅ Filtrar clases según model_type
+        if model_type == "inner":
+            # Para Inner Speech: excluir "rest" (solo abajo, arriba, derecha, izquierda)
+            events_by_class = {k: v for k, v in events_by_class.items() if k.lower() != "rest"}
+            print(f"[create_subset_dataset] Filtradas clases para Inner Speech (sin 'rest')")
+        # Para P300: incluir todas las clases (se re-etiquetarán a Target/NonTarget después)
+
         classes = list(events_by_class.keys())
-        print(f"[create_subset_dataset] Clases encontradas: {classes}")
+        print(f"[create_subset_dataset] Clases seleccionadas: {classes}")
 
         # Configurar seed para reproducibilidad
         random.seed(seed)
         np.random.seed(seed)
 
-        # Seleccionar porcentaje de eventos por clase (estratificado)
+        # ✅ BALANCEO DE CLASES: Tomar el mismo número de muestras por clase
+        # Encontrar la clase con menos muestras
+        min_samples = min(len(events) for events in events_by_class.values())
+
+        # Calcular número de muestras por clase respetando el porcentaje
+        samples_per_class = max(1, int(min_samples * percentage / 100.0))
+
+        print(f"[create_subset_dataset] Balanceando clases: {samples_per_class} muestras por clase")
+
+        # Seleccionar muestras balanceadas
         selected_events = []
         for class_name, class_events in events_by_class.items():
-            n_events = len(class_events)
-            n_selected = max(1, int(n_events * percentage / 100.0))
-            selected = random.sample(class_events, n_selected)
+            # Tomar exactamente samples_per_class de cada clase
+            selected = random.sample(class_events, min(samples_per_class, len(class_events)))
             selected_events.extend(selected)
-            print(f"[create_subset_dataset]   {class_name}: {n_selected}/{n_events} eventos")
+            print(f"[create_subset_dataset]   {class_name}: {len(selected)} eventos")
 
         # Mezclar eventos seleccionados
         random.shuffle(selected_events)
