@@ -118,8 +118,24 @@ class ModelStorage:
 
         snapshot_path = snapshot_dir / "experiment_snapshot.json"
 
+        # Convertir numpy arrays a listas antes de guardar
+        import numpy as np
+
+        def convert_numpy_to_list(obj):
+            """Recursivamente convierte numpy arrays a listas."""
+            if isinstance(obj, np.ndarray):
+                return obj.tolist()
+            elif isinstance(obj, dict):
+                return {k: convert_numpy_to_list(v) for k, v in obj.items()}
+            elif isinstance(obj, (list, tuple)):
+                return [convert_numpy_to_list(item) for item in obj]
+            else:
+                return obj
+
+        experiment_data_clean = convert_numpy_to_list(experiment_data)
+
         with open(snapshot_path, 'w', encoding='utf-8') as f:
-            json.dump(experiment_data, f, indent=2, ensure_ascii=False)
+            json.dump(experiment_data_clean, f, indent=2, ensure_ascii=False)
 
         print(f"📋 [ModelStorage] Snapshot guardado en: {snapshot_path}")
         return snapshot_path
@@ -167,9 +183,25 @@ class ModelStorage:
         # Agregar nueva info
         existing_info.append(training_info)
 
+        # Convertir numpy arrays a listas antes de guardar
+        import numpy as np
+
+        def convert_numpy_to_list(obj):
+            """Recursivamente convierte numpy arrays a listas."""
+            if isinstance(obj, np.ndarray):
+                return obj.tolist()
+            elif isinstance(obj, dict):
+                return {k: convert_numpy_to_list(v) for k, v in obj.items()}
+            elif isinstance(obj, (list, tuple)):
+                return [convert_numpy_to_list(item) for item in obj]
+            else:
+                return obj
+
+        existing_info_clean = convert_numpy_to_list(existing_info)
+
         # Guardar actualizado
         with open(info_path, 'w', encoding='utf-8') as f:
-            json.dump(existing_info, f, indent=2, ensure_ascii=False)
+            json.dump(existing_info_clean, f, indent=2, ensure_ascii=False)
 
         print(f"📊 [ModelStorage] Info de entrenamiento guardada en: {info_path}")
         return info_path

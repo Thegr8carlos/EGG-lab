@@ -1935,22 +1935,73 @@ def create_subset_dataset(dataset_name: str, percentage: float, train_split: flo
         random.seed(seed)
         np.random.seed(seed)
 
-        # ✅ BALANCEO DE CLASES: Tomar el mismo número de muestras por clase
-        # Encontrar la clase con menos muestras
-        min_samples = min(len(events) for events in events_by_class.values())
+        # ✅ BALANCEO DE CLASES según model_type
+        if model_type == "p300":
+            # Para P300: rest debe representar ~50% del dataset final
+            # Esto asegura balance binario después del re-etiquetado (0=NonTarget/rest, 1=Target/others)
 
-        # Calcular número de muestras por clase respetando el porcentaje
-        samples_per_class = max(1, int(min_samples * percentage / 100.0))
+            # Separar rest de otras clases
+            rest_events = events_by_class.get("rest", [])
+            other_classes = {k: v for k, v in events_by_class.items() if k.lower() != "rest"}
 
-        print(f"[create_subset_dataset] Balanceando clases: {samples_per_class} muestras por clase")
+            if not rest_events:
+                raise ValueError(
+                    "No se encontraron eventos 'rest' para P300. "
+                    "El dataset debe incluir clase 'rest' para balanceo binario."
+                )
 
-        # Seleccionar muestras balanceadas
-        selected_events = []
-        for class_name, class_events in events_by_class.items():
-            # Tomar exactamente samples_per_class de cada clase
-            selected = random.sample(class_events, min(samples_per_class, len(class_events)))
-            selected_events.extend(selected)
-            print(f"[create_subset_dataset]   {class_name}: {len(selected)} eventos")
+            if not other_classes:
+                raise ValueError(
+                    "No se encontraron clases Target para P300 (abajo/arriba/derecha/izquierda). "
+                    "El dataset debe incluir al menos una clase de movimiento."
+                )
+
+            # Calcular total de muestras deseadas basado en porcentaje
+            # Usar la clase con menos muestras como referencia
+            min_samples = min(len(events) for events in events_by_class.values())
+            total_samples = int(min_samples * percentage / 100.0) * len(events_by_class)
+
+            # 50% para rest (NonTarget), 50% para otras (Target)
+            n_rest = total_samples // 2
+            n_others_total = total_samples - n_rest
+            n_per_other_class = n_others_total // len(other_classes)
+
+            print(f"[create_subset_dataset] Balanceando para P300 (binario):")
+            print(f"  Total muestras objetivo: {total_samples}")
+            print(f"  rest (NonTarget/0): {n_rest} muestras (~50%)")
+            print(f"  Otras clases (Target/1): {n_others_total} muestras (~50%, {n_per_other_class} por clase)")
+
+            # Seleccionar muestras
+            selected_events = []
+
+            # Seleccionar rest
+            selected_rest = random.sample(rest_events, min(n_rest, len(rest_events)))
+            selected_events.extend(selected_rest)
+            print(f"[create_subset_dataset]   rest: {len(selected_rest)} eventos")
+
+            # Seleccionar otras clases
+            for class_name, class_events in other_classes.items():
+                selected = random.sample(class_events, min(n_per_other_class, len(class_events)))
+                selected_events.extend(selected)
+                print(f"[create_subset_dataset]   {class_name}: {len(selected)} eventos")
+
+        else:
+            # Para Inner Speech (o sin model_type): balanceo equitativo entre todas las clases
+            # Encontrar la clase con menos muestras
+            min_samples = min(len(events) for events in events_by_class.values())
+
+            # Calcular número de muestras por clase respetando el porcentaje
+            samples_per_class = max(1, int(min_samples * percentage / 100.0))
+
+            print(f"[create_subset_dataset] Balanceando clases equitativamente: {samples_per_class} muestras por clase")
+
+            # Seleccionar muestras balanceadas
+            selected_events = []
+            for class_name, class_events in events_by_class.items():
+                # Tomar exactamente samples_per_class de cada clase
+                selected = random.sample(class_events, min(samples_per_class, len(class_events)))
+                selected_events.extend(selected)
+                print(f"[create_subset_dataset]   {class_name}: {len(selected)} eventos")
 
         # Mezclar eventos seleccionados
         random.shuffle(selected_events)

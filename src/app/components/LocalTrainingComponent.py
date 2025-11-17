@@ -990,11 +990,119 @@ def run_local_training(n_clicks, selected_path, subsets_list, classifier_type):
         
         # ========== PASO 2: OBTENER CONFIGURACIÓN DEL MODELO ==========
         experiment = Experiment._load_latest_experiment()
-        
+
         print(f"[LocalTraining] DEBUG - Experimento cargado ID: {experiment.id}")
         print(f"[LocalTraining] DEBUG - P300Classifier: {experiment.P300Classifier}")
         print(f"[LocalTraining] DEBUG - innerSpeachClassifier: {experiment.innerSpeachClassifier}")
-        
+
+        # ========== HELPER: RECONSTRUIR INSTANCIAS DE CNN DESDE DICCIONARIOS ==========
+        def reconstruct_cnn_config(config: Dict[str, Any]) -> Dict[str, Any]:
+            """
+            Reconstruye las instancias de capas CNN desde diccionarios serializados.
+            Similar a build_model_config_from_layers en interactive_architecture_builder.py
+            """
+            from backend.classes.ClasificationModel.CNN import (
+                Kernel, ConvolutionLayer, PoolingLayer, DenseLayer, ActivationFunction, FlattenLayer
+            )
+            import numpy as np
+
+            config_reconstructed = config.copy()
+
+            # Reconstruir feature_extractor (lista de ConvolutionLayer/PoolingLayer)
+            if "feature_extractor" in config and isinstance(config["feature_extractor"], list):
+                feature_extractor_rebuilt = []
+
+                for layer_dict in config["feature_extractor"]:
+                    if isinstance(layer_dict, dict):
+                        # Detectar si es ConvolutionLayer o PoolingLayer
+                        if "kernels" in layer_dict:
+                            # Es ConvolutionLayer - reconstruir kernels
+                            kernels_data = layer_dict.get("kernels", [])
+                            kernels_list = []
+
+                            for kernel_tuple in kernels_data:
+                                if isinstance(kernel_tuple, list) and len(kernel_tuple) == 3:
+                                    # Cada kernel_tuple puede ser:
+                                    # 1. [dict_R, dict_G, dict_B] donde dict = {"weights": [...], "name": ...}
+                                    # 2. [matriz_R, matriz_G, matriz_B] (formato antiguo)
+
+                                    # Extraer weights de cada kernel
+                                    if isinstance(kernel_tuple[0], dict):
+                                        # Formato nuevo: {"weights": [...], "name": ...}
+                                        weights_R = kernel_tuple[0].get("weights", kernel_tuple[0])
+                                        weights_G = kernel_tuple[1].get("weights", kernel_tuple[1])
+                                        weights_B = kernel_tuple[2].get("weights", kernel_tuple[2])
+                                    else:
+                                        # Formato antiguo: directamente las matrices
+                                        weights_R = kernel_tuple[0]
+                                        weights_G = kernel_tuple[1]
+                                        weights_B = kernel_tuple[2]
+
+                                    kR = Kernel(weights=np.array(weights_R, dtype=np.float32))
+                                    kG = Kernel(weights=np.array(weights_G, dtype=np.float32))
+                                    kB = Kernel(weights=np.array(weights_B, dtype=np.float32))
+                                    kernels_list.append((kR, kG, kB))
+
+                            # Reconstruir ActivationFunction
+                            activation_data = layer_dict.get("activation", {"kind": "relu"})
+                            if isinstance(activation_data, dict):
+                                activation = ActivationFunction(**activation_data)
+                            else:
+                                activation = ActivationFunction(kind=str(activation_data))
+
+                            # Reconstruir ConvolutionLayer
+                            conv_layer = ConvolutionLayer(
+                                kernels=kernels_list,
+                                stride=tuple(layer_dict.get("stride", [1, 1])),
+                                padding=layer_dict.get("padding", "same"),
+                                activation=activation
+                            )
+                            feature_extractor_rebuilt.append(conv_layer)
+                            print(f"[LocalTraining] Reconstruida ConvolutionLayer: {conv_layer.num_filters()} filtros")
+
+                        elif "pool_size" in layer_dict or "kind" in layer_dict:
+                            # Es PoolingLayer
+                            pooling_layer = PoolingLayer(**layer_dict)
+                            feature_extractor_rebuilt.append(pooling_layer)
+                            print(f"[LocalTraining] Reconstruida PoolingLayer: {pooling_layer}")
+                    else:
+                        # Ya es una instancia, mantenerla
+                        feature_extractor_rebuilt.append(layer_dict)
+
+                config_reconstructed["feature_extractor"] = feature_extractor_rebuilt
+
+            # Reconstruir flatten (FlattenLayer)
+            if "flatten" in config and isinstance(config["flatten"], dict):
+                config_reconstructed["flatten"] = FlattenLayer(**config["flatten"])
+
+            # Reconstruir fc_layers (lista de DenseLayer)
+            if "fc_layers" in config and isinstance(config["fc_layers"], list):
+                fc_layers_rebuilt = []
+                for layer_dict in config["fc_layers"]:
+                    if isinstance(layer_dict, dict):
+                        layer_cfg = layer_dict.copy()
+                        # Reconstruir ActivationFunction
+                        if "activation" in layer_cfg and isinstance(layer_cfg["activation"], dict):
+                            layer_cfg["activation"] = ActivationFunction(**layer_cfg["activation"])
+                        dense_layer = DenseLayer(**layer_cfg)
+                        fc_layers_rebuilt.append(dense_layer)
+                    else:
+                        fc_layers_rebuilt.append(layer_dict)
+                config_reconstructed["fc_layers"] = fc_layers_rebuilt
+
+            # Reconstruir fc_activation_common
+            if "fc_activation_common" in config and isinstance(config["fc_activation_common"], dict):
+                config_reconstructed["fc_activation_common"] = ActivationFunction(**config["fc_activation_common"])
+
+            # Reconstruir classification (DenseLayer)
+            if "classification" in config and isinstance(config["classification"], dict):
+                class_cfg = config["classification"].copy()
+                if "activation" in class_cfg and isinstance(class_cfg["activation"], dict):
+                    class_cfg["activation"] = ActivationFunction(**class_cfg["activation"])
+                config_reconstructed["classification"] = DenseLayer(**class_cfg)
+
+            return config_reconstructed
+
         # Determinar qué clasificador está configurado (P300 o InnerSpeech)
         model_instance = None
         model_name = None
@@ -1012,11 +1120,19 @@ def run_local_training(n_clicks, selected_path, subsets_list, classifier_type):
                     # Filtrar transform anidado si existe
                     config_clean = {k: v for k, v in config.items() if k != "transform"}
                     print(f"[LocalTraining] DEBUG - Config clean keys: {list(config_clean.keys())}")
+
+                    # Si es CNN, reconstruir las instancias de capas
+                    if name == "CNN":
+                        print(f"[LocalTraining] Reconstruyendo configuración de CNN desde diccionarios...")
+                        config_clean = reconstruct_cnn_config(config_clean)
+
                     try:
                         model_instance = classifier_class(**config_clean)
                         print(f"[LocalTraining] DEBUG - Instancia creada exitosamente")
                     except Exception as e:
                         print(f"[LocalTraining] DEBUG - Error creando instancia: {e}")
+                        import traceback
+                        traceback.print_exc()
                 break
         
         elif experiment.innerSpeachClassifier and isinstance(experiment.innerSpeachClassifier, dict):
@@ -1030,6 +1146,12 @@ def run_local_training(n_clicks, selected_path, subsets_list, classifier_type):
                 if classifier_class:
                     config_clean = {k: v for k, v in config.items() if k != "transform"}
                     print(f"[LocalTraining] DEBUG - Config clean keys: {list(config_clean.keys())}")
+
+                    # Si es CNN, reconstruir las instancias de capas
+                    if name == "CNN":
+                        print(f"[LocalTraining] Reconstruyendo configuración de CNN desde diccionarios...")
+                        config_clean = reconstruct_cnn_config(config_clean)
+
                     try:
                         model_instance = classifier_class(**config_clean)
                         print(f"[LocalTraining] DEBUG - Instancia creada exitosamente")
@@ -1118,17 +1240,38 @@ def run_local_training(n_clicks, selected_path, subsets_list, classifier_type):
 
                 # Verificar si tiene método fit
                 if hasattr(classifier_class, 'fit'):
-                    result = classifier_class.fit(
-                        instance=model_instance,
-                        xTrain=xTrain,
-                        yTrain=yTrain,
-                        xTest=xTest,
-                        yTest=yTest,
-                        metadata_train=None,
-                        metadata_test=None,
-                        model_label=None,  # NO guardamos automáticamente
-                        verbose=True
-                    )
+                    # Modelos tradicionales de ML no usan epochs/batch_size/learning_rate
+                    traditional_ml_models = ['SVM', 'RandomForest']
+
+                    if model_name in traditional_ml_models:
+                        # Solo parámetros básicos para SVM y RandomForest
+                        result = classifier_class.fit(
+                            instance=model_instance,
+                            xTrain=xTrain,
+                            yTrain=yTrain,
+                            xTest=xTest,
+                            yTest=yTest,
+                            metadata_train=None,
+                            metadata_test=None,
+                            model_label=None,  # NO guardamos automáticamente
+                            verbose=True
+                        )
+                    else:
+                        # CNN, SVNN y otros modelos de DL usan epochs/batch_size/lr
+                        result = classifier_class.fit(
+                            instance=model_instance,
+                            xTrain=xTrain,
+                            yTrain=yTrain,
+                            xTest=xTest,
+                            yTest=yTest,
+                            metadata_train=None,
+                            metadata_test=None,
+                            model_label=None,  # NO guardamos automáticamente
+                            verbose=True,
+                            epochs=epochs,
+                            batch_size=batch_size,
+                            learning_rate=lr
+                        )
                     metrics = result.metrics
                 else:
                     # Fallback a train si no tiene fit
@@ -1156,7 +1299,9 @@ def run_local_training(n_clicks, selected_path, subsets_list, classifier_type):
                 "transform": experiment.transform or [],
                 "classifier_config": {
                     "model_name": model_name,
-                    "config": model_instance.dict() if hasattr(model_instance, 'dict') else {}
+                    "config": model_instance.model_dump() if hasattr(model_instance, 'model_dump') else (
+                        model_instance.dict() if hasattr(model_instance, 'dict') else {}
+                    )
                 },
                 "subset_info": {
                     "subset_path": selected_path,
