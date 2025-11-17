@@ -103,8 +103,14 @@ class InputAdapter(BaseModel):
         """
         vecs: List[NDArray] = []
         dims: List[int] = []
+        total_paths = len(paths)
 
         for i, p in enumerate(paths):
+            # Log en hitos: primeras 3 + cada 20%
+            if i < 3 or (total_paths > 10 and i % max(1, total_paths // 5) == 0):
+                from pathlib import Path as PathlibPath
+                print(f"[InputAdapter] {i+1}/{total_paths}: {PathlibPath(p).name}...")
+
             if (not os.path.exists(p)) or (not p.endswith(".npy")):
                 raise FileNotFoundError(f"Archivo inválido: {p} (debe existir y ser .npy)")
             x = np.load(p, allow_pickle=True)
@@ -113,9 +119,11 @@ class InputAdapter(BaseModel):
             dims.append(v.shape[0])
 
             if i < 3:  # Debug primeras 3 muestras
-                print(f"[InputAdapter] Muestra {i}: path={p}")
                 print(f"[InputAdapter]   - shape original x: {x.shape}")
                 print(f"[InputAdapter]   - shape después de transform_one: {v.shape}")
+
+        if total_paths > 3:
+            print(f"[InputAdapter] {total_paths} archivos cargados.")
 
         # Verificar que todas las dimensiones sean iguales
         unique_dims = set(dims)

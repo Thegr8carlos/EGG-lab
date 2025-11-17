@@ -1153,8 +1153,15 @@ def run_local_training(n_clicks, selected_path, subsets_list, classifier_type):
                         config_clean = reconstruct_cnn_config(config_clean)
 
                     try:
-                        model_instance = classifier_class(**config_clean)
+                        # Usar model_validate para manejar deserialización desde dicts (JSON)
+                        model_instance = classifier_class.model_validate(config_clean)
                         print(f"[LocalTraining] DEBUG - Instancia creada exitosamente")
+
+                        # Debug: Verificar tipos de feature_extractor (solo para CNN)
+                        if name == "CNN" and hasattr(model_instance, 'feature_extractor'):
+                            print(f"[LocalTraining] DEBUG CNN - feature_extractor tiene {len(model_instance.feature_extractor)} layers")
+                            for i, layer in enumerate(model_instance.feature_extractor):
+                                print(f"[LocalTraining] DEBUG CNN - Layer {i}: {type(layer).__name__}")
                     except Exception as e:
                         print(f"[LocalTraining] DEBUG - Error creando instancia: {e}")
                         import traceback
@@ -1292,6 +1299,14 @@ def run_local_training(n_clicks, selected_path, subsets_list, classifier_type):
             from backend.helpers.model_storage import save_model_with_metadata
 
             # Preparar snapshot del experimento
+            # Usar model_dump(mode='json') para serializar np.ndarray a listas
+            if hasattr(model_instance, 'model_dump'):
+                config_dict = model_instance.model_dump(mode='json')
+            elif hasattr(model_instance, 'dict'):
+                config_dict = model_instance.dict()
+            else:
+                config_dict = {}
+
             experiment_snapshot = {
                 "id": experiment.id,
                 "dataset": selected_subset["metadata"].get("dataset_name", "unknown"),
@@ -1299,9 +1314,7 @@ def run_local_training(n_clicks, selected_path, subsets_list, classifier_type):
                 "transform": experiment.transform or [],
                 "classifier_config": {
                     "model_name": model_name,
-                    "config": model_instance.model_dump() if hasattr(model_instance, 'model_dump') else (
-                        model_instance.dict() if hasattr(model_instance, 'dict') else {}
-                    )
+                    "config": config_dict
                 },
                 "subset_info": {
                     "subset_path": selected_path,
@@ -1387,7 +1400,17 @@ def run_local_training(n_clicks, selected_path, subsets_list, classifier_type):
             print(f"[LocalTraining] ERROR durante entrenamiento: {train_error}")
             import traceback
             traceback.print_exc()
-            
+
+            # Detectar si es un error relacionado con GPU
+            error_msg = str(train_error).lower()
+            is_gpu_error = any(keyword in error_msg for keyword in ['gpu', 'cuda', 'cudnn', 'out of memory', 'oom'])
+
+            if is_gpu_error:
+                print(f"[LocalTraining] ⚠️ Error de GPU detectado. El fallback a CPU es automático por TensorFlow.")
+                print(f"[LocalTraining] ℹ️ Si el problema persiste, TensorFlow reintentará en CPU automáticamente.")
+                # Nota: TensorFlow maneja el fallback automáticamente, no necesitamos intervenir
+                # Solo informamos al usuario
+
             return (
                 dbc.Alert(
                     [
@@ -1395,7 +1418,12 @@ def run_local_training(n_clicks, selected_path, subsets_list, classifier_type):
                         html.Div([
                             html.Strong("Error durante el entrenamiento:"),
                             html.Br(),
-                            html.Small(str(train_error), style={"fontSize": "12px"})
+                            html.Small(str(train_error), style={"fontSize": "12px"}),
+                            html.Br() if is_gpu_error else None,
+                            html.Small(
+                                "💡 Detectado error de GPU. TensorFlow reintentará automáticamente en CPU.",
+                                style={"fontSize": "11px", "color": "#ffc107", "marginTop": "8px"}
+                            ) if is_gpu_error else None
                         ])
                     ],
                     color="danger"

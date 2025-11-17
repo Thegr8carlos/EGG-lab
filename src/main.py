@@ -1,4 +1,13 @@
-# ui dependencys 
+# ======================================================================
+# CONFIGURACIÓN GPU - DEBE SER LO PRIMERO
+# ======================================================================
+# IMPORTANTE: Configurar GPU ANTES de cualquier import que use TensorFlow
+# Esto evita fragmentación de memoria y permite entrenamientos secuenciales
+from backend.gpu_config import configure_gpu_for_training
+_gpu_available = configure_gpu_for_training()
+# ======================================================================
+
+# ui dependencys
 from dash import Dash, dcc, html, page_container, page_registry,Input, Output, State, ALL
 from dash import dcc, html, callback
 from dash.exceptions import PreventUpdate

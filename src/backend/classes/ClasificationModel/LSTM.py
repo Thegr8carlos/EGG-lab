@@ -525,9 +525,18 @@ class LSTM(BaseModel):
                 N = len(seqs)
                 F = seqs[0].shape[1]
                 padded = np.full((N, max_len, F), pad_val, dtype=np.float32)
+                
                 for i, seq in enumerate(seqs):
+                    # Log cada 10% de progreso
+                    if N > 10 and i % max(1, N // 10) == 0:
+                        print(f"\r[LSTM] Padding {i+1}/{N}...", end='', flush=True)
+                    
                     T = seq.shape[0]
                     padded[i, :T, :] = seq
+                
+                if N > 10:
+                    print(f"\r[LSTM] Padding completo: {N} secuencias.                    ", flush=True)
+                
                 return padded
 
             X_tr_padded = pad_sequences(seq_tr, max_len_tr, pad_value)
@@ -600,6 +609,18 @@ class LSTM(BaseModel):
                 return keras.Model(inputs=inputs, outputs=outputs, name='LSTM')
 
             model = build(instance, input_shape=(X_tr_padded.shape[1], in_F))
+
+            # Mostrar información del dispositivo de entrenamiento
+            try:
+                import tensorflow as tf
+                gpus = tf.config.list_physical_devices('GPU')
+                if gpus:
+                    print(f"🖥️  [LSTM] Entrenando en GPU: {gpus[0].name}")
+                else:
+                    print("💻 [LSTM] Entrenando en CPU (no se detectó GPU)")
+            except Exception:
+                pass
+
             model.compile(
                 optimizer=keras.optimizers.Adam(learning_rate=lr),
                 loss='sparse_categorical_crossentropy',

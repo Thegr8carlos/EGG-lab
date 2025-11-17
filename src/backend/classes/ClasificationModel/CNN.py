@@ -5,7 +5,7 @@ import numpy as np
 import pickle
 from pathlib import Path
 from datetime import datetime
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, field_serializer
 from pydantic.json_schema import SkipJsonSchema
 from backend.classes.Metrics import EvaluationMetrics
 from backend.classes.ClasificationModel.utils.TrainResult import TrainResult
@@ -29,10 +29,21 @@ ActName = Literal["relu", "tanh", "sigmoid", "gelu", "softmax", "linear"]
 # 1) Kernel: matriz 2D con validadores
 # =========================================================
 class Kernel(BaseModel):
-    model_config = ConfigDict(arbitrary_types_allowed=True)
+    model_config = ConfigDict(
+        arbitrary_types_allowed=True,
+        json_encoders={np.ndarray: lambda v: v.tolist()}
+    )
 
     weights: SkipJsonSchema[NDArray] = Field(..., description="Matriz 2D (kh, kw) con el kernel/convolución.")
     name: Optional[str] = Field(default=None, description="Etiqueta opcional para el kernel (diagnóstico).")
+
+    @field_validator("weights", mode="before")
+    @classmethod
+    def _convert_weights(cls, w):
+        """Convierte listas a np.ndarray si es necesario (para deserialización JSON)."""
+        if isinstance(w, list):
+            return np.array(w, dtype=np.float32)
+        return w
 
     @field_validator("weights")
     @classmethod
@@ -47,6 +58,11 @@ class Kernel(BaseModel):
         if not np.issubdtype(w.dtype, np.number):
             raise TypeError("Kernel debe contener valores numéricos.")
         return w.astype(np.float32, copy=False)
+
+    @field_serializer('weights')
+    def serialize_weights(self, weights: NDArray, _info):
+        """Serializa np.ndarray a lista para JSON."""
+        return weights.tolist()
 
     @property
     def shape(self) -> Tuple[int, int]:
@@ -190,6 +206,31 @@ class CNN(BaseModel):
     image_hw: Tuple[int, int] = Field((64, 128), description="(alto, ancho) destino de cada imagen.")
 
     # === Validaciones ===
+    @field_validator("feature_extractor", mode="before")
+    @classmethod
+    def _convert_fe_layers(cls, layers):
+        """Convierte dicts a ConvolutionLayer/PoolingLayer si es necesario."""
+        if not isinstance(layers, list):
+            return layers
+
+        converted = []
+        for layer in layers:
+            if isinstance(layer, dict):
+                # Detectar tipo por keys
+                if "kernels" in layer:
+                    # Es ConvolutionLayer
+                    converted.append(ConvolutionLayer(**layer))
+                elif "pool_size" in layer or "kind" in layer:
+                    # Es PoolingLayer
+                    converted.append(PoolingLayer(**layer))
+                else:
+                    # Si no se puede identificar, dejar el dict (fallará después)
+                    converted.append(layer)
+            else:
+                # Ya es instancia, mantener
+                converted.append(layer)
+        return converted
+
     @field_validator("feature_extractor")
     @classmethod
     def _validate_fe_not_empty(cls, layers):
@@ -417,6 +458,10 @@ class CNN(BaseModel):
         imgs: List[NDArray] = []
         ys: List[int] = []
         for i in range(F):
+            # Log cada 10% de frames
+            if F > 10 and i % max(1, F // 10) == 0:
+                print(f"\r[CNN]     Frame {i+1}/{F}...", end='', flush=True)
+            
             lo = max(0, i - k_ctx); hi = min(F, i + k_ctx + 1)
             slice_ = base[lo:hi]                     # (W_ctx, Freqs, 3)
             img = np.transpose(slice_, (1, 0, 2))    # (Freqs, W_ctx, 3)
@@ -429,6 +474,9 @@ class CNN(BaseModel):
                 ], axis=2)
             imgs.append(img.astype(np.float32))
             ys.append(int(frame_labels[i]))
+        
+        if F > 10:
+            print(f"\r[CNN]     {F} frames completados.          ", flush=True)
         X = np.stack(imgs, axis=0)
         y = np.array(ys, dtype=np.int64)
         return X, y
@@ -470,6 +518,7 @@ class CNN(BaseModel):
         y_all: List[NDArray] = []
 
         for idx, (xp, yp) in enumerate(zip(x_paths, y_paths)):
+            print(f"\r[CNN] Procesando archivo {idx+1}/{len(x_paths)}...", end="", flush=True)
             X = np.load(xp, allow_pickle=False).astype(np.float32)
             y = np.load(yp, allow_pickle=False).reshape(-1).astype(np.int64)
 
@@ -491,7 +540,10 @@ class CNN(BaseModel):
 
             # Convertir a imágenes RGB usando el método existente
             # X tiene formato (n_frames, features, n_channels) que es equivalente a "spec_3d"
+            n_frames = X.shape[0]
+            print(f"\r[CNN]   Generando {n_frames} imágenes...", end="", flush=True)
             Xi, yi = cls._images_from_spec_per_frame(X, y, k_ctx, image_hw)
+            print(f"\r[CNN]   Listo: {Xi.shape[0]} imágenes.          ")
 
             X_all.append(Xi)
             y_all.append(yi)
@@ -709,10 +761,21 @@ class CNN(BaseModel):
             # Construir modelo
             model = build_cnn_model(instance, in_shape=(H_in, W_in, 3))
 
-            # Hiperparámetros (si no se proporcionan, usar defaults legacy)
+            # Hiperparámetros (si no se proporcionan, usar defaults)
             lr_val = float(learning_rate) if learning_rate is not None else 1e-3
-            bs_val = int(batch_size) if batch_size is not None else 64
-            ep_val = int(epochs) if epochs is not None else 2
+            bs_val = int(batch_size) if batch_size is not None else 32
+            ep_val = int(epochs) if epochs is not None else 10
+
+            # Mostrar información del dispositivo de entrenamiento
+            try:
+                import tensorflow as tf
+                gpus = tf.config.list_physical_devices('GPU')
+                if gpus:
+                    print(f"🖥️  [CNN] Entrenando en GPU: {gpus[0].name}")
+                else:
+                    print("💻 [CNN] Entrenando en CPU (no se detectó GPU)")
+            except Exception:
+                pass
 
             # Compilar modelo
             model.compile(

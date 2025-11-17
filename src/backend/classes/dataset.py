@@ -1841,6 +1841,7 @@ def _assert_npy_path(p: str) -> None:
         raise ValueError(f"Expected .npy file, got: {p}")
 
 
+
 def _load_and_concat(paths: Sequence[str]) -> NDArray:
     """
     Loads one or more .npy files and concatenates along axis=0.
@@ -1848,14 +1849,32 @@ def _load_and_concat(paths: Sequence[str]) -> NDArray:
     """
     if not paths:
         raise ValueError("No paths provided.")
+    
     arrays: List[NDArray] = []
-    for p in paths:
+    total = len(paths)
+    
+    for i, p in enumerate(paths):
+        # Log cada 10% o para archivos pequeños
+        if total > 1 and i % max(1, total // 10) == 0:
+            from pathlib import Path as PathlibPath
+            print(f"\r[_load_and_concat] Archivo {i+1}/{total}: {PathlibPath(p).name}...", end='', flush=True)
+        
         _assert_npy_path(p)
         arr = np.load(p, allow_pickle=False)
         arrays.append(arr)
+    
+    if total > 1:
+        print(f"\r[_load_and_concat] Concatenando {total} arrays...", end='', flush=True)
+    
     if len(arrays) == 1:
-        return arrays[0]
-    return np.concatenate(arrays, axis=0)
+        result = arrays[0]
+    else:
+        result = np.concatenate(arrays, axis=0)
+    
+    if total > 1:
+        print(f"\r[_load_and_concat] Listo: forma {result.shape}.                    ", flush=True)
+    
+    return result
 
 
 def create_subset_dataset(dataset_name: str, percentage: float, train_split: float, seed: int = 42, materialize: bool = False, model_type: str = None):

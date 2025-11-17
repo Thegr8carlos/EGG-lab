@@ -458,9 +458,18 @@ class GRU(BaseModel):
                 N = len(seqs)
                 F = seqs[0].shape[1]
                 padded = np.full((N, max_len, F), pad_val, dtype=np.float32)
+                
                 for i, seq in enumerate(seqs):
+                    # Log cada 10% de progreso
+                    if N > 10 and i % max(1, N // 10) == 0:
+                        print(f"\r[GRU] Padding {i+1}/{N}...", end='', flush=True)
+                    
                     T = seq.shape[0]
                     padded[i, :T, :] = seq
+                
+                if N > 10:
+                    print(f"\r[GRU] Padding completo: {N} secuencias.                    ", flush=True)
+                
                 return padded
 
             X_tr_padded = pad_sequences(seq_tr, max_len_tr, pad_value)  # (N_tr, T_tr, F)
@@ -563,6 +572,17 @@ class GRU(BaseModel):
 
             # Construir modelo
             model = build_gru_model(instance, input_shape=(X_tr_padded.shape[1], in_F))
+
+            # Mostrar información del dispositivo de entrenamiento
+            try:
+                import tensorflow as tf
+                gpus = tf.config.list_physical_devices('GPU')
+                if gpus:
+                    print(f"🖥️  [GRU] Entrenando en GPU: {gpus[0].name}")
+                else:
+                    print("💻 [GRU] Entrenando en CPU (no se detectó GPU)")
+            except Exception:
+                pass
 
             # Compilar
             model.compile(

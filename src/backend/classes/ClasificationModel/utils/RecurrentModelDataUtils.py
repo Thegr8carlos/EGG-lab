@@ -6,6 +6,7 @@ para modelos de secuencia como LSTM y GRU, eliminando código duplicado.
 """
 
 from typing import List, Optional, Sequence, Tuple
+from pathlib import Path
 import numpy as np
 
 NDArray = np.ndarray
@@ -173,8 +174,14 @@ class RecurrentModelDataUtils:
         lengths: List[int] = []
         labels: List[int] = []
         F_ref: Optional[int] = None
+        
+        total_items = len(x_paths)
 
-        for xp, yp, meta in zip(x_paths, y_paths, metadata_list):
+        for idx, (xp, yp, meta) in enumerate(zip(x_paths, y_paths, metadata_list)):
+            # Log de progreso cada 10% si hay múltiples archivos
+            if total_items > 1 and idx % max(1, total_items // 10) == 0:
+                print(f"\r[RecurrentModelDataUtils] Cargando {idx+1}/{total_items}: {Path(xp).name}...", end='', flush=True)
+            
             # Cargar secuencia
             X = load_sequence_func(xp, metadata=meta)  # (T, F)
 
@@ -193,6 +200,9 @@ class RecurrentModelDataUtils:
             sequences.append(X)
             lengths.append(int(X.shape[0]))
             labels.append(int(y))
+        
+        if total_items > 1:
+            print(f"\r[RecurrentModelDataUtils] {total_items} secuencias cargadas.                    ", flush=True)
 
         return (
             sequences,
