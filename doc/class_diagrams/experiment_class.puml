@@ -1,0 +1,75 @@
+@startuml
+title Clase Experiment - Sistema de Procesamiento de Señales EEG
+
+class Experiment {
+  - id : str
+  - transform : List[dict]
+  - P300Classifier : Optional[dict]
+  - innerSpeachClassifier : Optional[dict]
+  - filters : List[dict]
+  - evaluation : Optional[dict]
+  - dataset : Optional[dict]
+
+  {static} + get_experiments_dir() : str
+  {static} + create_blank_json() : void
+  {static} + _load_latest_experiment() : Experiment
+  {static} + _save_latest_experiment(experiment: Experiment) : void
+
+  {static} + set_dataset(dataset: Dataset) : void
+  {static} + add_filter(filter: Filter) : void
+  {static} + add_P300_classifier(classifier: Classifier) : void
+  {static} + set_P300_transform(transform: Transform) : void
+  {static} + add_inner_speech_classifier(classifier: Classifier) : void
+  {static} + set_inner_speech_transform(transform: Transform) : void
+  {static} + add_evaluation(metrics: EvaluationMetrics) : void
+}
+
+class Transform {
+  + sp : float
+  + id : str
+  + model_type : Optional[str]
+  + relabel_for_model() : Tuple
+}
+
+class Filter {
+  + id : str
+  + sp : float
+  + apply() : bool
+}
+
+class Classifier {
+  + config : dict
+  + train() : void
+  + predict() : ndarray
+}
+
+class Dataset {
+  + path : str
+  + name : str
+}
+
+class EvaluationMetrics {
+  + accuracy : float
+  + precision : float
+  + f1_score : float
+}
+
+Experiment --> Transform
+Experiment --> Filter
+Experiment --> Classifier
+Experiment --> Dataset
+Experiment --> EvaluationMetrics
+
+note right of Experiment
+  Gestiona el pipeline ML completo:
+  1. Referencia al dataset
+  2. Filtros de preprocesamiento
+  3. Transformaciones (extracción de características)
+  4. Clasificadores (P300 + Inner Speech)
+  5. Métricas de evaluación
+
+  Cada experimento se guarda en JSON
+  para garantizar reproducibilidad
+end note
+
+@enduml

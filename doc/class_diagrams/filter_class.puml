@@ -1,0 +1,75 @@
+@startuml
+title Clases Filter - Preprocesamiento de Señales
+
+abstract class Filter {
+  # id : str
+  # sp : float
+  + get_sp() : float
+  + get_id() : str
+  {abstract} {static} + apply(instance, file_path, output_path) : bool
+}
+
+class BandPass {
+  - filter_type : str
+  - freq : List[float]
+  - method : str
+  - order : int
+  {static} + apply() : bool
+}
+
+class ICA {
+  - numeroComponentes : int
+  - method : str
+  - random_state : int
+  {static} + apply() : bool
+}
+
+class Notch {
+  - freqs : List[float]
+  - notch_width : float
+  {static} + apply() : bool
+}
+
+class WaveletsBase {
+  - wavelet : str
+  - level : int
+  - threshold : float
+  {static} + apply() : bool
+}
+
+Filter <|-- BandPass
+Filter <|-- ICA
+Filter <|-- Notch
+Filter <|-- WaveletsBase
+
+note right of Filter
+  Clase base para filtros de señal
+
+  Flujo de aplicación:
+  1. Cargar datos (.npy)
+  2. Validar parámetros
+  3. Aplicar filtro
+  4. Guardar resultado
+
+  Dependencias: MNE, PyWavelets, SciPy
+end note
+
+note bottom of BandPass
+  Filtrado de frecuencias
+  Común: 1-30 Hz para EEG
+  Usa MNE filter_data()
+
+  Permite paso bajo, paso alto
+  y paso banda
+end note
+
+note bottom of ICA
+  Análisis de Componentes Independientes
+  Reduce 137 → 30 componentes
+
+  Guarda dos archivos:
+  - .npy para entrenamiento
+  - .fif para simulación
+end note
+
+@enduml

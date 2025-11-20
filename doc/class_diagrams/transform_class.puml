@@ -1,0 +1,88 @@
+@startuml
+title Clases Transform - Extracción de Características
+
+abstract class Transform {
+  # sp : float
+  # id : str
+  # model_type : str
+  # all_classes : List[str]
+
+  + get_sp() : float
+  + get_id() : str
+  + relabel_for_model(labels, all_classes) : Tuple
+  {abstract} {static} + apply(instance, file_path, output_path) : bool
+}
+
+class FFTTransform {
+  - window : str
+  - frame_length : int
+  - hop_samples : int
+  - nfft : int
+  {static} + apply() : bool
+}
+
+class DCTTransform {
+  - type : int
+  - norm : str
+  - frame_length : int
+  - overlap : float
+  {static} + apply() : bool
+}
+
+class WaveletTransform {
+  - wavelet : str
+  - level : int
+  - frame_length : int
+  {static} + apply() : bool
+}
+
+class WindowingTransform {
+  - window_size : int
+  - overlap : float
+  {static} + apply() : bool
+}
+
+class HilbertTransform {
+  - frame_length : int
+  {static} + apply() : bool
+}
+
+Transform <|-- FFTTransform
+Transform <|-- DCTTransform
+Transform <|-- WaveletTransform
+Transform <|-- WindowingTransform
+Transform <|-- HilbertTransform
+
+note right of Transform
+  Extracción de características
+
+  Flujo de aplicación:
+  1. Cargar datos filtrados
+  2. Calcular parámetros de ventaneo
+  3. Aplicar transformación
+  4. Asignar etiquetas (voto mayoritario)
+  5. Re-etiquetar según model_type
+
+  Salida: (n_frames, features, canales)
+end note
+
+note bottom of Transform
+  Re-etiquetado según model_type:
+
+  **P300 (binario):**
+  - 0: NonTarget (reposo/rest)
+  - 1: Target (cualquier clase activa)
+
+  **Inner Speech (multiclase):**
+  - 0, 1, 2, ... (orden alfabético)
+  - Ejemplo:
+    abajo(0), arriba(1),
+    derecha(2), izquierda(3), rest(4)
+
+  **Ventaneo:**
+  - Crea múltiples ejemplos de entrenamiento
+  - Cada ventana hereda etiqueta por voto mayoritario
+  - hop = frame_length × (1 - overlap)
+end note
+
+@enduml

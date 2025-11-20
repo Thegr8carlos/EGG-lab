@@ -730,6 +730,12 @@ class LSTM(BaseModel):
         return preds
 
 
+# =====================================================================================
+# BACKWARD COMPATIBILITY: Alias para modelos antiguos
+# =====================================================================================
+# Algunos modelos fueron entrenados con la clase "LSTMNet" que ya no existe.
+# Este alias permite cargar esos modelos pickleados sin errores.
+LSTMNet = LSTM
 
 
 

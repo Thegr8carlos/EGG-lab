@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" contentStyleType="text/css" height="291px" preserveAspectRatio="none" style="width:2453px;height:291px;background:#FFFFFF;" version="1.1" viewBox="0 0 2453 291" width="2453px" zoomAndPan="magnify"><defs/><g><rect fill="none" height="42.5938" id="_title" style="stroke:none;stroke-width:1.0;" width="292" x="1073.5" y="5"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="202" x="1118.5" y="22.9951">Casos de Uso (Front-End)</text><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="282" x="1078.5" y="39.292">Simulación — Paso 1: Configuración</text><!--MD5=[e3a7c40dcb3a8e60afe55424a627219b]
+cluster Página Simulation — Configuración--><g id="cluster_Página Simulation — Configuración"><rect fill="none" height="108" rx="2.5" ry="2.5" style="stroke:#181818;stroke-width:1.0;" width="2440" x="7" y="177.0938"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="272" x="1091" y="192.0889">Página Simulation — Configuración</text></g><g id="elem_UC_SelectP300"><ellipse cx="2324.9496" cy="240.5837" fill="#F1F1F1" rx="105.4496" ry="23.4899" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="176" x="2236.9496" y="243.4304">Seleccionar modelo P300</text></g><g id="elem_UC_SelectInner"><ellipse cx="2053.1232" cy="240.8184" fill="#F1F1F1" rx="131.6232" ry="28.7246" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="232" x="1937.1232" y="243.6651">Seleccionar modelo Inner Speech</text></g><g id="elem_UC_LoadEEG"><ellipse cx="1780.9084" cy="240.8216" fill="#F1F1F1" rx="104.9084" ry="26.2278" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="131" x="1712.4084" y="236.4207">Cargar archivo EEG</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="115" x="1720.4084" y="252.7176">desde el sidebar</text></g><g id="elem_UC_HopSize"><ellipse cx="1550.1007" cy="240.7513" fill="#F1F1F1" rx="91.1007" ry="26.1575" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="112" x="1491.1007" y="236.3504">Ajustar Hop Size</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="103" x="1495.6007" y="252.6473">(solapamiento)</text></g><g id="elem_UC_TimeRange"><ellipse cx="1301.2084" cy="240.6354" fill="#F1F1F1" rx="123.2084" ry="27.0417" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="162" x="1217.2084" y="236.2346">Definir rango de tiempo</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="78" x="1259.2084" y="252.5314">(Inicio / Fin)</text></g><g id="elem_UC_FullSession"><ellipse cx="1050.2229" cy="240.6383" fill="#F1F1F1" rx="93.2229" ry="21.0446" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="149" x="975.7229" y="243.485">Usar sesión completa</text></g><g id="elem_UC_ThreshP300"><ellipse cx="812.0935" cy="240.4125" fill="#F1F1F1" rx="109.5935" ry="24.3187" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="185" x="719.5935" y="243.2591">Configurar Threshold P300</text></g><g id="elem_UC_ThreshInner"><ellipse cx="558.1316" cy="240.8201" fill="#F1F1F1" rx="109.1316" ry="24.2263" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="184" x="466.1316" y="243.6668">Configurar Threshold Inner</text></g><g id="elem_UC_Enable"><ellipse cx="314.9594" cy="240.641" fill="#F1F1F1" rx="98.4594" ry="26.0473" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="99" x="265.4594" y="235.3393">Habilitar botón</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="123" x="253.4594" y="251.6361">'Iniciar Simulación'</text></g><g id="elem_UC_Start"><ellipse cx="101.8735" cy="240.3685" fill="#F1F1F1" rx="79.3735" ry="18.2747" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="117" x="41.4676" y="243.8186">Iniciar Simulación</text></g><!--MD5=[fee662a292a0353a69bd162820bae93b]
+entity User--><g id="elem_User"><ellipse cx="1175" cy="67.5938" fill="#F1F1F1" rx="8" ry="8" style="stroke:#181818;stroke-width:0.5;"/><path d="M1175,75.5938 L1175,102.5938 M1162,83.5938 L1188,83.5938 M1175,102.5938 L1162,117.5938 M1175,102.5938 L1188,117.5938 " fill="none" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="52" x="1133" y="132.0889">Usuario</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="84" x="1133" y="148.3857">Investigador</text></g><!--MD5=[352198428ab35ab3dc0ac082a7ffc472]
+link User to UC_SelectP300--><g id="link_User_UC_SelectP300"><path d="M1217.02,106.6037 C1385.62,107.0538 2013,112.5638 2202,169.0938 C2234.63,178.8538 2267.93,198.6638 2291.63,214.8037 " fill="none" id="User-to-UC_SelectP300" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="2295.95,217.7738,2290.8059,209.375,2291.8319,214.9381,2286.2688,215.9641,2295.95,217.7738" style="stroke:#181818;stroke-width:1.0;"/></g><!--MD5=[8ff24006663c37f0a81d440825221347]
+link User to UC_SelectInner--><g id="link_User_UC_SelectInner"><path d="M1217.31,108.2438 C1352.51,113.8438 1772.93,133.7038 1904,169.0938 C1939.14,178.5838 1976.15,196.0438 2004.49,211.2138 " fill="none" id="User-to-UC_SelectInner" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="2008.96,213.6338,2002.9352,205.8426,2004.5586,211.2615,1999.1396,212.8849,2008.96,213.6338" style="stroke:#181818;stroke-width:1.0;"/></g><!--MD5=[3d39785c32f98be48e6e316a1f61e6d8]
+link User to UC_LoadEEG--><g id="link_User_UC_LoadEEG"><path d="M1217.03,106.5238 C1302.57,107.5538 1502.1,116.0137 1659,169.0938 C1689.43,179.3838 1720.75,197.6737 1744.03,213.0438 " fill="none" id="User-to-UC_LoadEEG" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="1748.28,215.8738,1742.9972,207.5616,1744.1154,213.1068,1738.5701,214.225,1748.28,215.8738" style="stroke:#181818;stroke-width:1.0;"/></g><!--MD5=[4b8baf935930e9190212bb08077dbfec]
+link User to UC_HopSize--><g id="link_User_UC_HopSize"><path d="M1217.12,111.8338 C1270.96,119.5538 1366.27,136.7038 1442,169.0938 C1468.33,180.3538 1495.31,197.9638 1515.72,212.7638 " fill="none" id="User-to-UC_HopSize" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="1519.97,215.8738,1515.0818,207.3236,1515.9393,212.9151,1510.3479,213.7727,1519.97,215.8738" style="stroke:#181818;stroke-width:1.0;"/></g><!--MD5=[daecd9969745fd4fcb146dcbbfc9621a]
+link User to UC_TimeRange--><g id="link_User_UC_TimeRange"><path d="M1217.31,151.2538 C1235.65,170.6138 1256.63,192.7538 1272.99,210.0338 " fill="none" id="User-to-UC_TimeRange" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="1276.62,213.8637,1273.3463,204.5749,1273.186,210.2295,1267.5315,210.0692,1276.62,213.8637" style="stroke:#181818;stroke-width:1.0;"/></g><!--MD5=[115d1098b6064746b0bcd135634c6436]
+link User to UC_FullSession--><g id="link_User_UC_FullSession"><path d="M1132.68,151.6238 C1112.4,173.2038 1088.94,198.1538 1072.21,215.9638 " fill="none" id="User-to-UC_FullSession" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="1068.53,219.8838,1077.6111,216.0714,1071.9568,216.2428,1071.7855,210.5885,1068.53,219.8838" style="stroke:#181818;stroke-width:1.0;"/></g><!--MD5=[db86ea81290d0b3cfb2472399b22ea30]
+link User to UC_ThreshP300--><g id="link_User_UC_ThreshP300"><path d="M1132.83,114.5737 C1085.02,124.3438 1005.23,142.9138 940,169.0938 C909.08,181.5038 876.2,199.7338 851.51,214.5438 " fill="none" id="User-to-UC_ThreshP300" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="846.99,217.2738,856.7606,216.0349,851.2673,214.6845,852.6178,209.1912,846.99,217.2738" style="stroke:#181818;stroke-width:1.0;"/></g><!--MD5=[ab900f21270f6db7431f64c02372c929]
+link User to UC_ThreshInner--><g id="link_User_UC_ThreshInner"><path d="M1132.86,106.6638 C1046.58,107.9338 844.52,116.7937 685,169.0938 C652.4,179.7838 618.59,199.0138 594.05,214.7038 " fill="none" id="User-to-UC_ThreshInner" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="589.58,217.5838,599.3136,216.0816,593.7859,214.88,594.9876,209.3522,589.58,217.5838" style="stroke:#181818;stroke-width:1.0;"/></g><!--MD5=[fce87f2b1569806d641e2f05adf5e5d7]
+link User to UC_Enable--><g id="link_User_UC_Enable"><path d="M1132.69,107.6337 C995.45,111.3837 563.93,126.3837 432,169.0938 C402.39,178.6838 372.38,196.9738 350.18,212.5138 " fill="none" id="User-to-UC_Enable" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="345.84,215.5838,355.4989,213.6588,349.924,212.6992,350.8837,207.1243,345.84,215.5838" style="stroke:#181818;stroke-width:1.0;"/></g><!--MD5=[19a4ed33da6cc8790c62d854f435d993]
+link User to UC_Start--><g id="link_User_UC_Start"><path d="M1132.95,106.1938 C969.21,105.1138 374.69,105.7138 199,169.0938 C169.69,179.6638 141.49,201.9738 123.13,218.6838 " fill="none" id="User-to-UC_Start" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="119.13,222.3738,128.4512,219.1934,122.7985,218.9764,123.0155,213.3237,119.13,222.3738" style="stroke:#181818;stroke-width:1.0;"/></g><!--MD5=[931cb56816db364a4a48c5ce9f7dab28]
+@startuml
+title
+  Casos de Uso (Front-End)
+  Simulación — Paso 1: Configuración
+end title
+
+actor "Usuario\nInvestigador" as User
+
+rectangle "Página Simulation — Configuración" {
+
+  usecase "Seleccionar modelo P300" as UC_SelectP300
+  usecase "Seleccionar modelo Inner Speech" as UC_SelectInner
+
+  usecase "Cargar archivo EEG\ndesde el sidebar" as UC_LoadEEG
+
+  usecase "Ajustar Hop Size\n(solapamiento)" as UC_HopSize
+  usecase "Definir rango de tiempo\n(Inicio / Fin)" as UC_TimeRange
+  usecase "Usar sesión completa" as UC_FullSession
+
+  usecase "Configurar Threshold P300" as UC_ThreshP300
+  usecase "Configurar Threshold Inner" as UC_ThreshInner
+
+  usecase "Habilitar botón\n'Iniciar Simulación'" as UC_Enable
+  usecase "Iniciar Simulación" as UC_Start
+}
+
+User - -> UC_SelectP300
+User - -> UC_SelectInner
+User - -> UC_LoadEEG
+User - -> UC_HopSize
+User - -> UC_TimeRange
+User - -> UC_FullSession
+User - -> UC_ThreshP300
+User - -> UC_ThreshInner
+User - -> UC_Enable
+User - -> UC_Start
+@enduml
+
+PlantUML version 1.2022.7(Mon Aug 22 17:01:30 UTC 2022)
+(GPL source distribution)
+Java Runtime: OpenJDK Runtime Environment
+JVM: OpenJDK 64-Bit Server VM
+Default Encoding: UTF-8
+Language: en
+Country: null
+--></g></svg>

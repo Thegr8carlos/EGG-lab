@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" contentStyleType="text/css" height="287px" preserveAspectRatio="none" style="width:1785px;height:287px;background:#FFFFFF;" version="1.1" viewBox="0 0 1785 287" width="1785px" zoomAndPan="magnify"><defs/><g><rect fill="none" height="42.5938" id="_title" style="stroke:none;stroke-width:1.0;" width="212" x="779.5" y="5"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="202" x="784.5" y="22.9951">Casos de Uso (Front-End)</text><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="179" x="796" y="39.292">Paso 2 — Modelo P300</text><!--MD5=[7355a6204724a5f7add13132347c8656]
+cluster Página P300 — Paso 2: Modelo--><g id="cluster_Página P300 — Paso 2: Modelo"><rect fill="none" height="104" rx="2.5" ry="2.5" style="stroke:#181818;stroke-width:1.0;" width="1772" x="7" y="177.0938"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="242" x="772" y="192.0889">Página P300 — Paso 2: Modelo</text></g><g id="elem_UC_BackToTransform"><ellipse cx="1656.0887" cy="238.831" fill="#F1F1F1" rx="107.0887" ry="26.2373" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="134" x="1586.0887" y="234.4301">Regresar al Paso 1:</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="107" x="1599.5887" y="250.727">Transformación</text></g><g id="elem_UC_ViewModels"><ellipse cx="1401.9492" cy="238.3488" fill="#F1F1F1" rx="111.4492" ry="26.255" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="140" x="1328.9492" y="233.9479">Ver lista de modelos</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="119" x="1339.4492" y="250.2448">P300 disponibles</text></g><g id="elem_UC_SelectModel"><ellipse cx="1147.0422" cy="238.8371" fill="#F1F1F1" rx="108.5422" ry="26.2433" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="136" x="1076.0422" y="234.4362">Seleccionar modelo</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="104" x="1092.0422" y="250.7331">de clasificación</text></g><g id="elem_UC_ConfigModel"><ellipse cx="881.9724" cy="238.7882" fill="#F1F1F1" rx="121.4724" ry="26.6945" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="115" x="824.4724" y="233.4865">Configurar hiper-</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="160" x="801.9724" y="249.7833">parámetros del modelo</text></g><g id="elem_UC_Train"><ellipse cx="610.0831" cy="238.3626" fill="#F1F1F1" rx="115.0831" ry="26.2688" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="145" x="534.5831" y="233.9617">Iniciar entrenamiento</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="46" x="584.0831" y="250.2586">(P300)</text></g><g id="elem_UC_TrainStatus"><ellipse cx="361.1665" cy="238.641" fill="#F1F1F1" rx="99.1665" ry="26.0473" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="90" x="316.1665" y="233.3393">Ver progreso</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="124" x="299.1665" y="249.6361">de entrenamiento</text></g><g id="elem_UC_ViewMetrics"><ellipse cx="125.0014" cy="238.8083" fill="#F1F1F1" rx="102.0014" ry="26.2146" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="127" x="58.5014" y="234.4075">Visualizar métricas</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="97" x="73.5014" y="250.7043">(Accuracy, F1)</text></g><!--MD5=[fee662a292a0353a69bd162820bae93b]
+entity User--><g id="elem_User"><ellipse cx="882" cy="67.5938" fill="#F1F1F1" rx="8" ry="8" style="stroke:#181818;stroke-width:0.5;"/><path d="M882,75.5938 L882,102.5938 M869,83.5938 L895,83.5938 M882,102.5938 L869,117.5938 M882,102.5938 L895,117.5938 " fill="none" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="52" x="840" y="132.0889">Usuario</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="84" x="840" y="148.3857">Investigador</text></g><!--MD5=[1baa519a536f33518be4509ebc4a12e1]
+link User to UC_BackToTransform--><g id="link_User_UC_BackToTransform"><path d="M924.09,108.4338 C1049.12,114.2337 1416.73,133.9138 1531,169.0938 C1561.84,178.5838 1593.69,196.1838 1617.52,211.1538 " fill="none" id="User-to-UC_BackToTransform" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="1621.88,213.9237,1616.4076,205.7352,1617.6529,211.2532,1612.1348,212.4985,1621.88,213.9237" style="stroke:#181818;stroke-width:1.0;"/></g><!--MD5=[228880346cb7d91bd1ed17cd4214e4c0]
+link User to UC_ViewModels--><g id="link_User_UC_ViewModels"><path d="M924.17,108.7937 C997.03,113.5737 1150.46,128.0338 1273,169.0938 C1303.67,179.3738 1335.8,196.4138 1360.33,210.9237 " fill="none" id="User-to-UC_ViewModels" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="1364.82,213.6038,1359.1408,205.5572,1360.5262,211.0418,1355.0417,212.4273,1364.82,213.6038" style="stroke:#181818;stroke-width:1.0;"/></g><!--MD5=[c5ab623ae2f15536b197fa6076f9ada2]
+link User to UC_SelectModel--><g id="link_User_UC_SelectModel"><path d="M924.05,124.5137 C951.82,136.5938 988.88,153.1738 1021,169.0938 C1048.2,182.5738 1078.06,198.7538 1101.89,212.0038 " fill="none" id="User-to-UC_SelectModel" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="1106.27,214.4338,1100.3452,206.5663,1101.8992,212.0055,1096.46,213.5596,1106.27,214.4338" style="stroke:#181818;stroke-width:1.0;"/></g><!--MD5=[7a330a03ea8705b7ada33d93ff77824b]
+link User to UC_ConfigModel--><g id="link_User_UC_ConfigModel"><path d="M882,152.4138 C882,170.3138 882,190.3637 882,206.5238 " fill="none" id="User-to-UC_ConfigModel" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="882,211.8438,886,202.8438,882,206.8438,878,202.8438,882,211.8438" style="stroke:#181818;stroke-width:1.0;"/></g><!--MD5=[2d5303442ffb172f9b0b710e17b6aca6]
+link User to UC_Train--><g id="link_User_UC_Train"><path d="M839.76,124.8938 C812.07,137.0538 775.18,153.5838 743,169.0938 C714.92,182.6238 683.93,198.5338 658.94,211.6038 " fill="none" id="User-to-UC_Train" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="654.34,214.0138,664.1691,213.3905,658.7714,211.698,660.4639,206.3003,654.34,214.0138" style="stroke:#181818;stroke-width:1.0;"/></g><!--MD5=[487968b95cf4e344352b3b9ec2f00d22]
+link User to UC_TrainStatus--><g id="link_User_UC_TrainStatus"><path d="M839.74,107.9438 C764.78,111.4738 604.56,124.1037 478,169.0938 C449.52,179.2238 420.16,196.4237 397.98,211.0638 " fill="none" id="User-to-UC_TrainStatus" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="393.64,213.9538,403.3473,212.2896,397.8003,211.1802,398.9097,205.6332,393.64,213.9538" style="stroke:#181818;stroke-width:1.0;"/></g><!--MD5=[dda220abc9aa282a1c79b4a07094660a]
+link User to UC_ViewMetrics--><g id="link_User_UC_ViewMetrics"><path d="M839.79,108.4338 C716.16,114.1738 356.57,133.5638 245,169.0938 C215.2,178.5838 184.62,196.1737 161.8,211.1538 " fill="none" id="User-to-UC_ViewMetrics" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="157.63,213.9237,167.3438,212.2981,161.8012,211.1668,162.9326,205.6242,157.63,213.9237" style="stroke:#181818;stroke-width:1.0;"/></g><!--MD5=[7b0e99221ff7ec5638924ae65c2b43d5]
+@startuml
+title
+  Casos de Uso (Front-End)
+  Paso 2 — Modelo P300
+end title
+
+actor "Usuario\nInvestigador" as User
+
+rectangle "Página P300 — Paso 2: Modelo" {
+
+  usecase "Regresar al Paso 1:\nTransformación" as UC_BackToTransform
+
+  usecase "Ver lista de modelos\nP300 disponibles" as UC_ViewModels
+  usecase "Seleccionar modelo\nde clasificación" as UC_SelectModel
+  usecase "Configurar hiper-\nparámetros del modelo" as UC_ConfigModel
+
+  usecase "Iniciar entrenamiento\n(P300)" as UC_Train
+  usecase "Ver progreso\nde entrenamiento" as UC_TrainStatus
+  usecase "Visualizar métricas\n(Accuracy, F1)" as UC_ViewMetrics
+}
+
+User - -> UC_BackToTransform
+User - -> UC_ViewModels
+User - -> UC_SelectModel
+User - -> UC_ConfigModel
+User - -> UC_Train
+User - -> UC_TrainStatus
+User - -> UC_ViewMetrics
+@enduml
+
+PlantUML version 1.2022.7(Mon Aug 22 17:01:30 UTC 2022)
+(GPL source distribution)
+Java Runtime: OpenJDK Runtime Environment
+JVM: OpenJDK 64-Bit Server VM
+Default Encoding: UTF-8
+Language: en
+Country: null
+--></g></svg>

@@ -1,0 +1,56 @@
+/* Estilos para el diagrama del pipeline de simulación */
+
+.pipeline-item {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 10px;
+}
+
+.pipeline-step {
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    padding: 20px;
+    min-width: 120px;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.pipeline-step:hover {
+    background: rgba(255, 255, 255, 0.08);
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.pipeline-arrow {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0 15px;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 0.6;
+    }
+    50% {
+        opacity: 1;
+    }
+}
+
+/* Animación para el paso activo del pipeline */
+.pipeline-step-active {
+    animation: glow 1.5s ease-in-out infinite;
+}
+
+@keyframes glow {
+    0%, 100% {
+        box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+    }
+    50% {
+        box-shadow: 0 0 20px rgba(0, 255, 255, 0.8);
+    }
+}

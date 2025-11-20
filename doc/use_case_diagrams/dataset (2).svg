@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" contentStyleType="text/css" height="457px" preserveAspectRatio="none" style="width:1634px;height:457px;background:#FFFFFF;" version="1.1" viewBox="0 0 1634 457" width="1634px" zoomAndPan="magnify"><defs/><g><rect fill="none" height="42.5938" id="_title" style="stroke:none;stroke-width:1.0;" width="262" x="679" y="5"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="252" x="684" y="22.9951">Casos de Uso (nivel intermedio)</text><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="131" x="744.5" y="39.292">Página "Dataset"</text><!--MD5=[c2e703007e33c08ccf965f3a821dcd08]
+cluster Sistema--><g id="cluster_Sistema"><rect fill="none" height="252" rx="2.5" ry="2.5" style="stroke:#181818;stroke-width:1.0;" width="1621" x="7" y="199.0938"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="129" x="753" y="214.0889">Sistema EGG-lab</text><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="129" x="753" y="230.3857">(Página Dataset)</text></g><g id="elem_UC_Resumen"><ellipse cx="610.9342" cy="276.6463" fill="#F1F1F1" rx="74.4342" ry="26.0526" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="89" x="565.3518" y="271.6939">Ver resumen</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="77" x="571.3518" y="287.9907">del dataset</text></g><g id="elem_UC_Stats"><ellipse cx="172.176" cy="276.3516" fill="#F1F1F1" rx="112.176" ry="26.2579" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="141" x="98.676" y="271.9507">Explorar estadísticas</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="69" x="134.676" y="288.2476">generales</text></g><g id="elem_UC_Topomap"><ellipse cx="406.2406" cy="276.7244" fill="#F1F1F1" rx="86.7406" ry="26.1307" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="106" x="350.2406" y="272.3236">Visualizar mapa</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="96" x="355.2406" y="288.6204">de electrodos</text></g><g id="elem_UC_SignalPerChannel"><ellipse cx="1406.9744" cy="276.6733" fill="#F1F1F1" rx="79.4744" ry="26.0795" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="96" x="1356.1165" y="272.234">Explorar señal</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="63" x="1372.6165" y="288.5309">por canal</text></g><g id="elem_UC_SignalRaw"><ellipse cx="799.9744" cy="276.6733" fill="#F1F1F1" rx="79.4744" ry="26.0795" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="96" x="749.1165" y="272.234">Explorar señal</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="24" x="785.1165" y="288.5309">raw</text></g><g id="elem_UC_Frequency"><ellipse cx="1205.194" cy="276.7337" fill="#F1F1F1" rx="88.194" ry="26.1399" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="108" x="1148.194" y="272.3328">Analizar bandas</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="94" x="1155.194" y="288.6297">de frecuencia</text></g><g id="elem_UC_Quality"><ellipse cx="997.834" cy="276.705" fill="#F1F1F1" rx="83.834" ry="26.1113" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="102" x="943.834" y="272.3041">Revisar calidad</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="77" x="956.334" y="288.601">del dataset</text></g><g id="elem_UC_LoadMetadata"><ellipse cx="669.7719" cy="407.7481" fill="#F1F1F1" rx="126.2719" ry="27.6544" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="114" x="612.7719" y="402.4464">Cargar metadata</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="173" x="583.2719" y="418.7432">del dataset seleccionado</text></g><g id="elem_UC_ComputeStats"><ellipse cx="136.8087" cy="407.641" fill="#F1F1F1" rx="113.3087" ry="26.0473" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="117" x="78.3087" y="402.3393">Calcular métricas</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="144" x="64.8087" y="418.6361">estadísticas globales</text></g><g id="elem_UC_GenerateTopomap"><ellipse cx="397.1873" cy="407.641" fill="#F1F1F1" rx="111.1873" ry="26.0473" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="122" x="336.1873" y="402.3393">Generar topomap</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="141" x="326.6873" y="418.6361">y animación espacial</text></g><g id="elem_UC_ChannelStats"><ellipse cx="1500.9492" cy="407.3488" fill="#F1F1F1" rx="111.4492" ry="26.255" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="140" x="1427.9492" y="402.9479">Calcular estadísticas</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="126" x="1434.9492" y="419.2448">de señal por canal</text></g><g id="elem_UC_FreqMetrics"><ellipse cx="1229.0233" cy="407.5984" fill="#F1F1F1" rx="125.5233" ry="27.5047" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="117" x="1170.5233" y="402.2966">Calcular métricas</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="171" x="1143.5233" y="418.5935">de bandas de frecuencia</text></g><g id="elem_UC_QualityMetrics"><ellipse cx="950.2474" cy="407.6432" fill="#F1F1F1" rx="118.2474" ry="26.0495" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="112" x="894.2474" y="402.3415">Evaluar métricas</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="151" x="874.7474" y="418.6383">de calidad del dataset</text></g><!--MD5=[fee662a292a0353a69bd162820bae93b]
+entity User--><g id="elem_User"><ellipse cx="800" cy="67.5938" fill="#F1F1F1" rx="8" ry="8" style="stroke:#181818;stroke-width:0.5;"/><path d="M800,75.5938 L800,102.5938 M787,83.5938 L813,83.5938 M800,102.5938 L787,117.5938 M800,102.5938 L813,117.5938 " fill="none" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="52" x="758" y="132.0889">Usuario</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="84" x="758" y="148.3857">Investigador</text></g><!--MD5=[452ac4673cebdb8514805221d04f5520]
+link User to UC_Resumen--><g id="link_User_UC_Resumen"><path d="M757.77,142.9538 C740.68,157.7838 720.81,175.1638 703,191.0938 C681.81,210.0438 658.2,231.7438 640.2,248.4138 " fill="none" id="User-to-UC_Resumen" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="636.22,252.1038,645.5412,248.9234,639.8885,248.7064,640.1055,243.0537,636.22,252.1038" style="stroke:#181818;stroke-width:1.0;"/></g><!--MD5=[6cd86a0c071d4ecdaa0bf7d132aef4be]
+link User to UC_Stats--><g id="link_User_UC_Stats"><path d="M757.81,108.0138 C670.03,112.1737 462.52,128.4237 302,191.0938 C266.92,204.7938 231.35,228.7538 206.31,247.6738 " fill="none" id="User-to-UC_Stats" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="202.07,250.9038,211.6521,248.6269,206.0458,247.8718,206.801,242.2656,202.07,250.9038" style="stroke:#181818;stroke-width:1.0;"/></g><!--MD5=[ceb13b3fbda1bb7927bb6718b09fa36b]
+link User to UC_Topomap--><g id="link_User_UC_Topomap"><path d="M757.8,114.4638 C701.27,126.0638 598.83,150.8338 519,191.0938 C488.73,206.3637 458.17,229.8138 436.47,248.1438 " fill="none" id="User-to-UC_Topomap" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="432.53,251.5038,441.9777,248.7216,436.3393,248.2651,436.7959,242.6267,432.53,251.5038" style="stroke:#181818;stroke-width:1.0;"/></g><!--MD5=[fac67ee87e7a66d5a8848d90eca0eaf9]
+link User to UC_SignalPerChannel--><g id="link_User_UC_SignalPerChannel"><path d="M842.03,105.8938 C932.42,105.9738 1150.13,114.8037 1311,191.0938 C1339.02,204.3838 1365.05,228.3338 1382.91,247.3438 " fill="none" id="User-to-UC_SignalPerChannel" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="1386.37,251.0738,1383.1896,241.7525,1382.9727,247.4052,1377.32,247.1882,1386.37,251.0738" style="stroke:#181818;stroke-width:1.0;"/></g><!--MD5=[f649daa231eb44636da576316f49106f]
+link User to UC_SignalRaw--><g id="link_User_UC_SignalRaw"><path d="M800,152.3238 C800,181.8338 800,219.4038 800,245.2638 " fill="none" id="User-to-UC_SignalRaw" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="800,250.2738,804,241.2738,800,245.2738,796,241.2738,800,250.2738" style="stroke:#181818;stroke-width:1.0;"/></g><!--MD5=[f9ca67df74f61adc6deffa9c24698797]
+link User to UC_Frequency--><g id="link_User_UC_Frequency"><path d="M842.23,112.9638 C902.17,123.2138 1014.15,146.8238 1100,191.0938 C1128.66,205.8737 1156.89,229.2238 1176.85,247.6438 " fill="none" id="User-to-UC_Frequency" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="1180.73,251.2538,1176.8621,242.1962,1177.0681,247.8493,1171.415,248.0553,1180.73,251.2538" style="stroke:#181818;stroke-width:1.0;"/></g><!--MD5=[e9bd70ed5a6ca919861d347be24d7293]
+link User to UC_Quality--><g id="link_User_UC_Quality"><path d="M842.48,142.8438 C879.6,174.5338 932.68,219.8338 966.23,248.4738 " fill="none" id="User-to-UC_Quality" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="970.22,251.8838,965.9706,242.9988,966.4167,248.638,960.7774,249.0841,970.22,251.8838" style="stroke:#181818;stroke-width:1.0;"/></g><!--MD5=[1435f224ca6fd7688681efc853c306e7]
+link UC_Resumen to UC_LoadMetadata--><g id="link_UC_Resumen_UC_LoadMetadata"><path d="M607.2,302.7537 C606.09,317.1838 606.59,335.3038 613,350.0938 C617.33,360.0938 624.33,369.2537 631.97,377.1638 " fill="none" id="UC_Resumen-to-UC_LoadMetadata" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="635.77,380.9338,632.2159,371.7485,632.2273,377.4054,626.5705,377.4168,635.77,380.9338" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="60" x="614" y="346.1606">«incluye»</text></g><!--MD5=[ddc37e0841a5c15b39ef16c25e83a9b5]
+link UC_Stats to UC_LoadMetadata--><g id="link_UC_Stats_UC_LoadMetadata"><path d="M183.01,303.1337 C191.46,319.4538 204.79,339.4638 223,350.0938 C281.44,384.1938 459,370.6338 526,380.0938 C541.26,382.2537 557.38,384.8738 573.08,387.6138 " fill="none" id="UC_Stats-to-UC_LoadMetadata" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="578.39,388.5538,570.2267,383.0438,573.4668,387.6807,568.8298,390.9209,578.39,388.5538" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="60" x="224" y="346.1606">«incluye»</text></g><!--MD5=[023312843d09088dffe7941ffa54f0a6]
+link UC_Topomap to UC_LoadMetadata--><g id="link_UC_Topomap_UC_LoadMetadata"><path d="M395.36,302.6838 C390.69,317.9838 388.39,337.0438 399,350.0938 C401.87,353.6238 496.16,372.7438 572.72,387.7838 " fill="none" id="UC_Topomap-to-UC_LoadMetadata" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="577.73,388.7638,569.6638,383.1125,572.8227,387.8052,568.1301,390.9641,577.73,388.7638" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="60" x="400" y="346.1606">«incluye»</text></g><!--MD5=[5b340bb6d127f857a7f4536bfffb75da]
+link UC_SignalPerChannel to UC_LoadMetadata--><g id="link_UC_SignalPerChannel_UC_LoadMetadata"><path d="M1377.68,301.0738 C1354.72,317.9938 1321.23,339.6238 1288,350.0938 C1187.55,381.7438 919.54,367.2738 815,380.0938 C799,382.0538 782.1,384.6538 765.7,387.4638 " fill="none" id="UC_SignalPerChannel-to-UC_LoadMetadata" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="760.63,388.3438,770.1823,390.7425,765.5561,387.487,768.8115,382.8608,760.63,388.3438" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="60" x="1327" y="346.1606">«incluye»</text></g><!--MD5=[c15d31177aafa071d9473420614e11ac]
+link UC_SignalRaw to UC_LoadMetadata--><g id="link_UC_SignalRaw_UC_LoadMetadata"><path d="M802.64,302.6138 C802.93,317.7038 800.85,336.5538 791,350.0938 C780.74,364.1938 766.07,374.8938 750.46,382.9638 " fill="none" id="UC_SignalRaw-to-UC_LoadMetadata" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="745.59,385.3838,755.4293,384.9491,750.065,383.1534,751.8607,377.7891,745.59,385.3838" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="60" x="799" y="346.1606">«incluye»</text></g><!--MD5=[8c428570a1ea673c74b44420c2eade49]
+link UC_Frequency to UC_LoadMetadata--><g id="link_UC_Frequency_UC_LoadMetadata"><path d="M1170.52,300.6438 C1143.94,317.2238 1105.64,338.6138 1069,350.0938 C960.53,384.0838 927.41,363.2038 815,380.0938 C799.77,382.3838 783.68,385.0638 767.98,387.8138 " fill="none" id="UC_Frequency-to-UC_LoadMetadata" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="762.68,388.7537,772.239,391.1257,767.6036,387.8832,770.8461,383.2478,762.68,388.7537" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="60" x="1109" y="346.1606">«incluye»</text></g><!--MD5=[5e4828222a29f3037afab027e4562004]
+link UC_Quality to UC_LoadMetadata--><g id="link_UC_Quality_UC_LoadMetadata"><path d="M962.7,300.2238 C937.16,315.8438 901.42,336.2238 868,350.0938 C833.54,364.3938 794.27,376.4238 759.84,385.6638 " fill="none" id="UC_Quality-to-UC_LoadMetadata" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="754.79,387.0037,764.5162,388.5533,759.6216,385.7172,762.4577,380.8227,754.79,387.0037" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="60" x="902" y="346.1606">«incluye»</text></g><!--MD5=[c22037d6b1c50fce4da7e5b94b81b499]
+link UC_Resumen to UC_ComputeStats--><g id="link_UC_Resumen_UC_ComputeStats"><path d="M574.82,299.5137 C546.05,315.9538 504.26,337.6738 465,350.0938 C380.98,376.6738 355.78,364.7537 269,380.0938 C254.42,382.6738 238.98,385.5938 223.99,388.5338 " fill="none" id="UC_Resumen-to-UC_ComputeStats" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="218.92,389.5338,228.5199,391.7341,223.8273,388.5752,226.9862,383.8825,218.92,389.5338" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="70" x="507" y="346.1606">«muestra»</text></g><!--MD5=[804e3198bf2fd2ea7aa7be7865c7879c]
+link UC_Resumen to UC_QualityMetrics--><g id="link_UC_Resumen_UC_QualityMetrics"><path d="M637.18,301.0538 C656.36,317.0738 683.71,337.5838 711,350.0938 C737.24,362.1238 802.59,377.2338 858.34,388.8038 " fill="none" id="UC_Resumen-to-UC_QualityMetrics" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="863.36,389.8338,855.3576,384.0925,858.4638,388.8202,853.736,391.9264,863.36,389.8338" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="70" x="712" y="346.1606">«muestra»</text></g><!--MD5=[4eec8be61af666944606347dd5e6ea6c]
+link UC_Stats to UC_ComputeStats--><g id="link_UC_Stats_UC_ComputeStats"><path d="M123.79,300.7338 C111.52,309.1138 99.88,319.8538 93,333.0938 C85.11,348.2838 93.21,364.6738 104.51,378.1138 " fill="none" id="UC_Stats-to-UC_ComputeStats" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="108.11,382.1838,105.1382,372.794,104.7953,378.4404,99.1488,378.0975,108.11,382.1838" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="60" x="94" y="346.1606">«calcula»</text></g><!--MD5=[ae7a4bd60ba6cd6fc06c747c566857bd]
+link UC_Topomap to UC_GenerateTopomap--><g id="link_UC_Topomap_UC_GenerateTopomap"><path d="M344.55,294.9038 C326.02,303.3138 307.77,315.5338 297,333.0938 C283.91,354.4538 303.33,371.5738 328.44,383.8938 " fill="none" id="UC_Topomap-to-UC_GenerateTopomap" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="333.19,386.1338,326.7748,378.6608,328.6731,383.9896,323.3442,385.8879,333.19,386.1338" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="60" x="298" y="346.1606">«calcula»</text></g><!--MD5=[d0bf98258b254e4795b32ea7ba84a2cc]
+link UC_SignalPerChannel to UC_ChannelStats--><g id="link_UC_SignalPerChannel_UC_ChannelStats"><path d="M1424.9,302.1638 C1440.45,323.4938 1462.99,354.4338 1479.51,377.1038 " fill="none" id="UC_SignalPerChannel-to-UC_ChannelStats" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="1482.52,381.2338,1480.4574,371.6033,1479.5774,377.1913,1473.9894,376.3114,1482.52,381.2338" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="60" x="1460" y="346.1606">«calcula»</text></g><!--MD5=[6a44a0f3630887f2bb82a2f879aa1e6e]
+link UC_Frequency to UC_FreqMetrics--><g id="link_UC_Frequency_UC_FreqMetrics"><path d="M1209.68,302.7738 C1213.5,323.2738 1218.91,352.3438 1223.03,374.5138 " fill="none" id="UC_Frequency-to-UC_FreqMetrics" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="1224,379.7038,1226.2863,370.1239,1223.0855,374.7881,1218.4213,371.5872,1224,379.7038" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="60" x="1219" y="346.1606">«calcula»</text></g><!--MD5=[7fb97da835e1fac7895c40c7bad954c1]
+link UC_Quality to UC_QualityMetrics--><g id="link_UC_Quality_UC_QualityMetrics"><path d="M1000.74,302.8538 C1001.37,317.1438 1000.59,335.1038 995,350.0938 C991.27,360.0938 985.05,369.6838 978.41,378.0338 " fill="none" id="UC_Quality-to-UC_QualityMetrics" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="975.12,382.0338,983.9274,377.6258,978.297,378.1729,977.75,372.5425,975.12,382.0338" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="60" x="1000" y="346.1606">«calcula»</text></g><!--MD5=[9f4b0eb3681efd692a1ec229733171bb]
+@startuml
+title
+  Casos de Uso (nivel intermedio)
+  Página "Dataset"
+end title
+
+actor "Usuario\nInvestigador" as User
+
+rectangle "Sistema EGG-lab\n(Página Dataset)" as Sistema {
+
+  ' - - - Casos de uso visibles en la página (nivel front) - - -
+  usecase "Ver resumen\ndel dataset" as UC_Resumen
+  usecase "Explorar estadísticas\ngenerales" as UC_Stats
+  usecase "Visualizar mapa\nde electrodos" as UC_Topomap
+  usecase "Explorar señal\npor canal" as UC_SignalPerChannel
+  usecase "Explorar señal\nraw" as UC_SignalRaw
+  usecase "Analizar bandas\nde frecuencia" as UC_Frequency
+  usecase "Revisar calidad\ndel dataset" as UC_Quality
+
+  ' - - - Comportamientos internos de la página (nivel sistema) - - -
+  usecase "Cargar metadata\ndel dataset seleccionado" as UC_LoadMetadata
+  usecase "Calcular métricas\nestadísticas globales" as UC_ComputeStats
+  usecase "Generar topomap\ny animación espacial" as UC_GenerateTopomap
+  usecase "Calcular estadísticas\nde señal por canal" as UC_ChannelStats
+  usecase "Calcular métricas\nde bandas de frecuencia" as UC_FreqMetrics
+  usecase "Evaluar métricas\nde calidad del dataset" as UC_QualityMetrics
+}
+
+' - - - Relación actor -> casos de uso de la página - - -
+User - -> UC_Resumen
+User - -> UC_Stats
+User - -> UC_Topomap
+User - -> UC_SignalPerChannel
+User - -> UC_SignalRaw
+User - -> UC_Frequency
+User - -> UC_Quality
+
+' - - - Dependencias de los casos visibles con la lógica interna - - -
+' Todos dependen de la metadata cargada
+UC_Resumen - -> UC_LoadMetadata           : <<incluye>>
+UC_Stats - -> UC_LoadMetadata             : <<incluye>>
+UC_Topomap - -> UC_LoadMetadata           : <<incluye>>
+UC_SignalPerChannel - -> UC_LoadMetadata  : <<incluye>>
+UC_SignalRaw - -> UC_LoadMetadata         : <<incluye>>
+UC_Frequency - -> UC_LoadMetadata         : <<incluye>>
+UC_Quality - -> UC_LoadMetadata           : <<incluye>>
+
+' Resumen usa estadísticas y calidad
+UC_Resumen - -> UC_ComputeStats           : <<muestra>>
+UC_Resumen - -> UC_QualityMetrics         : <<muestra>>
+
+' Cada pestaña dispara cálculos específicos
+UC_Stats - -> UC_ComputeStats             : <<calcula>>
+UC_Topomap - -> UC_GenerateTopomap        : <<calcula>>
+UC_SignalPerChannel - -> UC_ChannelStats  : <<calcula>>
+UC_Frequency - -> UC_FreqMetrics          : <<calcula>>
+UC_Quality - -> UC_QualityMetrics         : <<calcula>>
+@enduml
+
+@startuml
+title
+  Casos de Uso (nivel intermedio)
+  Página "Dataset"
+end title
+
+actor "Usuario\nInvestigador" as User
+
+rectangle "Sistema EGG-lab\n(Página Dataset)" as Sistema {
+
+  usecase "Ver resumen\ndel dataset" as UC_Resumen
+  usecase "Explorar estadísticas\ngenerales" as UC_Stats
+  usecase "Visualizar mapa\nde electrodos" as UC_Topomap
+  usecase "Explorar señal\npor canal" as UC_SignalPerChannel
+  usecase "Explorar señal\nraw" as UC_SignalRaw
+  usecase "Analizar bandas\nde frecuencia" as UC_Frequency
+  usecase "Revisar calidad\ndel dataset" as UC_Quality
+
+  usecase "Cargar metadata\ndel dataset seleccionado" as UC_LoadMetadata
+  usecase "Calcular métricas\nestadísticas globales" as UC_ComputeStats
+  usecase "Generar topomap\ny animación espacial" as UC_GenerateTopomap
+  usecase "Calcular estadísticas\nde señal por canal" as UC_ChannelStats
+  usecase "Calcular métricas\nde bandas de frecuencia" as UC_FreqMetrics
+  usecase "Evaluar métricas\nde calidad del dataset" as UC_QualityMetrics
+}
+
+User - -> UC_Resumen
+User - -> UC_Stats
+User - -> UC_Topomap
+User - -> UC_SignalPerChannel
+User - -> UC_SignalRaw
+User - -> UC_Frequency
+User - -> UC_Quality
+
+UC_Resumen - -> UC_LoadMetadata           : <<incluye>>
+UC_Stats - -> UC_LoadMetadata             : <<incluye>>
+UC_Topomap - -> UC_LoadMetadata           : <<incluye>>
+UC_SignalPerChannel - -> UC_LoadMetadata  : <<incluye>>
+UC_SignalRaw - -> UC_LoadMetadata         : <<incluye>>
+UC_Frequency - -> UC_LoadMetadata         : <<incluye>>
+UC_Quality - -> UC_LoadMetadata           : <<incluye>>
+
+UC_Resumen - -> UC_ComputeStats           : <<muestra>>
+UC_Resumen - -> UC_QualityMetrics         : <<muestra>>
+
+UC_Stats - -> UC_ComputeStats             : <<calcula>>
+UC_Topomap - -> UC_GenerateTopomap        : <<calcula>>
+UC_SignalPerChannel - -> UC_ChannelStats  : <<calcula>>
+UC_Frequency - -> UC_FreqMetrics          : <<calcula>>
+UC_Quality - -> UC_QualityMetrics         : <<calcula>>
+@enduml
+
+PlantUML version 1.2022.7(Mon Aug 22 17:01:30 UTC 2022)
+(GPL source distribution)
+Java Runtime: OpenJDK Runtime Environment
+JVM: OpenJDK 64-Bit Server VM
+Default Encoding: UTF-8
+Language: en
+Country: null
+--></g></svg>

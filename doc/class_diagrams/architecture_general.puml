@@ -1,0 +1,167 @@
+@startuml
+title Arquitectura General - Sistema EEG Lab
+
+' ============= FRONTEND =============
+rectangle "Frontend (Dash UI)" as Frontend {
+  component "Páginas" as Pages {
+    [Cargar Datos]
+    [Filtros]
+    [Extractores]
+    [Modelado P300]
+    [Modelado Inner Speech]
+    [Simulación]
+  }
+
+  component "Componentes" as Components {
+    [SideBar]
+    [ModelSelector]
+    [DataVisualization]
+  }
+}
+
+' ============= BACKEND =============
+rectangle "Backend (Procesamiento)" as Backend {
+  component "Clases Core" as Core {
+    [Dataset] as DatasetClass
+    [Experiment] as ExperimentClass
+    [Filter] as FilterClass
+    [Transform] as TransformClass
+    [Classifier] as ClassifierClass
+  }
+
+  component "Helpers" as Helpers {
+    [model_storage]
+    [simulation_utils]
+    [simulation_engine]
+  }
+}
+
+' ============= STORAGE =============
+database "Almacenamiento" as Storage {
+  folder "Data/" {
+    [Archivos EEG\nBDF/EDF/VHDR]
+  }
+
+  folder "Aux/" {
+    [Eventos\nPreprocesados]
+    [Metadata]
+  }
+
+  folder "Models/" {
+    [Modelos\nEntrenados]
+    [Snapshots]
+  }
+
+  folder "Experiments/" {
+    [Configs JSON]
+  }
+}
+
+' ============= PROCESSING PIPELINE =============
+rectangle "Pipeline de Procesamiento" as Pipeline {
+  (1. Carga de Datos) as Load
+  (2. Preprocesamiento\nFiltros) as Preprocess
+  (3. Extracción Features\nTransforms) as Features
+  (4. Entrenamiento\nModelos) as Training
+  (5. Evaluación) as Evaluation
+  (6. Simulación) as Simulation
+
+  Load --> Preprocess
+  Preprocess --> Features
+  Features --> Training
+  Training --> Evaluation
+  Evaluation --> Simulation
+}
+
+' ============= DEPENDENCIES =============
+component "Librerías Externas" as Libs {
+  [MNE-Python]
+  [TensorFlow/Keras]
+  [Scikit-learn]
+  [PyWavelets]
+  [SciPy]
+  [Plotly]
+}
+
+' ============= RELATIONSHIPS =============
+
+' Frontend -> Backend
+[Cargar Datos] --> DatasetClass
+[Filtros] --> FilterClass
+[Extractores] --> TransformClass
+[Modelado P300] --> ClassifierClass
+[Modelado Inner Speech] --> ClassifierClass
+[Simulación] --> [simulation_engine]
+
+' Backend -> Storage
+DatasetClass --> [Archivos EEG\nBDF/EDF/VHDR]
+DatasetClass --> [Eventos\nPreprocesados]
+ExperimentClass --> [Configs JSON]
+ClassifierClass --> [Modelos\nEntrenados]
+[model_storage] --> [Snapshots]
+
+' Backend -> Pipeline
+DatasetClass ..> Load
+FilterClass ..> Preprocess
+TransformClass ..> Features
+ClassifierClass ..> Training
+
+' Backend -> Libs
+DatasetClass --> [MNE-Python]
+FilterClass --> [MNE-Python]
+FilterClass --> [PyWavelets]
+TransformClass --> [SciPy]
+ClassifierClass --> [TensorFlow/Keras]
+ClassifierClass --> [Scikit-learn]
+Components --> [Plotly]
+
+note right of Pipeline
+  **Flujo Metodológico:**
+
+  1. **Carga**: Dataset lee archivos EEG
+  2. **Preprocesamiento**: Filtros (BandPass, ICA, Notch)
+  3. **Features**: Transforms (FFT, DCT, Wavelets)
+  4. **Entrenamiento**: CNN/LSTM/SVM/RandomForest
+  5. **Evaluación**: Métricas (accuracy, F1, etc)
+  6. **Simulación**: Predicción en tiempo real
+
+  Cada paso guarda metadatos para
+  garantizar reproducibilidad
+end note
+
+note bottom of Frontend
+  **Interfaz Dash (Python)**
+
+  - Sistema multi-página
+  - Visualización interactiva
+  - Configuración de experimentos
+  - Monitoreo de entrenamiento
+  - Simulación en tiempo real
+end note
+
+note bottom of Storage
+  **Estructura de Archivos:**
+
+  Data/        → Archivos originales
+  Aux/         → Procesados (eventos, filtrados)
+  Models/      → Modelos entrenados (.pkl)
+  Experiments/ → Configuraciones JSON
+
+  Estructura paralela Data/ ↔ Aux/
+  mantiene trazabilidad
+end note
+
+note bottom of Backend
+  **Arquitectura Orientada a Experimentos:**
+
+  - Experiment: Orquesta todo el pipeline
+  - Dataset: Gestiona datos EEG
+  - Filter: Preprocesamiento de señales
+  - Transform: Extracción de características
+  - Classifier: Modelos de ML/DL
+
+  Todo se serializa en JSON para
+  reproducibilidad científica
+end note
+
+@enduml

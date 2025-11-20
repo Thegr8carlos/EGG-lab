@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" contentStyleType="text/css" height="715px" preserveAspectRatio="none" style="width:1386px;height:715px;background:#FFFFFF;" version="1.1" viewBox="0 0 1386 715" width="1386px" zoomAndPan="magnify"><defs/><g><rect fill="none" height="42.5938" id="_title" style="stroke:none;stroke-width:1.0;" width="262" x="555.47" y="5"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="252" x="560.47" y="22.9951">Casos de Uso (nivel intermedio)</text><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="120" x="626.47" y="39.292">Página "Filtros"</text><!--MD5=[c2e703007e33c08ccf965f3a821dcd08]
+cluster Sistema--><g id="cluster_Sistema"><rect fill="none" height="510" rx="2.5" ry="2.5" style="stroke:#181818;stroke-width:1.0;" width="1251" x="63.5" y="199.0938"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="129" x="624.5" y="214.0889">Sistema EGG-lab</text><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="118" x="630" y="230.3857">(Página Filtros)</text></g><g id="elem_UC_ExplorarClases"><ellipse cx="680.2726" cy="276.6863" fill="#F1F1F1" rx="100.7726" ry="26.0926" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="123" x="615.0226" y="272.2854">Explorar señal por</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="126" x="613.5226" y="288.5823">clases de eventos</text></g><g id="elem_UC_NavegarEventos"><ellipse cx="927.7225" cy="276.3459" fill="#F1F1F1" rx="110.7225" ry="26.2522" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="139" x="855.2225" y="271.9451">Navegar segmentos</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="67" x="891.2225" y="288.2419">y eventos</text></g><g id="elem_UC_NavegarCanales"><ellipse cx="1161.694" cy="276.7337" fill="#F1F1F1" rx="88.194" ry="26.1399" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="108" x="1104.694" y="272.3328">Navegar rangos</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="75" x="1121.194" y="288.6297">de canales</text></g><g id="elem_UC_SeleccionarCanales"><ellipse cx="434.2689" cy="276.8401" fill="#F1F1F1" rx="109.2689" ry="26.2463" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="137" x="362.7689" y="272.4392">Seleccionar canales</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="78" x="392.2689" y="288.7361">específicos</text></g><g id="elem_UC_ConfigurarPipeline"><ellipse cx="416.4549" cy="407.815" fill="#F1F1F1" rx="103.4549" ry="26.2213" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="129" x="348.9549" y="403.4142">Configurar pipeline</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="59" x="383.9549" y="419.711">de filtros</text></g><g id="elem_UC_AplicarPipeline"><ellipse cx="178.5945" cy="407.7943" fill="#F1F1F1" rx="99.0945" ry="26.2006" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="123" x="114.0945" y="403.3935">Aplicar / actualizar</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="117" x="117.0945" y="419.6903">pipeline de filtros</text></g><g id="elem_UC_Comparar"><ellipse cx="1012.7168" cy="538.141" fill="#F1F1F1" rx="94.2168" ry="26.0473" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="108" x="958.7168" y="532.8393">Comparar señal</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="117" x="954.2168" y="549.1361">original vs filtrada</text></g><g id="elem_UC_Historial"><ellipse cx="1196.4949" cy="407.641" fill="#F1F1F1" rx="101.9949" ry="26.0473" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="107" x="1142.9949" y="402.3393">Revisar historial</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="128" x="1132.4949" y="418.6361">de filtros aplicados</text></g><g id="elem_UC_AutoApply"><ellipse cx="187.7282" cy="276.8117" fill="#F1F1F1" rx="102.7282" ry="26.218" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="128" x="120.7282" y="272.4108">Activar / desactivar</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="104" x="132.7282" y="288.7077">auto-aplicación</text></g><g id="elem_UC_CargarEventos"><ellipse cx="663.3589" cy="407.641" fill="#F1F1F1" rx="108.3589" ry="26.0473" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="125" x="600.8589" y="402.3393">Cargar metadata y</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="137" x="594.8589" y="418.6361">eventos del dataset</text></g><g id="elem_UC_VistaSenal"><ellipse cx="933.3971" cy="407.6732" fill="#F1F1F1" rx="125.8971" ry="27.5794" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="120" x="873.3971" y="402.3714">Construir vista de</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="172" x="847.3971" y="418.6683">señal por clase y canales</text></g><g id="elem_UC_EjecutarPipeline"><ellipse cx="193.3087" cy="538.141" fill="#F1F1F1" rx="113.3087" ry="26.0473" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="114" x="136.3087" y="532.8393">Ejecutar pipeline</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="144" x="121.3087" y="549.1361">de filtros sobre señal</text></g><g id="elem_UC_ActualizarGrafico"><ellipse cx="377.6665" cy="667.141" fill="#F1F1F1" rx="99.1665" ry="26.0473" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="116" x="319.6665" y="661.8393">Actualizar gráfico</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="124" x="315.6665" y="678.1361">interactivo WebGL</text></g><g id="elem_UC_GestionHistorial"><ellipse cx="582.6518" cy="538.141" fill="#F1F1F1" rx="107.6518" ry="26.0473" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="124" x="520.6518" y="532.8393">Gestionar historial</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="136" x="514.6518" y="549.1361">y caché del pipeline</text></g><!--MD5=[fee662a292a0353a69bd162820bae93b]
+entity User--><g id="elem_User"><ellipse cx="680.5" cy="67.5938" fill="#F1F1F1" rx="8" ry="8" style="stroke:#181818;stroke-width:0.5;"/><path d="M680.5,75.5938 L680.5,102.5938 M667.5,83.5938 L693.5,83.5938 M680.5,102.5938 L667.5,117.5938 M680.5,102.5938 L693.5,117.5938 " fill="none" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="52" x="638.5" y="132.0889">Usuario</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="84" x="638.5" y="148.3857">Investigador</text></g><!--MD5=[f43dda6538d6e1a7b619fc7836095a10]
+link User to UC_ExplorarClases--><g id="link_User_UC_ExplorarClases"><path d="M680.5,152.3238 C680.5,181.8338 680.5,219.4038 680.5,245.2638 " fill="none" id="User-to-UC_ExplorarClases" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="680.5,250.2738,684.5,241.2738,680.5,245.2738,676.5,241.2738,680.5,250.2738" style="stroke:#181818;stroke-width:1.0;"/></g><!--MD5=[60fbe31d3392a0985da65c166ccb645b]
+link User to UC_NavegarEventos--><g id="link_User_UC_NavegarEventos"><path d="M722.68,135.4538 C768.86,167.0538 842.36,217.3438 887.61,248.3037 " fill="none" id="User-to-UC_NavegarEventos" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="891.9,251.2437,886.7362,242.8572,887.7752,248.4178,882.2146,249.4568,891.9,251.2437" style="stroke:#181818;stroke-width:1.0;"/></g><!--MD5=[024e778ab83bd557667edeb3d161cab7]
+link User to UC_NavegarCanales--><g id="link_User_UC_NavegarCanales"><path d="M722.73,109.9037 C794.35,116.8537 942.83,137.0438 1055.5,191.0938 C1084.94,205.2138 1113.61,228.8538 1133.69,247.5438 " fill="none" id="User-to-UC_NavegarCanales" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="1137.59,251.2138,1133.7587,242.1406,1133.9419,247.7945,1128.288,247.9776,1137.59,251.2138" style="stroke:#181818;stroke-width:1.0;"/></g><!--MD5=[5d8fc5538c83a23a3df777be7700283b]
+link User to UC_SeleccionarCanales--><g id="link_User_UC_SeleccionarCanales"><path d="M638.49,135.4538 C592.23,167.2338 518.45,217.9237 473.44,248.8438 " fill="none" id="User-to-UC_SeleccionarCanales" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="469.18,251.7638,478.8654,249.9768,473.3048,248.9378,474.3438,243.3772,469.18,251.7638" style="stroke:#181818;stroke-width:1.0;"/></g><!--MD5=[07c2b5587264ddbdbc9af02db5989fce]
+link User to UC_ConfigurarPipeline--><g id="link_User_UC_ConfigurarPipeline"><path d="M638.07,109.2637 C505.43,118.0438 105.13,147.9138 67.5,191.0938 C34.79,228.6137 40.36,261.3638 67.5,303.0938 C95.6,346.2938 124.63,333.7438 173.5,350.0938 C189.06,355.3038 271.36,374.1438 335.93,388.6538 " fill="none" id="User-to-UC_ConfigurarPipeline" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="340.93,389.7738,333.0284,383.8946,336.0521,388.6755,331.2712,391.6992,340.93,389.7738" style="stroke:#181818;stroke-width:1.0;"/></g><!--MD5=[2966aa798ac05cfdb1167507e045a252]
+link User to UC_AplicarPipeline--><g id="link_User_UC_AplicarPipeline"><path d="M638.14,108.7637 C500.64,116.2737 73.55,143.3038 36.5,191.0938 C6,230.4337 15.27,258.0738 36.5,303.0938 C53.61,339.3838 90.63,365.7038 122.57,382.7238 " fill="none" id="User-to-UC_AplicarPipeline" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="127.25,385.1638,121.1261,377.4503,122.8186,382.848,117.4209,384.5405,127.25,385.1638" style="stroke:#181818;stroke-width:1.0;"/></g><!--MD5=[0b9e5cc0fe4305cc5c695ffc0f7a3355]
+link User to UC_Comparar--><g id="link_User_UC_Comparar"><path d="M722.58,108.7437 C857.06,116.0838 1269.52,142.4538 1301.5,191.0938 C1361.18,281.8838 1379.94,346.8938 1316.5,435.0938 C1269.91,499.8638 1180.22,524.0838 1110.28,532.8538 " fill="none" id="User-to-UC_Comparar" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="1105.28,533.4538,1114.6944,536.3466,1110.244,532.8546,1113.7359,528.4042,1105.28,533.4538" style="stroke:#181818;stroke-width:1.0;"/></g><!--MD5=[fca44c3a88840a297510ddf23daae4eb]
+link User to UC_Historial--><g id="link_User_UC_Historial"><path d="M722.81,105.8937 C845.39,104.8438 1196.54,109.1938 1267.5,191.0938 C1314.95,245.8637 1257.55,333.1838 1221.48,378.0038 " fill="none" id="User-to-UC_Historial" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="1218.28,381.9438,1227.0598,377.4811,1221.433,378.0632,1220.8509,372.4364,1218.28,381.9438" style="stroke:#181818;stroke-width:1.0;"/></g><!--MD5=[045ec241b5f7eb336a6ced2205a8cb2e]
+link User to UC_AutoApply--><g id="link_User_UC_AutoApply"><path d="M638.26,110.7437 C567.3,118.8837 420.81,140.7437 307.5,191.0938 C274.92,205.5738 242.11,229.4638 219.05,248.1538 " fill="none" id="User-to-UC_AutoApply" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="215.15,251.3438,224.647,248.7347,219.0179,248.1752,219.5774,242.5461,215.15,251.3438" style="stroke:#181818;stroke-width:1.0;"/></g><!--MD5=[5c79dbdf7150ad11e0d5020c686a9f4b]
+link UC_ExplorarClases to UC_CargarEventos--><g id="link_UC_ExplorarClases_UC_CargarEventos"><path d="M677.18,302.7738 C674.41,323.8138 670.44,353.8838 667.5,376.2538 " fill="none" id="UC_ExplorarClases-to-UC_CargarEventos" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="666.81,381.4738,671.958,373.0775,667.4671,376.5171,664.0274,372.0261,666.81,381.4738" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="60" x="673.5" y="346.1606">«incluye»</text></g><!--MD5=[cf9a5d380c66c4cfbe6ca989a034c1df]
+link UC_ExplorarClases to UC_VistaSenal--><g id="link_UC_ExplorarClases_UC_VistaSenal"><path d="M724.57,300.0638 C767.96,322.1838 834.26,355.9938 880.5,379.5738 " fill="none" id="UC_ExplorarClases-to-UC_VistaSenal" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="885.2,381.9638,878.9974,374.3134,880.7451,379.6935,875.365,381.4412,885.2,381.9638" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="60" x="822.5" y="346.1606">«incluye»</text></g><!--MD5=[c21073be78cf6d260fdcd86fc1a91520]
+link UC_NavegarEventos to UC_VistaSenal--><g id="link_UC_NavegarEventos_UC_VistaSenal"><path d="M928.7,303.3938 C929.66,323.9438 931,352.8238 932.02,374.8138 " fill="none" id="UC_NavegarEventos-to-UC_VistaSenal" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="932.26,379.9538,935.8448,370.7805,932.0317,374.959,927.8532,371.1458,932.26,379.9538" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="71" x="931.5" y="346.1606">«extiende»</text></g><!--MD5=[a32cdc5a6ec515a1586d51c814b19dfa]
+link UC_NavegarCanales to UC_VistaSenal--><g id="link_UC_NavegarCanales_UC_VistaSenal"><path d="M1122.04,299.9138 C1083.19,321.9038 1023.75,355.5338 982.02,379.1438 " fill="none" id="UC_NavegarCanales-to-UC_VistaSenal" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="977.53,381.6838,987.3342,380.747,981.8852,379.2277,983.4045,373.7787,977.53,381.6838" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="71" x="1061.5" y="346.1606">«extiende»</text></g><!--MD5=[48d6059d16202f3d20a6e150c1f77433]
+link UC_SeleccionarCanales to UC_VistaSenal--><g id="link_UC_SeleccionarCanales_UC_VistaSenal"><path d="M475.63,300.8438 C506.15,317.0738 549.26,337.9438 589.5,350.0938 C675.55,376.0738 700.84,365.2938 789.5,380.0938 C804.25,382.5538 819.83,385.2838 835.08,388.0338 " fill="none" id="UC_SeleccionarCanales-to-UC_VistaSenal" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="840.24,388.9638,832.0894,383.4349,835.3188,388.0794,830.6744,391.3088,840.24,388.9638" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="71" x="590.5" y="346.1606">«extiende»</text></g><!--MD5=[c8438f746266495313d6e9406b55aad4]
+link UC_ConfigurarPipeline to UC_GestionHistorial--><g id="link_UC_ConfigurarPipeline_UC_GestionHistorial"><path d="M461.67,431.0338 C478.92,440.5138 498.32,452.3138 514.5,465.0938 C530.66,477.8538 546.58,494.4338 558.95,508.4638 " fill="none" id="UC_ConfigurarPipeline-to-UC_GestionHistorial" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="562.34,512.3438,559.4238,502.9365,559.0475,508.5809,553.4032,508.2046,562.34,512.3438" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="60" x="533.5" y="478.1606">«incluye»</text></g><!--MD5=[f56c35bf17dd9c73c94952b9c15463d9]
+link UC_AplicarPipeline to UC_EjecutarPipeline--><g id="link_UC_AplicarPipeline_UC_EjecutarPipeline"><path d="M181.43,433.6738 C183.87,454.6338 187.37,484.5938 189.97,506.8738 " fill="none" id="UC_AplicarPipeline-to-UC_EjecutarPipeline" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="190.58,512.0738,193.4995,502.6675,189.995,507.1081,185.5544,503.6036,190.58,512.0738" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="60" x="187.5" y="478.1606">«incluye»</text></g><!--MD5=[67b06254400e8c8e1641264940d6ebec]
+link UC_AplicarPipeline to UC_ActualizarGrafico--><g id="link_UC_AplicarPipeline_UC_ActualizarGrafico"><path d="M219.87,431.3638 C251.26,450.0838 294.06,478.8837 324.5,512.0938 C353.03,543.2238 360.04,553.7438 372.5,594.0938 C376.61,607.4137 378.09,622.7538 378.46,635.8338 " fill="none" id="UC_AplicarPipeline-to-UC_ActualizarGrafico" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="378.54,640.9238,382.3851,631.8565,378.4543,635.9245,374.3863,631.9936,378.54,640.9238" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="60" x="362.5" y="542.6606">«incluye»</text></g><!--MD5=[81603c3c70b563dbe88cc3a04bc320df]
+link UC_AplicarPipeline to UC_GestionHistorial--><g id="link_UC_AplicarPipeline_UC_GestionHistorial"><path d="M249.28,426.0238 C289.74,436.4338 341.29,450.4538 386.5,465.0938 C406.84,471.6838 411.45,474.6538 431.5,482.0938 C460.31,492.7838 492.28,504.4538 519.36,514.2838 " fill="none" id="UC_AplicarPipeline-to-UC_GestionHistorial" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="524.36,516.1038,517.2755,509.262,519.6627,514.3905,514.5342,516.7776,524.36,516.1038" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="73" x="432.5" y="478.1606">«actualiza»</text></g><!--MD5=[b940b0ecdb851dba284ee206859dea16]
+link UC_Comparar to UC_ActualizarGrafico--><g id="link_UC_Comparar_UC_ActualizarGrafico"><path d="M937.79,554.0338 C817.98,577.9938 583.77,624.8438 459.5,649.6938 " fill="none" id="UC_Comparar-to-UC_ActualizarGrafico" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="454.4,650.7138,464.0048,652.8925,459.3051,649.7441,462.4535,645.0444,454.4,650.7138" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="162" x="733.5" y="607.1606">«usa señal raw y filtrada»</text></g><!--MD5=[c6246df0c92f546f79c9de27e9957fb3]
+link UC_Historial to UC_GestionHistorial--><g id="link_UC_Historial_UC_GestionHistorial"><path d="M1121.95,425.3838 C1107.23,428.6438 1091.88,432.0138 1077.5,435.0938 C934.07,465.8438 766.87,499.9238 668.12,519.8838 " fill="none" id="UC_Historial-to-UC_GestionHistorial" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="663.18,520.8838,672.7921,523.0303,668.0818,519.8977,671.2144,515.1874,663.18,520.8838" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="70" x="928.5" y="478.1606">«consulta»</text></g><!--MD5=[4f2d3cc0bf1804338e6cbaa607226d70]
+link UC_AutoApply to UC_AplicarPipeline--><g id="link_UC_AutoApply_UC_AplicarPipeline"><path d="M185.74,302.7738 C184.27,323.8138 182.18,353.8838 180.62,376.2538 " fill="none" id="UC_AutoApply-to-UC_AplicarPipeline" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="180.25,381.4738,184.8563,372.7685,180.5921,376.4855,176.8751,372.2212,180.25,381.4738" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="121" x="184.5" y="346.1606">«modifica disparo»</text></g><!--MD5=[3637b8f2a41a1bc3fe09aa75e23d4528]
+link UC_EjecutarPipeline to UC_ActualizarGrafico--><g id="link_UC_EjecutarPipeline_UC_ActualizarGrafico"><path d="M211.97,563.7538 C224.21,578.8438 241.31,597.7638 259.5,611.0938 C276.89,623.8438 297.71,634.7238 316.99,643.3738 " fill="none" id="UC_EjecutarPipeline-to-UC_ActualizarGrafico" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="321.85,645.5138,315.246,638.2071,317.2798,643.4857,312.0011,645.5195,321.85,645.5138" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="107" x="260.5" y="607.1606">«actualiza vista»</text></g><!--MD5=[f9e6759d48f1e5782263b65544d100d2]
+@startuml
+title
+  Casos de Uso (nivel intermedio)
+  Página "Filtros"
+end title
+
+actor "Usuario\nInvestigador" as User
+
+rectangle "Sistema EGG-lab\n(Página Filtros)" as Sistema {
+
+  ' - - - Casos de uso visibles (lo que hace el usuario) - - -
+  usecase "Explorar señal por\nclases de eventos" as UC_ExplorarClases
+  usecase "Navegar segmentos\ny eventos" as UC_NavegarEventos
+  usecase "Navegar rangos\nde canales" as UC_NavegarCanales
+  usecase "Seleccionar canales\nespecíficos" as UC_SeleccionarCanales
+  usecase "Configurar pipeline\nde filtros" as UC_ConfigurarPipeline
+  usecase "Aplicar / actualizar\npipeline de filtros" as UC_AplicarPipeline
+  usecase "Comparar señal\noriginal vs filtrada" as UC_Comparar
+  usecase "Revisar historial\nde filtros aplicados" as UC_Historial
+  usecase "Activar / desactivar\nauto-aplicación" as UC_AutoApply
+
+  ' - - - Casos de uso internos (lo que hace el sistema) - - -
+  usecase "Cargar metadata y\neventos del dataset" as UC_CargarEventos
+  usecase "Construir vista de\nseñal por clase y canales" as UC_VistaSenal
+  usecase "Ejecutar pipeline\nde filtros sobre señal" as UC_EjecutarPipeline
+  usecase "Actualizar gráfico\ninteractivo WebGL" as UC_ActualizarGrafico
+  usecase "Gestionar historial\ny caché del pipeline" as UC_GestionHistorial
+}
+
+' - - - Interacción del actor con la página - - -
+User - -> UC_ExplorarClases
+User - -> UC_NavegarEventos
+User - -> UC_NavegarCanales
+User - -> UC_SeleccionarCanales
+User - -> UC_ConfigurarPipeline
+User - -> UC_AplicarPipeline
+User - -> UC_Comparar
+User - -> UC_Historial
+User - -> UC_AutoApply
+
+' - - - Relación entre casos visibles e internos - - -
+UC_ExplorarClases - -> UC_CargarEventos  : <<incluye>>
+UC_ExplorarClases - -> UC_VistaSenal     : <<incluye>>
+
+UC_NavegarEventos - -> UC_VistaSenal     : <<extiende>>
+UC_NavegarCanales - -> UC_VistaSenal     : <<extiende>>
+UC_SeleccionarCanales - -> UC_VistaSenal : <<extiende>>
+
+UC_ConfigurarPipeline - -> UC_GestionHistorial : <<incluye>>
+
+UC_AplicarPipeline - -> UC_EjecutarPipeline    : <<incluye>>
+UC_AplicarPipeline - -> UC_ActualizarGrafico   : <<incluye>>
+UC_AplicarPipeline - -> UC_GestionHistorial    : <<actualiza>>
+
+UC_Comparar - -> UC_ActualizarGrafico          : <<usa señal raw y filtrada>>
+
+UC_Historial - -> UC_GestionHistorial          : <<consulta>>
+
+UC_AutoApply - -> UC_AplicarPipeline           : <<modifica disparo>>
+
+UC_EjecutarPipeline - -> UC_ActualizarGrafico  : <<actualiza vista>>
+@enduml
+
+@startuml
+title
+  Casos de Uso (nivel intermedio)
+  Página "Filtros"
+end title
+
+actor "Usuario\nInvestigador" as User
+
+rectangle "Sistema EGG-lab\n(Página Filtros)" as Sistema {
+
+  usecase "Explorar señal por\nclases de eventos" as UC_ExplorarClases
+  usecase "Navegar segmentos\ny eventos" as UC_NavegarEventos
+  usecase "Navegar rangos\nde canales" as UC_NavegarCanales
+  usecase "Seleccionar canales\nespecíficos" as UC_SeleccionarCanales
+  usecase "Configurar pipeline\nde filtros" as UC_ConfigurarPipeline
+  usecase "Aplicar / actualizar\npipeline de filtros" as UC_AplicarPipeline
+  usecase "Comparar señal\noriginal vs filtrada" as UC_Comparar
+  usecase "Revisar historial\nde filtros aplicados" as UC_Historial
+  usecase "Activar / desactivar\nauto-aplicación" as UC_AutoApply
+
+  usecase "Cargar metadata y\neventos del dataset" as UC_CargarEventos
+  usecase "Construir vista de\nseñal por clase y canales" as UC_VistaSenal
+  usecase "Ejecutar pipeline\nde filtros sobre señal" as UC_EjecutarPipeline
+  usecase "Actualizar gráfico\ninteractivo WebGL" as UC_ActualizarGrafico
+  usecase "Gestionar historial\ny caché del pipeline" as UC_GestionHistorial
+}
+
+User - -> UC_ExplorarClases
+User - -> UC_NavegarEventos
+User - -> UC_NavegarCanales
+User - -> UC_SeleccionarCanales
+User - -> UC_ConfigurarPipeline
+User - -> UC_AplicarPipeline
+User - -> UC_Comparar
+User - -> UC_Historial
+User - -> UC_AutoApply
+
+UC_ExplorarClases - -> UC_CargarEventos  : <<incluye>>
+UC_ExplorarClases - -> UC_VistaSenal     : <<incluye>>
+
+UC_NavegarEventos - -> UC_VistaSenal     : <<extiende>>
+UC_NavegarCanales - -> UC_VistaSenal     : <<extiende>>
+UC_SeleccionarCanales - -> UC_VistaSenal : <<extiende>>
+
+UC_ConfigurarPipeline - -> UC_GestionHistorial : <<incluye>>
+
+UC_AplicarPipeline - -> UC_EjecutarPipeline    : <<incluye>>
+UC_AplicarPipeline - -> UC_ActualizarGrafico   : <<incluye>>
+UC_AplicarPipeline - -> UC_GestionHistorial    : <<actualiza>>
+
+UC_Comparar - -> UC_ActualizarGrafico          : <<usa señal raw y filtrada>>
+
+UC_Historial - -> UC_GestionHistorial          : <<consulta>>
+
+UC_AutoApply - -> UC_AplicarPipeline           : <<modifica disparo>>
+
+UC_EjecutarPipeline - -> UC_ActualizarGrafico  : <<actualiza vista>>
+@enduml
+
+PlantUML version 1.2022.7(Mon Aug 22 17:01:30 UTC 2022)
+(GPL source distribution)
+Java Runtime: OpenJDK Runtime Environment
+JVM: OpenJDK 64-Bit Server VM
+Default Encoding: UTF-8
+Language: en
+Country: null
+--></g></svg>

@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" contentStyleType="text/css" height="291px" preserveAspectRatio="none" style="width:1871px;height:291px;background:#FFFFFF;" version="1.1" viewBox="0 0 1871 291" width="1871px" zoomAndPan="magnify"><defs/><g><rect fill="none" height="42.5938" id="_title" style="stroke:none;stroke-width:1.0;" width="254" x="801.5" y="5"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="202" x="827.5" y="22.9951">Casos de Uso (Front-End)</text><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="244" x="806.5" y="39.292">Paso 2 — Modelo Inner Speech</text><!--MD5=[f57c431998aa8a05e04227fa9d6ca477]
+cluster Página Inner Speech — Paso 2: Modelo--><g id="cluster_Página Inner Speech — Paso 2: Modelo"><rect fill="none" height="108" rx="2.5" ry="2.5" style="stroke:#181818;stroke-width:1.0;" width="1858" x="7" y="177.0938"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="307" x="782.5" y="192.0889">Página Inner Speech — Paso 2: Modelo</text></g><g id="elem_UC_BackTransform"><ellipse cx="1742.0887" cy="240.831" fill="#F1F1F1" rx="107.0887" ry="26.2373" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="134" x="1672.0887" y="236.4301">Regresar al Paso 1:</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="107" x="1685.5887" y="252.727">Transformación</text></g><g id="elem_UC_ViewModels"><ellipse cx="1468.1078" cy="240.8153" fill="#F1F1F1" rx="131.6078" ry="28.7216" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="87" x="1424.6078" y="235.5135">Ver modelos</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="187" x="1374.6078" y="251.8104">de clasificación disponibles</text></g><g id="elem_UC_SelectModel"><ellipse cx="1193.0422" cy="240.8371" fill="#F1F1F1" rx="108.5422" ry="26.2433" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="136" x="1122.0422" y="236.4362">Seleccionar modelo</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="104" x="1138.0422" y="252.7331">de clasificación</text></g><g id="elem_UC_ConfigModel"><ellipse cx="927.9724" cy="240.7882" fill="#F1F1F1" rx="121.4724" ry="26.6945" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="115" x="870.4724" y="235.4865">Configurar hiper-</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="160" x="847.9724" y="251.7833">parámetros del modelo</text></g><g id="elem_UC_Train"><ellipse cx="656.0831" cy="240.3626" fill="#F1F1F1" rx="115.0831" ry="26.2688" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="145" x="580.5831" y="235.9617">Iniciar entrenamiento</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="102" x="602.0831" y="252.2586">(Inner Speech)</text></g><g id="elem_UC_TrainStatus"><ellipse cx="407.1665" cy="240.641" fill="#F1F1F1" rx="99.1665" ry="26.0473" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="90" x="362.1665" y="235.3393">Ver progreso</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="124" x="345.1665" y="251.6361">de entrenamiento</text></g><g id="elem_UC_ViewMetrics"><ellipse cx="147.9072" cy="240.3752" fill="#F1F1F1" rx="124.4072" ry="27.2814" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="127" x="84.4072" y="235.0734">Visualizar métricas</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="168" x="63.9072" y="251.3703">(Accuracy, F1, por clase)</text></g><!--MD5=[fee662a292a0353a69bd162820bae93b]
+entity User--><g id="elem_User"><ellipse cx="928" cy="67.5938" fill="#F1F1F1" rx="8" ry="8" style="stroke:#181818;stroke-width:0.5;"/><path d="M928,75.5938 L928,102.5938 M915,83.5938 L941,83.5938 M928,102.5938 L915,117.5938 M928,102.5938 L941,117.5938 " fill="none" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="52" x="886" y="132.0889">Usuario</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="84" x="886" y="148.3857">Investigador</text></g><!--MD5=[751e227ad147c1d85b1d8a5205d57a33]
+link User to UC_BackTransform--><g id="link_User_UC_BackTransform"><path d="M970.37,108.1037 C1100.85,113.1337 1495.16,131.1338 1617,169.0938 C1648.46,178.8938 1680.78,197.3838 1704.67,212.9738 " fill="none" id="User-to-UC_BackTransform" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="1709.04,215.8538,1703.7046,207.5752,1704.8579,213.1133,1699.3199,214.2666,1709.04,215.8538" style="stroke:#181818;stroke-width:1.0;"/></g><!--MD5=[228880346cb7d91bd1ed17cd4214e4c0]
+link User to UC_ViewModels--><g id="link_User_UC_ViewModels"><path d="M970.26,109.4138 C1042.95,115.1238 1195.71,130.9238 1319,169.0938 C1353.25,179.6938 1389.67,196.8138 1417.93,211.5238 " fill="none" id="User-to-UC_ViewModels" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="1422.39,213.8538,1416.2661,206.1403,1417.9586,211.538,1412.5609,213.2305,1422.39,213.8538" style="stroke:#181818;stroke-width:1.0;"/></g><!--MD5=[c5ab623ae2f15536b197fa6076f9ada2]
+link User to UC_SelectModel--><g id="link_User_UC_SelectModel"><path d="M970.11,124.3837 C997.91,136.4038 1034.98,152.9738 1067,169.0938 C1094.72,183.0438 1125.09,199.9938 1149.07,213.7738 " fill="none" id="User-to-UC_SelectModel" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="1153.47,216.3037,1147.6573,208.3531,1149.1341,213.8138,1143.6734,215.2906,1153.47,216.3037" style="stroke:#181818;stroke-width:1.0;"/></g><!--MD5=[7a330a03ea8705b7ada33d93ff77824b]
+link User to UC_ConfigModel--><g id="link_User_UC_ConfigModel"><path d="M928,152.3638 C928,171.0238 928,192.1038 928,208.8637 " fill="none" id="User-to-UC_ConfigModel" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="928,213.9138,932,204.9138,928,208.9138,924,204.9138,928,213.9138" style="stroke:#181818;stroke-width:1.0;"/></g><!--MD5=[2d5303442ffb172f9b0b710e17b6aca6]
+link User to UC_Train--><g id="link_User_UC_Train"><path d="M885.7,124.7637 C857.99,136.8738 821.09,153.3938 789,169.0938 C760.38,183.0938 728.86,199.7538 703.69,213.3538 " fill="none" id="User-to-UC_Train" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="699.06,215.8538,708.8804,215.1049,703.4614,213.4815,705.0848,208.0626,699.06,215.8538" style="stroke:#181818;stroke-width:1.0;"/></g><!--MD5=[487968b95cf4e344352b3b9ec2f00d22]
+link User to UC_TrainStatus--><g id="link_User_UC_TrainStatus"><path d="M885.97,107.7738 C811.06,111.0238 650.44,123.2438 524,169.0938 C494.95,179.6338 465.16,197.7038 442.91,212.9138 " fill="none" id="User-to-UC_TrainStatus" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="438.56,215.9138,448.2382,214.0884,442.6735,213.0714,443.6905,207.5067,438.56,215.9138" style="stroke:#181818;stroke-width:1.0;"/></g><!--MD5=[dda220abc9aa282a1c79b4a07094660a]
+link User to UC_ViewMetrics--><g id="link_User_UC_ViewMetrics"><path d="M885.88,108.7538 C762.52,115.3837 403.6,136.9638 291,169.0938 C256.78,178.8538 220.87,196.5938 193.59,211.8338 " fill="none" id="User-to-UC_ViewMetrics" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="188.94,214.4538,198.7442,213.517,193.2952,211.9977,194.8145,206.5487,188.94,214.4538" style="stroke:#181818;stroke-width:1.0;"/></g><!--MD5=[93da785f5b35e0facf4d61d753f83d64]
+@startuml
+title
+  Casos de Uso (Front-End)
+  Paso 2 — Modelo Inner Speech
+end title
+
+actor "Usuario\nInvestigador" as User
+
+rectangle "Página Inner Speech — Paso 2: Modelo" {
+
+  usecase "Regresar al Paso 1:\nTransformación" as UC_BackTransform
+
+  usecase "Ver modelos\nde clasificación disponibles" as UC_ViewModels
+  usecase "Seleccionar modelo\nde clasificación" as UC_SelectModel
+  usecase "Configurar hiper-\nparámetros del modelo" as UC_ConfigModel
+
+  usecase "Iniciar entrenamiento\n(Inner Speech)" as UC_Train
+  usecase "Ver progreso\nde entrenamiento" as UC_TrainStatus
+  usecase "Visualizar métricas\n(Accuracy, F1, por clase)" as UC_ViewMetrics
+}
+
+User - -> UC_BackTransform
+User - -> UC_ViewModels
+User - -> UC_SelectModel
+User - -> UC_ConfigModel
+User - -> UC_Train
+User - -> UC_TrainStatus
+User - -> UC_ViewMetrics
+@enduml
+
+PlantUML version 1.2022.7(Mon Aug 22 17:01:30 UTC 2022)
+(GPL source distribution)
+Java Runtime: OpenJDK Runtime Environment
+JVM: OpenJDK 64-Bit Server VM
+Default Encoding: UTF-8
+Language: en
+Country: null
+--></g></svg>

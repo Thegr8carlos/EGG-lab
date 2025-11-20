@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" contentStyleType="text/css" height="457px" preserveAspectRatio="none" style="width:1146px;height:457px;background:#FFFFFF;" version="1.1" viewBox="0 0 1146 457" width="1146px" zoomAndPan="magnify"><defs/><g><rect fill="none" height="42.5938" id="_title" style="stroke:none;stroke-width:1.0;" width="262" x="435" y="5"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="252" x="440" y="22.9951">Casos de Uso (nivel intermedio)</text><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="174" x="479" y="39.292">Página "Cargar Datos"</text><!--MD5=[c2e703007e33c08ccf965f3a821dcd08]
+cluster Sistema--><g id="cluster_Sistema"><rect fill="none" height="252" rx="2.5" ry="2.5" style="stroke:#181818;stroke-width:1.0;" width="1133" x="7" y="199.0938"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="129" x="509" y="214.0889">Sistema EGG-lab</text><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="172" x="487.5" y="230.3857">(Página Cargar Datos)</text></g><g id="elem_UC_MostrarPendientes"><ellipse cx="117.0075" cy="276.2678" fill="#F1F1F1" rx="94.0075" ry="26.174" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="116" x="56.0075" y="271.8669">Mostrar datasets</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="79" x="74.5075" y="288.1638">pendientes</text></g><g id="elem_UC_ListarProcesados"><ellipse cx="328.8807" cy="276.1948" fill="#F1F1F1" rx="82.3807" ry="26.101" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="100" x="275.8807" y="271.7939">Listar datasets</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="82" x="284.8807" y="288.0908">procesados</text></g><g id="elem_UC_ProcesarPendiente"><ellipse cx="541.2342" cy="276.2717" fill="#F1F1F1" rx="94.7342" ry="26.178" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="117" x="479.7342" y="271.8709">Procesar dataset</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="71" x="502.7342" y="288.1677">pendiente</text></g><g id="elem_UC_SeleccionarProcesado"><ellipse cx="779.0422" cy="276.3371" fill="#F1F1F1" rx="108.5422" ry="26.2433" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="136" x="708.0422" y="271.9362">Seleccionar dataset</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="74" x="739.0422" y="288.2331">procesado</text></g><g id="elem_UC_IrVistaDataset"><ellipse cx="764.9325" cy="407.141" fill="#F1F1F1" rx="65.9325" ry="26.0473" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="55" x="737.4325" y="401.8393">Ir a vista</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="77" x="726.4325" y="418.1361">del dataset</text></g><g id="elem_UC_LimpiarDatos"><ellipse cx="1023.0807" cy="276.141" fill="#F1F1F1" rx="100.5807" ry="26.0473" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="91" x="977.5807" y="270.8393">Limpiar datos</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="126" x="960.0807" y="287.1361">de procesamiento</text></g><g id="elem_UC_ConsultarEstado"><ellipse cx="325.9609" cy="407.2757" fill="#F1F1F1" rx="95.4609" ry="26.1819" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="118" x="263.9609" y="402.8748">Consultar estado</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="106" x="269.9609" y="419.1717">de los datasets</text></g><g id="elem_UC_ActualizarCatalogo"><ellipse cx="559.9549" cy="407.315" fill="#F1F1F1" rx="103.4549" ry="26.2213" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="129" x="492.4549" y="402.9142">Actualizar catálogo</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="82" x="515.9549" y="419.211">de datasets</text></g><g id="elem_UC_RegistrarSeleccion"><ellipse cx="994.9194" cy="407.2776" fill="#F1F1F1" rx="128.9194" ry="28.1839" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="118" x="935.9194" y="401.9759">Registrar dataset</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="180" x="904.9194" y="418.2728">seleccionado para análisis</text></g><!--MD5=[fee662a292a0353a69bd162820bae93b]
+entity User--><g id="elem_User"><ellipse cx="541" cy="67.5938" fill="#F1F1F1" rx="8" ry="8" style="stroke:#181818;stroke-width:0.5;"/><path d="M541,75.5938 L541,102.5938 M528,83.5938 L554,83.5938 M541,102.5938 L528,117.5938 M541,102.5938 L554,117.5938 " fill="none" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="52" x="499" y="132.0889">Usuario</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="84" x="499" y="148.3857">Investigador</text></g><!--MD5=[8579e3acccd61764b8cd7a36aef9575e]
+link User to UC_MostrarPendientes--><g id="link_User_UC_MostrarPendientes"><path d="M498.84,112.8037 C437.15,123.0138 319.78,146.7938 229,191.0938 C198.77,205.8438 168.5,229.1938 147.06,247.5338 " fill="none" id="User-to-UC_MostrarPendientes" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="143.16,250.8938,152.585,248.0357,146.9432,247.6245,147.3543,241.9826,143.16,250.8938" style="stroke:#181818;stroke-width:1.0;"/></g><!--MD5=[07872f1daf15664cd4a20beb18b1b047]
+link User to UC_ListarProcesados--><g id="link_User_UC_ListarProcesados"><path d="M498.85,137.5838 C477.69,153.3438 451.77,172.9638 429,191.0938 C405.55,209.7638 379.66,231.5538 360.09,248.2538 " fill="none" id="User-to-UC_ListarProcesados" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="356.27,251.5238,365.7065,248.7037,360.0663,248.2698,360.5001,242.6296,356.27,251.5238" style="stroke:#181818;stroke-width:1.0;"/></g><!--MD5=[153019fe9118ca0440130165271b0dd3]
+link User to UC_ProcesarPendiente--><g id="link_User_UC_ProcesarPendiente"><path d="M541,152.1938 C541,181.4937 541,218.7538 541,244.5238 " fill="none" id="User-to-UC_ProcesarPendiente" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="541,249.8438,545,240.8438,541,244.8438,537,240.8438,541,249.8438" style="stroke:#181818;stroke-width:1.0;"/></g><!--MD5=[83fdc2865c701c8f379d38fe448aef8b]
+link User to UC_SeleccionarProcesado--><g id="link_User_UC_SeleccionarProcesado"><path d="M583,136.3338 C627.86,168.0938 698.3,217.9638 741.4,248.4738 " fill="none" id="User-to-UC_SeleccionarProcesado" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="745.48,251.3638,740.4363,242.9043,741.396,248.4792,735.8211,249.4388,745.48,251.3638" style="stroke:#181818;stroke-width:1.0;"/></g><!--MD5=[0e4485e03645cd7b2d81f2033276811c]
+link User to UC_LimpiarDatos--><g id="link_User_UC_LimpiarDatos"><path d="M583.09,110.9738 C652.68,119.3737 794.99,141.5238 905,191.0938 C936.94,205.4838 969.07,229.0938 991.72,247.6238 " fill="none" id="User-to-UC_LimpiarDatos" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="995.83,251.0238,991.4541,242.2004,991.9807,247.8327,986.3484,248.3593,995.83,251.0238" style="stroke:#181818;stroke-width:1.0;"/></g><!--MD5=[8a2a8abce573411c06632a4dff9e50a0]
+link UC_MostrarPendientes to UC_ConsultarEstado--><g id="link_UC_MostrarPendientes_UC_ConsultarEstado"><path d="M154.37,300.1538 C190.81,322.6538 246.14,356.8038 284.07,380.2138 " fill="none" id="UC_MostrarPendientes-to-UC_ConsultarEstado" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="288.61,383.0138,283.0536,374.8819,284.3556,380.3869,278.8507,381.6889,288.61,383.0138" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="60" x="229" y="345.1606">«incluye»</text></g><!--MD5=[4746bfbbfbb24376d80b25dbd4dbdc61]
+link UC_ListarProcesados to UC_ConsultarEstado--><g id="link_UC_ListarProcesados_UC_ConsultarEstado"><path d="M328.41,302.2738 C327.93,323.3138 327.23,353.3838 326.71,375.7537 " fill="none" id="UC_ListarProcesados-to-UC_ConsultarEstado" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="326.58,380.9738,330.7846,372.0675,326.6943,375.9751,322.7867,371.8847,326.58,380.9738" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="60" x="328" y="345.1606">«incluye»</text></g><!--MD5=[e695376b50deb36bc76671f3d400568e]
+link UC_ProcesarPendiente to UC_ActualizarCatalogo--><g id="link_UC_ProcesarPendiente_UC_ActualizarCatalogo"><path d="M544.71,302.2738 C547.81,323.3138 552.24,353.3838 555.53,375.7537 " fill="none" id="UC_ProcesarPendiente-to-UC_ActualizarCatalogo" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="556.3,380.9738,558.9448,371.4867,555.5709,376.0272,551.0303,372.6532,556.3,380.9738" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="73" x="552" y="345.1606">«actualiza»</text></g><!--MD5=[743497c3782e00dcc0a13c6769d290c7]
+link UC_ProcesarPendiente to UC_ConsultarEstado--><g id="link_UC_ProcesarPendiente_UC_ConsultarEstado"><path d="M502.56,300.1538 C464.96,322.7238 407.8,357.0138 368.77,380.4338 " fill="none" id="UC_ProcesarPendiente-to-UC_ConsultarEstado" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="364.1,383.2338,373.8772,382.0476,368.3912,380.6676,369.7713,375.1816,364.1,383.2338" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="68" x="447" y="345.1606">«refresca»</text></g><!--MD5=[ddd3d94c99f03986a2714b2db52738f2]
+link UC_SeleccionarProcesado to UC_RegistrarSeleccion--><g id="link_UC_SeleccionarProcesado_UC_RegistrarSeleccion"><path d="M816.87,300.4838 C839.96,314.6638 870.1,333.0638 897,349.0938 C913.07,358.6738 930.72,368.9938 946.56,378.1938 " fill="none" id="UC_SeleccionarProcesado-to-UC_RegistrarSeleccion" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="950.98,380.7537,945.1984,372.7805,946.6538,378.2469,941.1874,379.7023,950.98,380.7537" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="60" x="898" y="345.1606">«incluye»</text></g><!--MD5=[8b1e9814fb78cefa188298847575026a]
+link UC_SeleccionarProcesado to UC_IrVistaDataset--><g id="link_UC_SeleccionarProcesado_UC_IrVistaDataset"><path d="M776.27,302.2738 C773.98,323.3138 770.72,353.3838 768.29,375.7537 " fill="none" id="UC_SeleccionarProcesado-to-UC_IrVistaDataset" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="767.73,380.9738,772.6591,372.4471,768.2586,376.0018,764.704,371.6013,767.73,380.9738" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="57" x="773" y="345.1606">«invoca»</text></g><!--MD5=[15db533f60f60d58bb3a8f4c231357b5]
+link UC_LimpiarDatos to UC_ActualizarCatalogo--><g id="link_UC_LimpiarDatos_UC_ActualizarCatalogo"><path d="M1009.13,302.1337 C998.69,318.4038 982.8,338.5037 963,349.0938 C907.63,378.7138 743.98,368.9638 682,379.0938 C667.67,381.4338 652.49,384.4038 637.89,387.5037 " fill="none" id="UC_LimpiarDatos-to-UC_ActualizarCatalogo" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="632.97,388.5538,642.6055,390.5926,637.8605,387.5129,640.9402,382.7679,632.97,388.5538" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="114" x="986" y="345.1606">«limpia registros»</text></g><!--MD5=[4ae1d952b6784d178994c3e67e89ff42]
+@startuml
+title
+  Casos de Uso (nivel intermedio)
+  Página "Cargar Datos"
+end title
+
+actor "Usuario\nInvestigador" as User
+
+rectangle "Sistema EGG-lab\n(Página Cargar Datos)" as Sistema {
+
+  ' Casos de uso principales (vista de la página)
+  usecase "Mostrar datasets\npendientes" as UC_MostrarPendientes
+  usecase "Listar datasets\nprocesados" as UC_ListarProcesados
+  usecase "Procesar dataset\npendiente" as UC_ProcesarPendiente
+  usecase "Seleccionar dataset\nprocesado" as UC_SeleccionarProcesado
+  usecase "Ir a vista\ndel dataset" as UC_IrVistaDataset
+  usecase "Limpiar datos\nde procesamiento" as UC_LimpiarDatos
+
+  ' Comportamientos internos de más alto nivel
+  usecase "Consultar estado\nde los datasets" as UC_ConsultarEstado
+  usecase "Actualizar catálogo\nde datasets" as UC_ActualizarCatalogo
+  usecase "Registrar dataset\nseleccionado para análisis" as UC_RegistrarSeleccion
+}
+
+' Relación actor -> página
+User - -> UC_MostrarPendientes
+User - -> UC_ListarProcesados
+User - -> UC_ProcesarPendiente
+User - -> UC_SeleccionarProcesado
+User - -> UC_LimpiarDatos
+
+' Relaciones entre casos de uso de la página y lógica interna (sin entrar a detalles técnicos)
+UC_MostrarPendientes - -> UC_ConsultarEstado : <<incluye>>
+UC_ListarProcesados - -> UC_ConsultarEstado : <<incluye>>
+
+UC_ProcesarPendiente - -> UC_ActualizarCatalogo : <<actualiza>>
+UC_ProcesarPendiente - -> UC_ConsultarEstado   : <<refresca>>
+
+UC_SeleccionarProcesado - -> UC_RegistrarSeleccion : <<incluye>>
+UC_SeleccionarProcesado - -> UC_IrVistaDataset     : <<invoca>>
+
+UC_LimpiarDatos - -> UC_ActualizarCatalogo : <<limpia registros>>
+@enduml
+
+@startuml
+title
+  Casos de Uso (nivel intermedio)
+  Página "Cargar Datos"
+end title
+
+actor "Usuario\nInvestigador" as User
+
+rectangle "Sistema EGG-lab\n(Página Cargar Datos)" as Sistema {
+
+  usecase "Mostrar datasets\npendientes" as UC_MostrarPendientes
+  usecase "Listar datasets\nprocesados" as UC_ListarProcesados
+  usecase "Procesar dataset\npendiente" as UC_ProcesarPendiente
+  usecase "Seleccionar dataset\nprocesado" as UC_SeleccionarProcesado
+  usecase "Ir a vista\ndel dataset" as UC_IrVistaDataset
+  usecase "Limpiar datos\nde procesamiento" as UC_LimpiarDatos
+
+  usecase "Consultar estado\nde los datasets" as UC_ConsultarEstado
+  usecase "Actualizar catálogo\nde datasets" as UC_ActualizarCatalogo
+  usecase "Registrar dataset\nseleccionado para análisis" as UC_RegistrarSeleccion
+}
+
+User - -> UC_MostrarPendientes
+User - -> UC_ListarProcesados
+User - -> UC_ProcesarPendiente
+User - -> UC_SeleccionarProcesado
+User - -> UC_LimpiarDatos
+
+UC_MostrarPendientes - -> UC_ConsultarEstado : <<incluye>>
+UC_ListarProcesados - -> UC_ConsultarEstado : <<incluye>>
+
+UC_ProcesarPendiente - -> UC_ActualizarCatalogo : <<actualiza>>
+UC_ProcesarPendiente - -> UC_ConsultarEstado   : <<refresca>>
+
+UC_SeleccionarProcesado - -> UC_RegistrarSeleccion : <<incluye>>
+UC_SeleccionarProcesado - -> UC_IrVistaDataset     : <<invoca>>
+
+UC_LimpiarDatos - -> UC_ActualizarCatalogo : <<limpia registros>>
+@enduml
+
+PlantUML version 1.2022.7(Mon Aug 22 17:01:30 UTC 2022)
+(GPL source distribution)
+Java Runtime: OpenJDK Runtime Environment
+JVM: OpenJDK 64-Bit Server VM
+Default Encoding: UTF-8
+Language: en
+Country: null
+--></g></svg>

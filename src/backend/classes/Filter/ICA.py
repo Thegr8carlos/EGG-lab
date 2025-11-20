@@ -87,18 +87,21 @@ class ICA(Filter):
         base = p_in.stem
 
         p_sources_only = out_dir / f"{base}_ica_{uid}.npy"
+        p_fif = out_dir / f"{base}_ica_{uid}.fif"  # ← Para simulación
         # p_mixing  = out_dir / f"{base}_ica_{uid}_mixing.npy"          # ← comentado
         # p_unmix   = out_dir / f"{base}_ica_{uid}_unmixing.npy"        # ← comentado
-        # p_fif     = out_dir / f"{base}_ica_{uid}.fif"                 # ← comentado
         # p_meta    = out_dir / f"{base}_ica_{uid}_meta.json"           # ← comentado
 
-        # ---------- guardar ÚNICO .npy ----------
+        # ---------- guardar .npy (para entrenamiento) ----------
         np.save(str(p_sources_only), S_plot)
+
+        # ---------- NUEVO: guardar .fif (para simulación) ----------
+        ica.save(str(p_fif), overwrite=True, verbose=False)
+        print(f"[ICA.apply] Guardado ICA object para simulación: {p_fif}")
 
         # --- Todo lo siguiente queda comentado por requerimiento ---
         # np.save(str(p_mixing),  A if A is not None else np.array([]))
         # np.save(str(p_unmix),   W if W is not None else np.array([]))
-        # ica.save(str(p_fif), overwrite=True)
         # meta: Dict[str, Any] = dict(
         #     input=str(p_in),
         #     sfreq=sfreq,
