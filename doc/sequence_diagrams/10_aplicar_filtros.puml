@@ -1,0 +1,58 @@
+@startuml
+title Flujo de Aplicación de Filtros (Notch, Bandpass, etc.)
+
+actor Usuario
+participant ": UI\nFiltros" as UI
+participant ": FilterSchema\nFactory" as Factory
+participant ": Filter\n(Notch/Bandpass/etc)" as Filter
+participant ": Experiment" as Exp
+
+Usuario -> UI: Selecciona dataset\ny clase
+UI --> Usuario: Visualiza señal\ncruda
+
+Usuario -> UI: Selecciona tipo de filtro\n(Notch/Bandpass/Highpass/Lowpass)
+UI -> Factory: Crear esquema\nde filtro
+
+Usuario -> UI: Configura parámetros:\n- Frecuencias (cutoff, notch)\n- Orden del filtro\n- Tipo de ventana
+UI -> Factory: Validar esquema
+Factory --> UI: Esquema validado
+
+Usuario -> UI: Click "Aplicar\nFiltro"
+UI -> Factory: formManager(esquema)
+activate Factory
+
+Factory -> Filter: apply(data, params)
+activate Filter
+
+Filter -> Filter: Cargar señal\ncruda
+Filter -> Filter: Diseñar filtro:\n- Calcular coeficientes\n- Aplicar ventana
+
+Filter -> Filter: Aplicar filtro\na la señal:\n- scipy.signal.filtfilt\n- filtfilt (zero-phase)
+
+Filter -> Exp: add_filter_config()
+Filter -> Filter: Guardar señal\nfiltrada
+
+Filter --> Factory: success = True
+deactivate Filter
+
+Factory --> UI: Filtro aplicado\ncon éxito
+deactivate Factory
+
+UI -> UI: Cargar señal\nfiltrada
+UI --> Usuario: Visualización\nactualizada
+
+note right of Usuario
+  **Pipeline de Filtros**
+
+  Se pueden aplicar múltiples
+  filtros en secuencia:
+
+  1. Notch (60 Hz)
+  2. Bandpass (0.5-40 Hz)
+  3. Otro filtro...
+
+  Cada filtro se registra
+  en el experimento.
+end note
+
+@enduml

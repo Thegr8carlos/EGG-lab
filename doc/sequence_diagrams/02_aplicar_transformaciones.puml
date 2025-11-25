@@ -1,0 +1,43 @@
+@startuml
+title Flujo de Aplicación de Transformaciones
+
+actor Usuario
+participant ": UI\nExtractores" as UI
+participant ": TransformSchema\nFactory" as Factory
+participant ": Transform\n(FFT/Wavelet/etc)" as Transform
+participant ": Experiment" as Exp
+
+Usuario -> UI: Selecciona dataset\ny clase
+UI --> Usuario: Visualiza señal\ncruda
+
+Usuario -> UI: Selecciona transformación\n(FFT/Wavelet/DCT)
+UI -> Factory: Crear esquema con\nparámetros
+
+Usuario -> UI: Configura hiperparámetros\n(ventana, overlap, nfft...)
+UI -> Factory: Validar esquema
+Factory --> UI: Esquema validado
+
+Usuario -> UI: Click "Aplicar"
+UI -> Factory: formManager(esquema)
+activate Factory
+
+Factory -> Transform: apply(data, params)
+activate Transform
+
+Transform -> Transform: Cargar señal\ny etiquetas
+Transform -> Transform: Aplicar transformación\n(FFT/Wavelet/etc)
+Transform -> Transform: Re-etiquetar para\nmodel_type
+
+Transform -> Exp: add_transform_config()
+Transform -> Transform: Guardar resultados\n(datos + labels)
+
+Transform --> Factory: success = True
+deactivate Transform
+
+Factory --> UI: Transformación\naplicada
+deactivate Factory
+
+UI -> UI: Cargar datos\ntransformados
+UI --> Usuario: Visualización\nactualizada
+
+@enduml

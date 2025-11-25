@@ -1,0 +1,67 @@
+@startuml
+title Flujo de Visualización y Análisis de Dataset
+
+actor Usuario
+participant ": UI\nDataset" as UI
+participant ": Dataset" as DS
+participant ": FileSystem" as FS
+participant ": Plotly" as Plot
+
+Usuario -> UI: Navega a página\nde Dataset
+UI -> DS: Obtener dataset\nseleccionado
+DS -> FS: Leer metadata\nde Aux/
+FS --> DS: dataset_metadata.json
+
+DS -> FS: Leer señales\n(.npy files)
+FS --> DS: Datos crudos
+
+DS --> UI: Metadata + señales
+
+== Pestaña: Estadísticas ==
+Usuario -> UI: Click "Estadísticas"
+UI -> UI: Calcular estadísticas:\n- Media/std por canal\n- Distribución de clases\n- Eventos por clase
+UI --> Usuario: Visualizar tablas\ny gráficos
+
+== Pestaña: Topomaps ==
+Usuario -> UI: Click "Topomaps"
+Usuario -> UI: Selecciona clase\ny tiempo
+
+UI -> DS: get_topomap_data(clase, tiempo)
+activate DS
+DS -> DS: Calcular potencia\npor canal
+DS --> UI: Valores espaciales
+deactivate DS
+
+UI -> Plot: Generar topomap\n(interpolación)
+Plot --> UI: Gráfico topomap
+
+UI --> Usuario: Visualizar\nmapa cerebral
+
+== Pestaña: Heatmap ==
+Usuario -> UI: Click "Heatmap"
+Usuario -> UI: Selecciona clase
+
+UI -> DS: get_heatmap_data(clase)
+activate DS
+DS -> DS: Calcular matriz\ntiempo x canales
+DS --> UI: Matriz de potencia
+deactivate DS
+
+UI -> Plot: Generar heatmap
+Plot --> UI: Gráfico heatmap
+
+UI --> Usuario: Visualizar actividad\ntemporal
+
+== Pestaña: Señal Cruda ==
+Usuario -> UI: Click "Señal Cruda"
+Usuario -> UI: Selecciona clase\ny canales
+
+UI -> DS: get_raw_signal(clase, canales)
+DS --> UI: Señal temporal
+
+UI -> Plot: Graficar señales\npor canal
+Plot --> UI: Gráfico multicanal
+
+UI --> Usuario: Visualizar señales\nen tiempo real
+
+@enduml

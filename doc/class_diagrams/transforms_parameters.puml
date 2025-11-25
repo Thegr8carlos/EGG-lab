@@ -1,0 +1,211 @@
+@startuml
+title Transformadas - Parámetros y Funcionalidad
+
+package "Extracción de Características" {
+
+  class FFTTransform {
+    ==Parámetros==
+    window: hann | hamming | blackman | rectangular
+    frame_length: int (tamaño ventana)
+    hop_samples: int (salto, opcional)
+    overlap: float [0.0-1.0] (si hop=None)
+    nfft: int (puntos FFT, opcional)
+    sp: float (frecuencia de muestreo)
+    id: str (identificador único)
+    model_type: p300 | inner | generic
+    --
+    ==Funcionalidad==
+    **¿Qué hace?**
+    Transforma señal temporal → espectro de frecuencias
+    (Espectrograma por canal)
+
+    **Proceso:**
+    1. Divide señal en ventanas solapadas
+    2. Aplica ventana (Hann, Hamming, etc.)
+    3. Calcula rFFT (Fast Fourier Transform)
+    4. Obtiene potencia espectral
+
+    **Salida:**
+    (n_frames, n_freqs, n_channels)
+
+    **¿Por qué usar FFT?**
+    • Captura patrones de frecuencia
+    • Reduce dimensionalidad temporal
+    • Revela actividad en bandas (Delta, Theta, Alpha, Beta, Gamma)
+
+    **Ejemplo:**
+    frame_length=2000 (2s @ 1000Hz)
+    overlap=0.5 → hop=1000
+    nfft=2048 → 1025 frecuencias
+  }
+
+  class WaveletTransform {
+    ==Parámetros==
+    wavelet: str (db4, coif5, sym8, etc.)
+    level: int (niveles de descomposición)
+    mode: symmetric | periodization | reflect
+    threshold: float (denoising, opcional)
+    frame_length: int (tamaño ventana)
+    hop_samples: int (salto, opcional)
+    overlap: float [0.0-1.0]
+    sp: float (frecuencia de muestreo)
+    id: str (identificador único)
+    model_type: p300 | inner | generic
+    --
+    ==Funcionalidad==
+    **¿Qué hace?**
+    Descomposición multi-resolución
+    (tiempo + frecuencia simultáneamente)
+
+    **Proceso:**
+    1. Descompone señal en niveles
+    2. Aplica soft-threshold (denoising)
+    3. Reconstruye señal limpia
+    4. Ventanea señal reconstruida
+
+    **Salida:**
+    (n_frames, frame_length, n_channels)
+
+    **¿Por qué usar Wavelets?**
+    • Localización tiempo-frecuencia
+    • Denoising adaptativo
+    • Capta transientes y eventos
+    • Mejor que FFT para señales no-estacionarias
+
+    **Wavelets comunes:**
+    • db4: Daubechies (buena localización)
+    • coif5: Coiflets (simétrica)
+    • sym8: Symlets (casi simétrica)
+  }
+
+  class WindowingTransform {
+    ==Parámetros==
+    window_size: int (tamaño ventana)
+    overlap: float [0.0-1.0] (opcional)
+    padding_mode: constant | edge | reflect
+    sp: float (frecuencia de muestreo)
+    id: str (identificador único)
+    model_type: p300 | inner | generic
+    --
+    ==Funcionalidad==
+    **¿Qué hace?**
+    Ventaneo simple SIN procesamiento
+    (señal cruda dividida en bloques)
+
+    **Proceso:**
+    1. Divide señal en ventanas
+    2. Aplica padding si es necesario
+    3. Asigna etiquetas por voto mayoritario
+
+    **Salida:**
+    (n_frames, window_size, n_channels)
+
+    **¿Por qué usar Windowing?**
+    • Formato consistente para modelos
+    • No altera la señal (cruda)
+    • Útil para modelos que aprenden features
+      automáticamente (CNN, LSTM)
+    • Más rápido que FFT/Wavelet
+
+    **Uso típico:**
+    • Con CNN que aprende filtros
+    • Con LSTM que capta temporalidad
+    • Baseline sin features hechas a mano
+  }
+
+  class DCTTransform {
+    ==Parámetros==
+    type: int (1, 2, 3, 4)
+    norm: ortho | None
+    frame_length: int (tamaño ventana)
+    overlap: float [0.0-1.0]
+    sp: float (frecuencia de muestreo)
+    id: str (identificador único)
+    model_type: p300 | inner | generic
+    --
+    ==Funcionalidad==
+    **¿Qué hace?**
+    Transformada Discreta del Coseno
+    (compresión de señal)
+
+    **Proceso:**
+    1. Ventanea señal
+    2. Aplica DCT (similar a FFT pero real)
+    3. Compacta energía en pocos coefs
+
+    **Salida:**
+    (n_frames, n_coefs, n_channels)
+
+    **¿Por qué usar DCT?**
+    • Compresión eficiente
+    • Solo números reales (vs FFT compleja)
+    • Menos parámetros que FFT
+    • Usado en JPEG, MP3
+
+    **Tipos:**
+    • type=2: Más común (usado en JPEG)
+    • norm=ortho: Normalización ortogonal
+  }
+
+}
+
+note bottom of FFTTransform
+  **Ventajas:**
+  ✅ Captura patrones de frecuencia
+  ✅ Interpretable (bandas EEG conocidas)
+  ✅ Reduce dimensionalidad
+
+  **Desventajas:**
+  ❌ Pierde información temporal precisa
+  ❌ Asume estacionaridad local
+end note
+
+note bottom of WaveletTransform
+  **Ventajas:**
+  ✅ Tiempo + frecuencia simultáneos
+  ✅ Denoising automático
+  ✅ Capta transientes (eventos rápidos)
+
+  **Desventajas:**
+  ❌ Más complejo que FFT
+  ❌ Elección de wavelet no trivial
+end note
+
+note bottom of WindowingTransform
+  **Ventajas:**
+  ✅ Señal cruda (no pierde info)
+  ✅ Muy rápido
+  ✅ Deja que el modelo aprenda features
+
+  **Desventajas:**
+  ❌ Dimensionalidad alta
+  ❌ Modelo debe aprender todo
+  ❌ Más datos de entrenamiento necesarios
+end note
+
+note bottom of DCTTransform
+  **Ventajas:**
+  ✅ Compresión eficiente
+  ✅ Solo reales (más simple que FFT)
+  ✅ Menos parámetros
+
+  **Desventajas:**
+  ❌ Menos usado en EEG que FFT
+  ❌ Menos interpretable
+end note
+
+note as N1
+  **Pipeline típico:**
+
+  Señal filtrada → Transformada → Ventaneo → Re-etiquetado
+
+  **Parámetros comunes:**
+  • frame_length: Tamaño de ventana
+  • overlap: Solapamiento (0-100%)
+  • hop = frame_length × (1 - overlap)
+
+  **Re-etiquetado:**
+  Según model_type (p300/inner/generic)
+end note
+
+@enduml

@@ -707,13 +707,18 @@ clientside_callback(
               paper_bgcolor: 'rgba(0,0,0,0)',
               plot_bgcolor: 'rgba(0,0,0,0)',
               showlegend: false,
-              xaxis: { showgrid: false, zeroline: false, fixedrange: true, title: 'muestras' },
+              xaxis: {
+                showgrid: false,
+                zeroline: false,
+                fixedrange: true,
+                title: { text: 'Tiempo (muestras)', font: { size: 11 } }
+              },
               yaxis: {
                 showgrid: true,
                 gridcolor: 'rgba(128,128,128,0.25)',
                 zeroline: false,
                 fixedrange: true,
-                title: channelLabel,
+                title: { text: 'Amplitud (µV)', font: { size: 11 } },
                 titlefont: { size: 14, weight: 'bold' }
               },
               height: 320,
@@ -782,13 +787,18 @@ clientside_callback(
               paper_bgcolor: 'rgba(0,0,0,0)',
               plot_bgcolor: 'rgba(0,0,0,0)',
               showlegend: false,
-              xaxis: { showgrid: false, zeroline: false, fixedrange: true, title: 'frecuencia/nivel' },
+              xaxis: {
+                showgrid: false,
+                zeroline: false,
+                fixedrange: true,
+                title: { text: 'Índice / Frecuencia (Hz)', font: { size: 11 } }
+              },
               yaxis: {
                 showgrid: true,
                 gridcolor: 'rgba(128,128,128,0.25)',
                 zeroline: false,
                 fixedrange: true,
-                title: channelLabel,
+                title: { text: 'Amplitud / Potencia', font: { size: 11 } },
                 titlefont: { size: 14, weight: 'bold' }
               },
               height: 320,

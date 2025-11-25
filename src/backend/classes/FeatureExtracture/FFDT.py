@@ -214,7 +214,8 @@ class FFTTransform(Transform):
 
             # ===== RE-ETIQUETAR A FORMATO NUMÉRICO =====
             # Pasar all_classes para mapeo consistente en multiclase
-            frame_labels_numeric, id_to_class = instance.relabel_for_model(frame_labels, all_classes=instance.all_classes)
+            frame_labels_numeric, id_to_class, valid_mask = instance.relabel_for_model(frame_labels, all_classes=instance.all_classes)
+
             print(f"[FFTTransform.apply] Etiquetas convertidas a formato numérico:")
             print(f"   Mapeo: {id_to_class}")
         else:
@@ -253,6 +254,14 @@ class FFTTransform(Transform):
             min_freqs = min(power.shape[1], expected_n_freqs)
             power_fixed[:, :min_freqs, :] = power[:, :min_freqs, :]
             power = power_fixed
+
+        # Si hay máscara de filtrado (Inner Speech excluye rest), aplicar a datos y etiquetas
+        if frame_labels is not None and valid_mask is not None:
+            print(f"[FFTTransform.apply] Aplicando filtro: {np.sum(valid_mask)}/{len(valid_mask)} frames válidos")
+            power = power[valid_mask]
+            frame_labels = frame_labels[valid_mask]
+            if frame_labels_numeric is not None:
+                frame_labels_numeric = frame_labels_numeric[valid_mask]
 
         output_shape = (int(power.shape[0]), int(power.shape[1]), int(power.shape[2]))  # (n_frames, n_freqs, n_channels)
 

@@ -1,0 +1,134 @@
+@startuml
+title Filtros - Parámetros y Funcionalidad
+
+package "Filtros de Preprocesamiento" {
+
+  class BandPass {
+    ==Parámetros==
+    filter_type: lowpass | highpass | bandpass
+    freq: float | (low, high)
+    method: fir | iir
+    order: int (opcional)
+    phase: zero | minimum
+    fir_window: hamming | hann | blackman | bartlett | flattop
+    sp: float (frecuencia de muestreo)
+    id: str (identificador único)
+    --
+    ==Funcionalidad==
+    **¿Qué hace?**
+    Filtra señal en rango de frecuencias
+
+    **Tipos:**
+    • lowpass: Pasa bajas (<freq)
+    • highpass: Pasa altas (>freq)
+    • bandpass: Pasa banda (low-high)
+
+    **Ejemplo común:**
+    bandpass [0.5, 40] Hz
+    → Elimina ruido <0.5 Hz y >40 Hz
+    → Mantiene actividad cerebral útil
+
+    **Métodos:**
+    • FIR: Zero-phase, más estable
+    • IIR: Menor orden, más eficiente
+  }
+
+  class Notch {
+    ==Parámetros==
+    freqs: float | List[float]
+    quality: float (Q factor, default=30)
+    method: fir | iir
+    sp: float (frecuencia de muestreo)
+    id: str (identificador único)
+    --
+    ==Funcionalidad==
+    **¿Qué hace?**
+    Elimina frecuencias específicas
+    (ruido de línea eléctrica)
+
+    **Uso típico:**
+    freqs = 60 Hz (USA) o 50 Hz (Europa)
+    → Elimina interferencia eléctrica
+
+    **Quality Factor (Q):**
+    • Q alto = banda estrecha (específico)
+    • Q bajo = banda ancha (agresivo)
+    • BW = freq / Q
+
+    **Ejemplo:**
+    freqs = [60, 120, 180] Hz
+    → Elimina 60Hz + armónicos
+  }
+
+  class ICA {
+    ==Parámetros==
+    numeroComponentes: int (opcional)
+    method: fastica | picard | infomax
+    random_state: int (semilla, opcional)
+    max_iter: int (default=200)
+    sp: float (frecuencia de muestreo)
+    id: str (identificador único)
+    --
+    ==Funcionalidad==
+    **¿Qué hace?**
+    Descomposición en componentes
+    independientes (reducción dimensional)
+
+    **Objetivo:**
+    Separar señales mezcladas
+    • Señal cerebral
+    • Artefactos (ojos, músculos)
+    • Ruido
+
+    **Reducción dimensional:**
+    Entrada: 137 canales
+    Salida: 30 componentes (típico)
+    → 77% reducción, mantiene info útil
+
+    **Métodos:**
+    • fastica: Rápido, robusto
+    • picard: Preciso, iterativo
+    • infomax: Clásico, estable
+
+    **Outputs:**
+    • .npy: Componentes (entrenamiento)
+    • .fif: Objeto MNE (simulación)
+  }
+
+}
+
+note bottom of BandPass
+  **Uso común en EEG:**
+
+  Delta: 0.5-4 Hz
+  Theta: 4-8 Hz
+  Alpha: 8-13 Hz
+  Beta: 13-30 Hz
+  Gamma: 30-100 Hz
+
+  Típicamente: bandpass [0.5, 40] Hz
+end note
+
+note bottom of Notch
+  **Pipeline típico:**
+
+  1. Notch 60 Hz (eliminar ruido)
+  2. BandPass 0.5-40 Hz (filtrar banda)
+  3. ICA (reducir dimensión, opcional)
+
+  Orden importa!
+end note
+
+note bottom of ICA
+  **Cuándo usar ICA:**
+
+  ✅ Muchos canales (>30)
+  ✅ Artefactos oculares
+  ✅ Reducir overfitting
+  ✅ Mejorar generalización
+
+  ❌ Pocos canales (<10)
+  ❌ Señal muy limpia
+end note
+
+@enduml

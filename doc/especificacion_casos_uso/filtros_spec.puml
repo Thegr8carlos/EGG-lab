@@ -1,0 +1,56 @@
+@startuml
+title Especificación de Casos de Uso - Filtros
+
+' ========== CU-1: Aplicar Filtro BandPass ==========
+salt
+{#
+  <b>Caso de uso | <b>CU-1. Aplicar filtro BandPass
+  <b>Resumen de atributos |
+  <b>Actor | Usuario Investigador
+  <b>Propósito | Filtrar señal EEG en un rango de frecuencias específico
+  <b>Tipo | Primario
+  <b>Entradas | - Dataset seleccionado\n- Tipo de filtro (lowpass/highpass/bandpass)\n- Frecuencias de corte\n- Método (FIR/IIR)
+  <b>Salidas | - Señal filtrada guardada\n- Visualización actualizada
+  <b>Precondiciones | - Dataset cargado\n- Clase seleccionada
+  <b>Postcondiciones | - Filtro registrado en experimento\n- Señal filtrada disponible para transformadas
+  <b>Errores | - Frecuencias fuera del rango Nyquist\n- Método no compatible con parámetros
+}
+@enduml
+
+@startuml
+title Especificación de Casos de Uso - Filtros (2)
+
+' ========== CU-2: Aplicar Filtro Notch ==========
+salt
+{#
+  <b>Caso de uso | <b>CU-2. Aplicar filtro Notch
+  <b>Resumen de atributos |
+  <b>Actor | Usuario Investigador
+  <b>Propósito | Eliminar ruido de frecuencia eléctrica específica (ej: 60 Hz)
+  <b>Tipo | Primario
+  <b>Entradas | - Frecuencia a eliminar (60 Hz típico)\n- Quality factor (Q)\n- Método (FIR/IIR)
+  <b>Salidas | - Señal sin ruido eléctrico\n- Visualización actualizada
+  <b>Precondiciones | - Dataset cargado\n- Señal con ruido de línea eléctrica
+  <b>Postcondiciones | - Ruido eliminado\n- Señal más limpia para análisis
+  <b>Errores | - Frecuencia negativa o cero\n- Q factor inválido
+}
+@enduml
+
+@startuml
+title Especificación de Casos de Uso - Filtros (3)
+
+' ========== CU-3: Aplicar ICA ==========
+salt
+{#
+  <b>Caso de uso | <b>CU-3. Aplicar ICA (reducción dimensional)
+  <b>Resumen de atributos |
+  <b>Actor | Usuario Investigador
+  <b>Propósito | Reducir dimensionalidad y separar componentes independientes
+  <b>Tipo | Primario
+  <b>Entradas | - Número de componentes (30 típico)\n- Método (fastica/picard/infomax)\n- Random state
+  <b>Salidas | - Componentes independientes (n_components)\n- Archivos .npy y .fif generados
+  <b>Precondiciones | - Dataset con muchos canales (>30)\n- Señal filtrada preferentemente
+  <b>Postcondiciones | - Dimensionalidad reducida\n- Componentes independientes disponibles
+  <b>Errores | - Número de componentes > número de canales\n- Convergencia fallida en ICA
+}
+@enduml

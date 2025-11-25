@@ -1,0 +1,56 @@
+@startuml
+title Especificación de Casos de Uso - Simulación
+
+' ========== CU-1: Configurar Simulación en Tiempo Real ==========
+salt
+{#
+  <b>Caso de uso | <b>CU-1. Configurar simulación en tiempo real
+  <b>Resumen de atributos |
+  <b>Actor | Usuario Investigador
+  <b>Propósito | Configurar parámetros para simular predicción en tiempo real
+  <b>Tipo | Primario
+  <b>Entradas | - Modelo P300 entrenado\n- Modelo Inner Speech entrenado\n- hop_size (ventana deslizante)\n- Threshold de detección
+  <b>Salidas | - Configuración de simulación validada
+  <b>Precondiciones | - Ambos modelos entrenados y disponibles\n- Dataset de sesión completo cargado
+  <b>Postcondiciones | - Simulación lista para ejecutar
+  <b>Errores | - Modelos no compatibles\n- hop_size inválido
+}
+@enduml
+
+@startuml
+title Especificación de Casos de Uso - Simulación (2)
+
+' ========== CU-2: Ejecutar Simulación Dual-Stage ==========
+salt
+{#
+  <b>Caso de uso | <b>CU-2. Ejecutar simulación dual-stage (P300 + Inner)
+  <b>Resumen de atributos |
+  <b>Actor | Usuario Investigador
+  <b>Propósito | Simular detección y clasificación en tiempo real
+  <b>Tipo | Primario
+  <b>Entradas | - Sesión EEG completa\n- hop_size configurado
+  <b>Salidas | - Predicciones frame-por-frame\n- Métricas globales\n- Confusion matrix
+  <b>Precondiciones | - Simulación configurada\n- Pipeline completo (filtros + transforms)
+  <b>Postcondiciones | - Resultados de simulación guardados\n- Visualización de predicciones\n- Performance metrics disponibles
+  <b>Errores | - Pipeline faltante\n- Formato de datos incompatible\n- Memoria insuficiente
+}
+@enduml
+
+@startuml
+title Especificación de Casos de Uso - Simulación (3)
+
+' ========== CU-3: Visualizar Resultados de Simulación ==========
+salt
+{#
+  <b>Caso de uso | <b>CU-3. Visualizar resultados de simulación
+  <b>Resumen de atributos |
+  <b>Actor | Usuario Investigador
+  <b>Propósito | Analizar resultados de la simulación ejecutada
+  <b>Tipo | Secundario
+  <b>Entradas | - Resultados de simulación
+  <b>Salidas | - Gráficos de predicción vs ground truth\n- Confusion matrix\n- Métricas por clase
+  <b>Precondiciones | - Simulación ejecutada exitosamente
+  <b>Postcondiciones | - Usuario visualiza performance del sistema\n- Puede identificar errores de clasificación
+  <b>Errores | - Resultados corruptos\n- Falta de etiquetas ground truth
+}
+@enduml

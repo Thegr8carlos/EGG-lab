@@ -116,6 +116,102 @@ class Experiment(BaseModel):
         print(f"✅ Experimento {experiment_id} creado y registrado como el actual.")
 
     @classmethod
+    def reset_experiment(cls) -> str:
+        """
+        Creates a new experiment and sets it as the current one.
+        Returns the new experiment ID.
+        """
+        cls.create_blank_json()
+        new_id = cls._get_last_experiment_id()
+        print(f"🔄 Nuevo experimento {new_id} creado. Sesión reiniciada.")
+        return new_id
+
+    @classmethod
+    def clear_old_caches(cls, keep_current: bool = True) -> Dict[str, Any]:
+        """
+        Clears pipeline cache and intermediates from old experiments.
+
+        Args:
+            keep_current: If True, preserves cache for the current experiment
+
+        Returns:
+            dict with statistics: {
+                "experiments_cleaned": int,
+                "files_deleted": int,
+                "space_freed_mb": float,
+                "errors": List[str]
+            }
+        """
+        from pathlib import Path
+        import shutil
+
+        stats = {
+            "experiments_cleaned": 0,
+            "files_deleted": 0,
+            "space_freed_mb": 0.0,
+            "errors": []
+        }
+
+        try:
+            current_id = cls._get_last_experiment_id() if keep_current else None
+        except FileNotFoundError:
+            current_id = None
+
+        # Buscar directorios Aux/experiment_* en todo el proyecto
+        base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../"))
+
+        # Buscar en directorios comunes donde pueden estar los datasets
+        search_paths = [
+            os.path.join(base_dir, "Aux"),
+            os.path.join(base_dir, "Data"),
+        ]
+
+        for search_path in search_paths:
+            if not os.path.exists(search_path):
+                continue
+
+            for root, dirs, files in os.walk(search_path):
+                # Buscar directorios experiment_X
+                for dir_name in dirs:
+                    if dir_name.startswith("experiment_"):
+                        exp_id = dir_name.replace("experiment_", "")
+
+                        # Saltar el experimento actual si keep_current=True
+                        if keep_current and current_id and exp_id == current_id:
+                            continue
+
+                        exp_dir = os.path.join(root, dir_name)
+
+                        # Calcular espacio antes de eliminar
+                        try:
+                            size = sum(
+                                os.path.getsize(os.path.join(dirpath, filename))
+                                for dirpath, dirnames, filenames in os.walk(exp_dir)
+                                for filename in filenames
+                            )
+                            stats["space_freed_mb"] += size / (1024 * 1024)
+
+                            # Contar archivos
+                            file_count = sum(
+                                len(filenames)
+                                for _, _, filenames in os.walk(exp_dir)
+                            )
+                            stats["files_deleted"] += file_count
+
+                            # Eliminar directorio completo
+                            shutil.rmtree(exp_dir)
+                            stats["experiments_cleaned"] += 1
+                            print(f"🗑️  Limpiado cache de experimento {exp_id}: {size / (1024 * 1024):.2f} MB")
+
+                        except Exception as e:
+                            error_msg = f"Error limpiando experimento {exp_id}: {str(e)}"
+                            stats["errors"].append(error_msg)
+                            print(f"⚠️  {error_msg}")
+
+        print(f"✅ Limpieza completada: {stats['experiments_cleaned']} experimentos, {stats['files_deleted']} archivos, {stats['space_freed_mb']:.2f} MB liberados")
+        return stats
+
+    @classmethod
     def _load_latest_experiment(cls) -> "Experiment":
         """
         Loads and returns the last experiment as an Experiment object.
@@ -2158,6 +2254,19 @@ class Experiment(BaseModel):
             events_by_class[class_name].append(event_file)
 
         available_classes = list(events_by_class.keys())
+
+        # ===== FILTRAR CLASES NO DESEADAS SEGÚN MODEL_TYPE =====
+        if model_type and model_type.lower() == "inner":
+            # Inner Speech NO entrena con rest/none/unlabeled
+            excluded_classes = ["rest", "none", "unlabeled"]
+            original_count = len(events_by_class)
+            events_by_class = {
+                cls: evts for cls, evts in events_by_class.items()
+                if cls.lower() not in excluded_classes
+            }
+            filtered_count = original_count - len(events_by_class)
+            if filtered_count > 0 and verbose:
+                print(f"🗑️  [Inner Speech] Excluidas {filtered_count} clases: rest/none/unlabeled")
 
         if verbose:
             print(f"🏷️  Clases encontradas: {available_classes}")

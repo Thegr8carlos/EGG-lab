@@ -505,17 +505,52 @@ class LSTM(BaseModel):
             import tensorflow as tf
             from tensorflow import keras
             from tensorflow.keras import layers
+            import gc
+
+            # ===== LIMPIEZA DE SESIÓN PREVIA =====
+            # Limpiar estado de TensorFlow/Keras de ejecuciones previas
+            print(f"🧹 [LSTM] Limpiando sesión de TensorFlow previa...")
+            tf.keras.backend.clear_session()
+            gc.collect()
 
             # Limpiar modelo previo (cada fit() reconstruye desde cero)
             instance._tf_model = None
 
-            gpus = tf.config.list_physical_devices('GPU')
-            if gpus:
-                try:
-                    for gpu in gpus:
-                        tf.config.experimental.set_memory_growth(gpu, True)
-                except RuntimeError as e:
-                    print(f"GPU config error: {e}")
+            # ===== OPTIMIZACIÓN DE MEMORIA Y GPU =====
+            gpu_available = False
+            try:
+                # Limitar memoria GPU a 80% para evitar OOM
+                gpus = tf.config.list_physical_devices('GPU')
+                if gpus:
+                    try:
+                        for gpu in gpus:
+                            # Habilitar crecimiento dinámico de memoria
+                            tf.config.experimental.set_memory_growth(gpu, True)
+                        print(f"🖥️  [LSTM] GPU disponible - memory growth habilitado")
+                        gpu_available = True
+                    except RuntimeError as e:
+                        print(f"⚠️  [LSTM] GPU config error: {e}")
+                        print(f"🔄 [LSTM] Continuando con CPU...")
+                        # Forzar uso de CPU si GPU falla
+                        import os
+                        os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
+                else:
+                    print(f"💻 [LSTM] No se detectó GPU - usando CPU")
+            except Exception as e:
+                print(f"⚠️  [LSTM] Error al detectar GPU: {e}")
+                print(f"🔄 [LSTM] Continuando con CPU...")
+
+            # Limitar threads de TensorFlow para reducir overhead de CPU
+            try:
+                tf.config.threading.set_intra_op_parallelism_threads(4)
+                tf.config.threading.set_inter_op_parallelism_threads(2)
+            except RuntimeError:
+                # Ya fue inicializado, ignorar (no afecta el entrenamiento)
+                pass
+
+            # Forzar garbage collection antes de entrenar
+            gc.collect()
+            print(f"🧹 [LSTM] Memoria limpiada antes de entrenamiento")
 
             max_len_tr = int(len_tr.max())
             max_len_te = int(len_te.max())
@@ -541,6 +576,14 @@ class LSTM(BaseModel):
 
             X_tr_padded = pad_sequences(seq_tr, max_len_tr, pad_value)
             X_te_padded = pad_sequences(seq_te, max_len_te, pad_value)
+
+            # ===== LIBERAR MEMORIA: Eliminar secuencias originales =====
+            print(f"🧹 [LSTM] Liberando memoria de secuencias originales...")
+            del seq_tr, seq_te
+            gc.collect()
+
+            print(f"📊 [LSTM] X_train shape: {X_tr_padded.shape}, X_test shape: {X_te_padded.shape}")
+            print(f"📊 [LSTM] Memoria aproximada: {(X_tr_padded.nbytes + X_te_padded.nbytes) / 1024**3:.2f} GB")
 
             def build(spec: LSTM, input_shape: Tuple[int, int]) -> keras.Model:
                 inputs = layers.Input(shape=input_shape, name='input')
@@ -626,14 +669,67 @@ class LSTM(BaseModel):
                 loss='sparse_categorical_crossentropy',
                 metrics=['accuracy']
             )
+
+            # ===== CALLBACK PARA LIBERAR MEMORIA ENTRE EPOCHS =====
+            class MemoryClearCallback(keras.callbacks.Callback):
+                def on_epoch_end(self, epoch, logs=None):
+                    gc.collect()
+                    # tf.keras.backend.clear_session()  # ← DESHABILITADO: causa problemas entre epochs
+                    if epoch % 2 == 0:  # Cada 2 epochs mostrar memoria
+                        try:
+                            import psutil
+                            process = psutil.Process()
+                            mem_info = process.memory_info()
+                            print(f"\n💾 [Epoch {epoch+1}] RAM: {mem_info.rss / 1024**3:.2f} GB")
+                        except ImportError:
+                            pass  # psutil no instalado, ignorar
+
+            # Ajustar batch_size si el dataset es muy grande
+            n_samples = len(X_tr_padded)
+            if n_samples > 1000 and batch_size > 16:
+                batch_size_adjusted = min(batch_size, 16)
+                print(f"⚠️  [LSTM] Dataset grande ({n_samples} samples), reduciendo batch_size: {batch_size} → {batch_size_adjusted}")
+                batch_size = batch_size_adjusted
+
+            callbacks = [MemoryClearCallback()]
+
             t0 = time.perf_counter()
-            history = model.fit(
-                X_tr_padded, y_tr,
-                batch_size=batch_size,
-                epochs=epochs,
-                verbose=1,
-                validation_data=(X_te_padded, y_te)
-            )
+            try:
+                history = model.fit(
+                    X_tr_padded, y_tr,
+                    batch_size=batch_size,
+                    epochs=epochs,
+                    verbose=1,
+                    validation_data=(X_te_padded, y_te),
+                    callbacks=callbacks
+                )
+            except Exception as e:
+                # Si falla (probablemente por GPU), intentar forzar CPU
+                if "GPU" in str(e) or "CUDA" in str(e) or "device" in str(e).lower():
+                    print(f"⚠️  [LSTM] Error durante entrenamiento (posiblemente GPU): {e}")
+                    print(f"🔄 [LSTM] Reintentando con CPU...")
+                    import os
+                    os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
+                    # Reconstruir modelo en CPU
+                    tf.keras.backend.clear_session()
+                    model = build(instance, input_shape=(X_tr_padded.shape[1], in_F))
+                    model.compile(
+                        optimizer=keras.optimizers.Adam(learning_rate=lr),
+                        loss='sparse_categorical_crossentropy',
+                        metrics=['accuracy']
+                    )
+                    history = model.fit(
+                        X_tr_padded, y_tr,
+                        batch_size=batch_size,
+                        epochs=epochs,
+                        verbose=1,
+                        validation_data=(X_te_padded, y_te),
+                        callbacks=callbacks
+                    )
+                    print(f"✅ [LSTM] Entrenamiento completado en CPU")
+                else:
+                    # Si es otro tipo de error, re-lanzarlo
+                    raise
             train_time = time.perf_counter() - t0
 
             t_pred0 = time.perf_counter()
@@ -649,6 +745,9 @@ class LSTM(BaseModel):
             cm   = confusion_matrix(y_true, y_pred).tolist()
             try:
                 auc = float(roc_auc_score(y_true, logits, multi_class="ovr", average="weighted"))
+                # Handle NaN (occurs when only one class in test set)
+                if np.isnan(auc):
+                    auc = 0.0
             except Exception:
                 auc = 0.0
             metrics = EvaluationMetrics(

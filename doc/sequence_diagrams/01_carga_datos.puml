@@ -1,0 +1,38 @@
+@startuml
+title Flujo de Carga de Datos EEG
+
+actor Usuario
+participant ": UI\nCargar Datos" as UI
+participant ": Dataset" as Dataset
+participant ": FileSystem" as FS
+participant ": Azure\nBlob Storage" as Azure
+
+Usuario -> UI: Selecciona dataset\npendiente
+UI -> Dataset: upload_dataset(path)
+activate Dataset
+
+Dataset -> FS: Buscar archivos\n.bdf/.edf/.vhdr
+FS --> Dataset: Lista de archivos
+
+Dataset -> Dataset: read_bdf() o\nread_edf() o\nread_brainvision()
+Dataset -> Dataset: Detectar tipo\n(Inner Speech/Genérico)
+
+Dataset -> Dataset: Extraer eventos\ncon timestamps
+Dataset -> Dataset: Crear ventanas\ntemporales
+
+Dataset -> Dataset: Calcular metadata:\n- Frecuencia muestreo\n- Canales\n- Estadísticas\n- Bandas frecuencia
+
+Dataset -> FS: Guardar en Aux/\n(estructura paralela)
+FS --> Dataset: OK
+
+Dataset -> Azure: Sincronizar datos\ncon Azure Blob Storage
+activate Azure
+Azure --> Dataset: Datos respaldados\nen la nube
+deactivate Azure
+
+Dataset --> UI: metadata completo
+deactivate Dataset
+
+UI --> Usuario: Dataset cargado\ny respaldado
+
+@enduml

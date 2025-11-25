@@ -1,0 +1,238 @@
+@startuml
+title Clases Classifier - Modelos de Clasificación
+
+abstract class Classifier {
+  # id : str
+  # sp : float
+  # model_type : str
+  # all_classes : List[str]
+  + get_sp() : float
+  + get_id() : str
+  {abstract} + fit(X_train, y_train) : TrainResult
+  {abstract} + predict(X_test) : NDArray
+  {abstract} + evaluate(X_test, y_test) : EvaluationMetrics
+  + save_model(path) : bool
+  + load_model(path) : Classifier
+}
+
+' ============= MODELOS DEEP LEARNING =============
+class CNN {
+  - kernels : List[Kernel]
+  - pooling : List[Pool]
+  - dense_layers : List[DenseLayer]
+  - dropout : float
+  - epochs : int
+  - batch_size : int
+  - learning_rate : float
+  - optimizer : str
+  --
+  + fit() : TrainResult
+  + predict() : NDArray
+  + evaluate() : EvaluationMetrics
+}
+
+class LSTM {
+  - lstm_layers : List[LSTMLayer]
+  - dense_layers : List[DenseLayer]
+  - pooling_strategy : str
+  - dropout : float
+  - epochs : int
+  - batch_size : int
+  - learning_rate : float
+  - optimizer : str
+  --
+  + fit() : TrainResult
+  + predict() : NDArray
+  + evaluate() : EvaluationMetrics
+}
+
+class GRU {
+  - gru_layers : List[GRULayer]
+  - dense_layers : List[DenseLayer]
+  - pooling_strategy : str
+  - dropout : float
+  - epochs : int
+  - batch_size : int
+  - learning_rate : float
+  - optimizer : str
+  --
+  + fit() : TrainResult
+  + predict() : NDArray
+  + evaluate() : EvaluationMetrics
+}
+
+class SVNN {
+  - input_layer : int
+  - hidden_layers : List[int]
+  - output_layer : int
+  - activation : str
+  - dropout : float
+  - epochs : int
+  - batch_size : int
+  - learning_rate : float
+  --
+  + fit() : TrainResult
+  + predict() : NDArray
+  + evaluate() : EvaluationMetrics
+}
+
+' ============= MODELOS MACHINE LEARNING =============
+class SVM {
+  - kernel : str
+  - C : float
+  - gamma : str
+  - degree : int
+  - class_weight : str
+  --
+  + fit() : TrainResult
+  + predict() : NDArray
+  + evaluate() : EvaluationMetrics
+}
+
+class RandomForest {
+  - n_estimators : int
+  - max_depth : int
+  - min_samples_split : int
+  - min_samples_leaf : int
+  - max_features : str
+  - class_weight : str
+  --
+  + fit() : TrainResult
+  + predict() : NDArray
+  + evaluate() : EvaluationMetrics
+}
+
+' ============= COMPONENTES AUXILIARES =============
+class Kernel {
+  + weights : NDArray
+  + name : str
+}
+
+class Pool {
+  + type : str
+  + size : Tuple[int, int]
+  + strides : Tuple[int, int]
+}
+
+class DenseLayer {
+  + units : int
+  + activation : ActivationFunction
+}
+
+class LSTMLayer {
+  + hidden_size : int
+  + bidirectional : bool
+  + num_layers : int
+  + dropout : float
+  + return_sequences : bool
+}
+
+class GRULayer {
+  + hidden_size : int
+  + bidirectional : bool
+  + num_layers : int
+  + dropout : float
+  + return_sequences : bool
+}
+
+class TrainResult {
+  + train_accuracy : float
+  + val_accuracy : float
+  + train_loss : float
+  + val_loss : float
+  + history : dict
+}
+
+class EvaluationMetrics {
+  + accuracy : float
+  + precision : float
+  + recall : float
+  + f1_score : float
+  + confusion_matrix : NDArray
+  + roc_auc : float
+}
+
+' ============= HERENCIAS =============
+Classifier <|-- CNN
+Classifier <|-- LSTM
+Classifier <|-- GRU
+Classifier <|-- SVNN
+Classifier <|-- SVM
+Classifier <|-- RandomForest
+
+' ============= COMPOSICIONES =============
+CNN *-- Kernel
+CNN *-- Pool
+CNN *-- DenseLayer
+LSTM *-- LSTMLayer
+LSTM *-- DenseLayer
+GRU *-- GRULayer
+GRU *-- DenseLayer
+SVNN *-- DenseLayer
+
+' ============= RETORNOS =============
+Classifier ..> TrainResult : returns
+Classifier ..> EvaluationMetrics : returns
+
+note right of Classifier
+  **Clase base abstracta para modelos**
+
+  Todos los modelos heredan de Classifier
+  y deben implementar:
+  - fit(): Entrenar modelo
+  - predict(): Inferencia
+  - evaluate(): Métricas de evaluación
+
+  Soporta serialización Pydantic
+  para guardar configuraciones
+end note
+
+note bottom of CNN
+  **Convolutional Neural Network**
+
+  Arquitectura flexible con:
+  - Kernels personalizados (2D)
+  - Pooling (Max/Avg)
+  - Capas densas finales
+  - Dropout para regularización
+
+  Usa TensorFlow/Keras
+end note
+
+note bottom of LSTM
+  **Long Short-Term Memory**
+
+  Redes recurrentes con:
+  - Múltiples capas LSTM apiladas
+  - Opción bidireccional
+  - Pooling strategies: last/mean/max/attn
+  - Capas densas de salida
+
+  Ideal para series temporales
+end note
+
+note bottom of SVM
+  **Support Vector Machine**
+
+  Clasificador clásico con:
+  - Kernels: linear, rbf, poly, sigmoid
+  - Regularización C
+  - Gamma configurable
+
+  Usa Scikit-learn
+  Eficiente para datasets pequeños
+end note
+
+note bottom of RandomForest
+  **Random Forest Classifier**
+
+  Ensemble de árboles de decisión:
+  - N estimadores configurables
+  - Control de profundidad
+  - Balance de clases
+
+  Usa Scikit-learn
+  Robusto y versátil
+end note
+
+@enduml

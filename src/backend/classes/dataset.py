@@ -106,16 +106,21 @@ def _generic_event_extraction(events, event_id_mapping=None):
     unique_ids = sorted(set(events[:, 2]))
     print(f"[Dataset] Event IDs únicos encontrados: {unique_ids}")
 
-    # Si no hay mapping, crear nombres genéricos
-    if not event_id_mapping:
-        event_id_mapping = {int(eid): f"Evento_{eid}" for eid in unique_ids}
-        print(f"[Dataset] Mapping generado: {event_id_mapping}")
+    # Si hay mapping proporcionado, usarlo; si no, crear nombres genéricos
+    if event_id_mapping:
+        # Filtrar mapping para incluir solo IDs presentes en eventos
+        final_mapping = {int(eid): event_id_mapping.get(int(eid), f"Evento_{eid}")
+                        for eid in unique_ids}
+        print(f"[Dataset] Usando mapping de annotations: {final_mapping}")
+    else:
+        final_mapping = {int(eid): f"Evento_{eid}" for eid in unique_ids}
+        print(f"[Dataset] Mapping generado automáticamente: {final_mapping}")
 
     # Extraer todos los eventos (sin filtrado por runs como Inner Speech)
     cues = [(int(sample), int(eid)) for sample, _, eid in events if eid in unique_ids]
     print(f"[Dataset] Total de eventos extraídos: {len(cues)}")
 
-    return cues, event_id_mapping
+    return cues, final_mapping
 
 
 def _aux_root_for(path_to_folder: str) -> str:
@@ -625,10 +630,121 @@ class Dataset:
             "first_event_shape": tuple(first_preview.shape) if isinstance(first_preview, np.ndarray) else None
         }
 
-        
-    def upload_dataset(self, path_to_folder):
+    def detect_classes_preview(self, path_to_folder):
+        """
+        Detecta rápidamente las clases del dataset sin procesarlo completamente.
+        Lee solo el primer archivo para extraer event IDs y nombres de clases.
+
+        Args:
+            path_to_folder: Ruta al directorio del dataset
+
+        Returns:
+            dict con:
+                - status: 200 si OK, 400 si error
+                - dataset_type: "inner_speech" o "generic"
+                - classes: lista de nombres de clases detectadas
+                - event_mapping: dict {event_id: "nombre_clase"}
+                - message: mensaje descriptivo
+        """
+        print("[DETECT] Iniciando detección rápida de clases...")
+
+        if not is_folder_not_empty(path_to_folder):
+            return {"status": 400, "message": "Carpeta vacía"}
+
+        # Buscar primer archivo
+        files = get_files_by_extensions(path_to_folder, self.extensions_enabled)
+        if len(files) == 0:
+            return {
+                "status": 400,
+                "message": f"No se encontraron archivos {self.extensions_enabled}"
+            }
+
+        first_file = files[0]
+        ext = get_file_extension(first_file)
+
+        try:
+            # Leer primer archivo
+            if ext == ".bdf":
+                raw_data = self.read_bdf(str(first_file))
+            elif ext == ".edf":
+                raw_data = self.read_edf(str(first_file))
+            elif ext == ".vhdr":
+                raw_data = self.read_brainvision(str(first_file))
+            else:
+                return {"status": 400, "message": f"Extensión no soportada: {ext}"}
+
+            print(f"[DETECT] Archivo de muestra: {first_file.name}")
+
+            # Extraer eventos y mapeo de nombres (para archivos con annotations)
+            stim_channels = mne.pick_types(raw_data.info, stim=True, exclude=[])
+            events = None
+            event_id_mapping = None  # Mapeo de nombres originales
+
+            if len(stim_channels) == 0:
+                # Intentar con 'Status' o anotaciones
+                if 'Status' in raw_data.ch_names:
+                    events = mne.find_events(raw_data, stim_channel='Status', shortest_event=1, verbose=False)
+                elif raw_data.annotations is not None and len(raw_data.annotations) > 0:
+                    events, event_id_dict = mne.events_from_annotations(raw_data, verbose=False)
+                    # Crear mapping inverso: ID numérico → nombre original
+                    # event_id_dict es {nombre: ID}, queremos {ID: nombre}
+                    event_id_mapping = {int(numeric_id): annotation_name.split('/')[-1].strip()
+                                       for annotation_name, numeric_id in event_id_dict.items()}
+                    print(f"[DETECT] Mapping de annotations: {event_id_mapping}")
+            else:
+                stim_channel = raw_data.ch_names[stim_channels[0]]
+                events = mne.find_events(raw_data, stim_channel=stim_channel, shortest_event=1, verbose=False)
+
+            if events is None or len(events) == 0:
+                return {
+                    "status": 400,
+                    "message": "No se pudieron extraer eventos del archivo de muestra"
+                }
+
+            print(f"[DETECT] Eventos encontrados: {len(events)}")
+
+            # Detectar tipo de dataset
+            dataset_type = _detect_dataset_type(events)
+
+            # Extraer clases según tipo
+            if dataset_type == "inner_speech":
+                # Inner Speech: solo direcciones (sin rest)
+                labels_dict = LABELS.copy()  # {31: "arriba", 32: "abajo", ...}
+                classes = sorted(labels_dict.values())
+                print(f"[DETECT] Tipo: Inner Speech, clases: {classes}")
+            else:
+                # Genérico: usar mapping de annotations si está disponible
+                _, labels_dict = _generic_event_extraction(events, event_id_mapping=event_id_mapping)
+                classes = sorted(labels_dict.values())
+                print(f"[DETECT] Tipo: Genérico, clases: {classes}")
+
+            return {
+                "status": 200,
+                "dataset_type": dataset_type,
+                "classes": classes,
+                "event_mapping": labels_dict,
+                "message": f"Detectadas {len(classes)} clases en dataset tipo '{dataset_type}'"
+            }
+
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return {
+                "status": 400,
+                "message": f"Error detectando clases: {str(e)}"
+            }
+
+
+    def upload_dataset(self, path_to_folder, baseline_classes=None):
         print("Entering upload dataset ")
         print("getting all the files with .bdf, .edf extensions, just by now ....")
+
+        # baseline_classes puede ser None, una lista vacía, o una lista de strings
+        if baseline_classes and len(baseline_classes) > 0:
+            print(f"[BASELINE] Clases baseline seleccionadas: {baseline_classes}")
+        else:
+            print(f"[BASELINE] No se seleccionaron clases baseline - se generará 'rest' del background")
+            baseline_classes = None  # Normalizar lista vacía a None
 
         if not is_folder_not_empty(path_to_folder):
             return {"status": 400, "message": "Se ha seleccionado una carpeta Vacia "}
@@ -666,6 +782,7 @@ class Dataset:
         montage_info = None  # Se inferirá del primer archivo
         frequency_bands_accumulated = {}  # Se promediarán al final
         all_bad_channels = set()  # Set de bad channels detectados
+        cleaned_events_dirs = set()  # Carpetas Events/ ya limpiadas (para baseline mapping)
         total_files_processed = 0
         first_raw_for_analysis = None  # Guardar primer raw para análisis completo
 
@@ -812,12 +929,35 @@ class Dataset:
                 if dataset_type == "inner_speech":
                     # Usar extracción específica de Inner Speech
                     inner_cues = _inner_speech_cues(events)
-                    labels_dict = LABELS  # {31: "arriba", 32: "abajo", ...}
+                    labels_dict = LABELS.copy()  # {31: "arriba", 32: "abajo", ...}
                     print(f"[BDF] Usando extracción Inner Speech: {len(inner_cues)} cues")
                 else:
                     # Extracción genérica: TODOS los event IDs
                     inner_cues, labels_dict = _generic_event_extraction(events)
                     print(f"[BDF] Usando extracción genérica: {len(inner_cues)} eventos, clases: {list(labels_dict.values())}")
+
+                # ===== MAPEO DE CLASE BASELINE (si se proporcionó) =====
+                generate_background_rest = True  # Por defecto, generar rest del background
+
+                if baseline_classes:
+                    # Buscar los event_ids de las clases baseline seleccionadas
+                    baseline_found = False
+                    mapped_classes = []
+                    for eid, class_name in list(labels_dict.items()):
+                        if class_name in baseline_classes:
+                            # Mapear a "rest"
+                            labels_dict[eid] = "rest"
+                            generate_background_rest = False  # NO generar background adicional
+                            baseline_found = True
+                            mapped_classes.append(f"'{class_name}' (ID={eid})")
+                            print(f"[BASELINE] ✓ Clase '{class_name}' (ID={eid}) mapeada a 'rest'")
+
+                    if baseline_found:
+                        print(f"[BASELINE] ✓ {len(mapped_classes)} clase(s) mapeada(s) a 'rest': {', '.join(mapped_classes)}")
+                        print(f"[BASELINE] ✓ NO se generará 'rest' del background")
+                    else:
+                        print(f"[BASELINE] ⚠️ Ninguna clase de {baseline_classes} encontrada en este archivo")
+                        print(f"[BASELINE] Se generará 'rest' del background por defecto")
 
                 # Data raw
                 data, _ = raw_data.get_data(return_times=True)  # (n_channels, n_times)
@@ -836,14 +976,18 @@ class Dataset:
                     label_array[0, start:end] = labels_dict[eid]
 
                 # ===== RE-ETIQUETAR BACKGROUND (resto de la señal) =====
-                # Siempre usar "rest" como etiqueta de background
-                # Las transformadas se encargarán del re-etiquetado específico (P300 binario, etc.)
-                background_label = "rest"
-
-                # Llenar zonas sin etiquetar (donde es 0 o vacío)
-                background_mask = (label_array[0] == 0) | (label_array[0] == '') | (label_array[0] == '0')
-                label_array[0, background_mask] = background_label
-                print(f"[LABELS] Background re-etiquetado como 'rest': {background_mask.sum()} muestras")
+                if generate_background_rest:
+                    # Generar "rest" del background (comportamiento original)
+                    background_label = "rest"
+                    background_mask = (label_array[0] == 0) | (label_array[0] == '') | (label_array[0] == '0')
+                    label_array[0, background_mask] = background_label
+                    print(f"[LABELS] Background re-etiquetado como 'rest': {background_mask.sum()} muestras")
+                else:
+                    # Ya hay clase baseline mapeada - etiquetar background como "unlabeled"
+                    background_label = "unlabeled"
+                    background_mask = (label_array[0] == 0) | (label_array[0] == '') | (label_array[0] == '0')
+                    label_array[0, background_mask] = background_label
+                    print(f"[LABELS] Background etiquetado como 'unlabeled' (no se procesará): {background_mask.sum()} muestras")
 
                 label_array = label_array.astype(str)
 
@@ -856,9 +1000,12 @@ class Dataset:
                 else:
                     np.save(auxFilePath, data)
 
-                if os.path.exists(auxLabelPath):
+                # Regenerar labels si se usaron baseline_classes (pueden haber cambiado)
+                if os.path.exists(auxLabelPath) and not baseline_classes:
                     print(f"[SKIP] Labels ya existe: {auxLabelPath}")
                 else:
+                    if baseline_classes and os.path.exists(auxLabelPath):
+                        print(f"[REGEN] Regenerando labels por mapeo baseline: {auxLabelPath}")
                     np.save(auxLabelPath, label_array)
 
                 # Conteo por clase (para metadata agregada)
@@ -870,6 +1017,16 @@ class Dataset:
 
                 # ===== Un archivo .npy por evento en Events/ con formato <clase>[ini]{fin}.npy =====
                 os.makedirs(events_dir, exist_ok=True)
+
+                # Limpiar Events/ si se usaron baseline_classes (las clases pueden haber cambiado)
+                # Solo limpiar una vez por carpeta para evitar borrar eventos de archivos procesados
+                if baseline_classes and os.path.exists(events_dir) and events_dir not in cleaned_events_dirs:
+                    import shutil
+                    for old_file in Path(events_dir).glob("*.npy"):
+                        old_file.unlink()
+                    cleaned_events_dirs.add(events_dir)
+                    print(f"[REGEN] Limpiando Events/ por mapeo baseline: {events_dir}")
+
                 prefer_action_tags = True  # usa 44-45 si existen; si no, cae a 3.2s desde el cue
 
                 for (cue_sample, eid) in inner_cues:
@@ -918,54 +1075,57 @@ class Dataset:
                     )
 
                 # ===== EXTRAER VENTANAS DE BACKGROUND =====
-                print(f"[BDF] Extrayendo ventanas de background (etiquetadas como '{background_label}')...")
+                if generate_background_rest:
+                    print(f"[BDF] Extrayendo ventanas de background (etiquetadas como '{background_label}')...")
 
-                # Encontrar índices donde está el background
-                background_indices = np.where(label_array[0] == background_label)[0]
+                    # Encontrar índices donde está el background
+                    background_indices = np.where(label_array[0] == background_label)[0]
 
-                if len(background_indices) > 0:
-                    # Segmentar en ventanas del mismo tamaño que eventos
-                    window_size = label_duration_samples
-                    n_windows = len(background_indices) // window_size
+                    if len(background_indices) > 0:
+                        # Segmentar en ventanas del mismo tamaño que eventos
+                        window_size = label_duration_samples
+                        n_windows = len(background_indices) // window_size
 
-                    background_count = 0
-                    for i in range(n_windows):
-                        start_idx = background_indices[i * window_size]
-                        end_idx = start_idx + window_size
+                        background_count = 0
+                        for i in range(n_windows):
+                            start_idx = background_indices[i * window_size]
+                            end_idx = start_idx + window_size
 
-                        # Verificar que la ventana completa sea background (contigua)
-                        if end_idx <= data.shape[1]:
-                            window_labels = label_array[0, start_idx:end_idx]
-                            if np.all(window_labels == background_label):
-                                # Extraer ventana
-                                X_background = data[:, start_idx:end_idx].astype(np.float32)
+                            # Verificar que la ventana completa sea background (contigua)
+                            if end_idx <= data.shape[1]:
+                                window_labels = label_array[0, start_idx:end_idx]
+                                if np.all(window_labels == background_label):
+                                    # Extraer ventana
+                                    X_background = data[:, start_idx:end_idx].astype(np.float32)
 
-                                # Calcular tiempos
-                                start_time = start_idx / sfreq
-                                end_time = end_idx / sfreq
+                                    # Calcular tiempos
+                                    start_time = start_idx / sfreq
+                                    end_time = end_idx / sfreq
 
-                                # Nombre del archivo
-                                safe_label = re.sub(r'[\\/:*?"<>|]', "_", background_label)
-                                out_name = f"{safe_label}[{start_time:.3f}]{{{end_time:.3f}}}.npy"
-                                out_path = os.path.join(events_dir, out_name)
+                                    # Nombre del archivo
+                                    safe_label = re.sub(r'[\\/:*?"<>|]', "_", background_label)
+                                    out_name = f"{safe_label}[{start_time:.3f}]{{{end_time:.3f}}}.npy"
+                                    out_path = os.path.join(events_dir, out_name)
 
-                                # SKIP si ya existe
-                                if os.path.exists(out_path):
-                                    continue
+                                    # SKIP si ya existe
+                                    if os.path.exists(out_path):
+                                        continue
 
-                                np.save(out_path, X_background)
-                                background_count += 1
+                                    np.save(out_path, X_background)
+                                    background_count += 1
 
-                    print(f"[BDF] Extraídas {background_count} ventanas de background | shape={X_background.shape if background_count > 0 else 'N/A'}")
+                        print(f"[BDF] Extraídas {background_count} ventanas de background | shape={X_background.shape if background_count > 0 else 'N/A'}")
 
-                    # Actualizar conteos (acumular correctamente)
-                    if background_label not in counts:
-                        counts[background_label] = 0
-                    counts[background_label] += background_count
-                    # Acumular en total (no sobrescribir)
-                    if background_label not in total_class_counts:
-                        total_class_counts[background_label] = 0
-                    total_class_counts[background_label] += background_count
+                        # Actualizar conteos (acumular correctamente)
+                        if background_label not in counts:
+                            counts[background_label] = 0
+                        counts[background_label] += background_count
+                        # Acumular en total (no sobrescribir)
+                        if background_label not in total_class_counts:
+                            total_class_counts[background_label] = 0
+                        total_class_counts[background_label] += background_count
+                else:
+                    print(f"[BDF] Clase baseline ya mapeada - omitiendo extracción de background")
 
                 # ===== Acumular METADATA GLOBAL =====
                 ch_names = list(raw_data.info["ch_names"])
@@ -1167,12 +1327,35 @@ class Dataset:
                 if dataset_type == "inner_speech":
                     # Usar extracción específica de Inner Speech
                     cues = _inner_speech_cues(events)
-                    labels_dict = LABELS  # {31: "arriba", 32: "abajo", ...}
+                    labels_dict = LABELS.copy()  # {31: "arriba", 32: "abajo", ...}
                     print(f"[VHDR] Usando extracción Inner Speech: {len(cues)} cues")
                 else:
                     # Extracción genérica: usar nombres de annotations
                     cues, labels_dict = _generic_event_extraction(events, event_id_mapping=vhdr_mapping)
                     print(f"[VHDR] Usando extracción genérica: {len(cues)} eventos, clases: {list(labels_dict.values())}")
+
+                # ===== MAPEO DE CLASE BASELINE (si se proporcionó) =====
+                generate_background_rest = True  # Por defecto, generar rest del background
+
+                if baseline_classes:
+                    # Buscar los event_ids de las clases baseline seleccionadas
+                    baseline_found = False
+                    mapped_classes = []
+                    for eid, class_name in list(labels_dict.items()):
+                        if class_name in baseline_classes:
+                            # Mapear a "rest"
+                            labels_dict[eid] = "rest"
+                            generate_background_rest = False  # NO generar background adicional
+                            baseline_found = True
+                            mapped_classes.append(f"'{class_name}' (ID={eid})")
+                            print(f"[BASELINE] ✓ Clase '{class_name}' (ID={eid}) mapeada a 'rest'")
+
+                    if baseline_found:
+                        print(f"[BASELINE] ✓ {len(mapped_classes)} clase(s) mapeada(s) a 'rest': {', '.join(mapped_classes)}")
+                        print(f"[BASELINE] ✓ NO se generará 'rest' del background")
+                    else:
+                        print(f"[BASELINE] ⚠️ Ninguna clase de {baseline_classes} encontrada en este archivo")
+                        print(f"[BASELINE] Se generará 'rest' del background por defecto")
 
                 # Extraer datos
                 data, _ = raw_data.get_data(return_times=True)
@@ -1191,14 +1374,18 @@ class Dataset:
                     label_array[0, start:end] = labels_dict[eid]
 
                 # ===== RE-ETIQUETAR BACKGROUND (resto de la señal) =====
-                # Siempre usar "rest" como etiqueta de background
-                # Las transformadas se encargarán del re-etiquetado específico (P300 binario, etc.)
-                background_label = "rest"
-
-                # Llenar zonas sin etiquetar (donde es 0 o vacío)
-                background_mask = (label_array[0] == 0) | (label_array[0] == '') | (label_array[0] == '0')
-                label_array[0, background_mask] = background_label
-                print(f"[LABELS] Background re-etiquetado como 'rest': {background_mask.sum()} muestras")
+                if generate_background_rest:
+                    # Generar "rest" del background (comportamiento original)
+                    background_label = "rest"
+                    background_mask = (label_array[0] == 0) | (label_array[0] == '') | (label_array[0] == '0')
+                    label_array[0, background_mask] = background_label
+                    print(f"[LABELS] Background re-etiquetado como 'rest': {background_mask.sum()} muestras")
+                else:
+                    # Ya hay clase baseline mapeada - etiquetar background como "unlabeled"
+                    background_label = "unlabeled"
+                    background_mask = (label_array[0] == 0) | (label_array[0] == '') | (label_array[0] == '0')
+                    label_array[0, background_mask] = background_label
+                    print(f"[LABELS] Background etiquetado como 'unlabeled' (no se procesará): {background_mask.sum()} muestras")
 
                 label_array = label_array.astype(str)
 
@@ -1212,9 +1399,12 @@ class Dataset:
                     np.save(auxFilePath, data)
                     print(f"[VHDR] Guardado raw data: {auxFilePath}")
 
-                if os.path.exists(auxLabelPath):
+                # Regenerar labels si se usaron baseline_classes (pueden haber cambiado)
+                if os.path.exists(auxLabelPath) and not baseline_classes:
                     print(f"[SKIP] Labels ya existe: {auxLabelPath}")
                 else:
+                    if baseline_classes and os.path.exists(auxLabelPath):
+                        print(f"[REGEN] Regenerando labels por mapeo baseline: {auxLabelPath}")
                     np.save(auxLabelPath, label_array)
                     print(f"[VHDR] Guardado labels: {auxLabelPath}")
 
@@ -1227,6 +1417,15 @@ class Dataset:
 
                 # ===== Generar archivos individuales en Events/ =====
                 os.makedirs(events_dir, exist_ok=True)
+
+                # Limpiar Events/ si se usaron baseline_classes (las clases pueden haber cambiado)
+                # Solo limpiar una vez por carpeta para evitar borrar eventos de archivos procesados
+                if baseline_classes and os.path.exists(events_dir) and events_dir not in cleaned_events_dirs:
+                    import shutil
+                    for old_file in Path(events_dir).glob("*.npy"):
+                        old_file.unlink()
+                    cleaned_events_dirs.add(events_dir)
+                    print(f"[REGEN] Limpiando Events/ por mapeo baseline: {events_dir}")
 
                 for (cue_sample, eid) in cues:
                     class_name = labels_dict[eid]
@@ -1256,53 +1455,56 @@ class Dataset:
                     print(f"[VHDR] Guardado evento: {out_path} | clase={class_name} | shape={X_event.shape}")
 
                 # ===== EXTRAER VENTANAS DE BACKGROUND =====
-                print(f"[VHDR] Extrayendo ventanas de background (etiquetadas como '{background_label}')...")
+                if generate_background_rest:
+                    print(f"[VHDR] Extrayendo ventanas de background (etiquetadas como '{background_label}')...")
 
-                # Encontrar índices donde está el background
-                background_indices = np.where(label_array[0] == background_label)[0]
+                    # Encontrar índices donde está el background
+                    background_indices = np.where(label_array[0] == background_label)[0]
 
-                if len(background_indices) > 0:
-                    # Segmentar en ventanas del mismo tamaño que eventos
-                    window_size = label_duration_samples
-                    n_windows = len(background_indices) // window_size
+                    if len(background_indices) > 0:
+                        # Segmentar en ventanas del mismo tamaño que eventos
+                        window_size = label_duration_samples
+                        n_windows = len(background_indices) // window_size
 
-                    background_count = 0
-                    for i in range(n_windows):
-                        start_idx = background_indices[i * window_size]
-                        end_idx = start_idx + window_size
+                        background_count = 0
+                        for i in range(n_windows):
+                            start_idx = background_indices[i * window_size]
+                            end_idx = start_idx + window_size
 
-                        # Verificar que la ventana completa sea background (contigua)
-                        if end_idx <= data.shape[1]:
-                            window_labels = label_array[0, start_idx:end_idx]
-                            if np.all(window_labels == background_label):
-                                # Extraer ventana
-                                X_background = data[:, start_idx:end_idx]
+                            # Verificar que la ventana completa sea background (contigua)
+                            if end_idx <= data.shape[1]:
+                                window_labels = label_array[0, start_idx:end_idx]
+                                if np.all(window_labels == background_label):
+                                    # Extraer ventana
+                                    X_background = data[:, start_idx:end_idx]
 
-                                # Calcular tiempos
-                                start_time = start_idx / sfreq
-                                end_time = end_idx / sfreq
+                                    # Calcular tiempos
+                                    start_time = start_idx / sfreq
+                                    end_time = end_idx / sfreq
 
-                                # Nombre del archivo
-                                out_name = f"{background_label}[{start_time:.3f}]{{{end_time:.3f}}}.npy"
-                                out_path = os.path.join(events_dir, out_name)
+                                    # Nombre del archivo
+                                    out_name = f"{background_label}[{start_time:.3f}]{{{end_time:.3f}}}.npy"
+                                    out_path = os.path.join(events_dir, out_name)
 
-                                # SKIP si ya existe
-                                if os.path.exists(out_path):
-                                    continue
+                                    # SKIP si ya existe
+                                    if os.path.exists(out_path):
+                                        continue
 
-                                np.save(out_path, X_background)
-                                background_count += 1
+                                    np.save(out_path, X_background)
+                                    background_count += 1
 
-                    print(f"[VHDR] Extraídas {background_count} ventanas de background | shape={X_background.shape if background_count > 0 else 'N/A'}")
+                        print(f"[VHDR] Extraídas {background_count} ventanas de background | shape={X_background.shape if background_count > 0 else 'N/A'}")
 
-                    # Actualizar conteos (acumular correctamente)
-                    if background_label not in counts:
-                        counts[background_label] = 0
-                    counts[background_label] += background_count
-                    # Acumular en total (no sobrescribir)
-                    if background_label not in total_class_counts:
-                        total_class_counts[background_label] = 0
-                    total_class_counts[background_label] += background_count
+                        # Actualizar conteos (acumular correctamente)
+                        if background_label not in counts:
+                            counts[background_label] = 0
+                        counts[background_label] += background_count
+                        # Acumular en total (no sobrescribir)
+                        if background_label not in total_class_counts:
+                            total_class_counts[background_label] = 0
+                        total_class_counts[background_label] += background_count
+                else:
+                    print(f"[VHDR] Clase baseline ya mapeada - omitiendo extracción de background")
 
                 # ===== Acumular metadata global =====
                 ch_names = list(raw_data.info["ch_names"])
@@ -2022,18 +2224,30 @@ def create_subset_dataset(dataset_name: str, percentage: float, train_split: flo
                 selected_events.extend(selected)
                 print(f"[create_subset_dataset]   {class_name}: {len(selected)} eventos")
 
-        # Mezclar eventos seleccionados
-        random.shuffle(selected_events)
+        # Extraer etiquetas de clase para stratified split
+        event_labels = []
+        for event_file in selected_events:
+            filename = event_file.stem
+            class_name = filename.split('[')[0].strip() if '[' in filename else filename.split('_')[0]
+            event_labels.append(class_name)
 
-        # Dividir en train/test
+        # Dividir en train/test usando STRATIFIED SPLIT
+        # Esto garantiza que ambos conjuntos tengan proporción similar de todas las clases
+        from sklearn.model_selection import train_test_split
+
+        train_events, test_events, train_labels, test_labels = train_test_split(
+            selected_events,
+            event_labels,
+            train_size=train_split / 100.0,
+            random_state=seed,
+            stratify=event_labels  # ✅ Mantiene proporción de clases en ambos conjuntos
+        )
+
         n_total = len(selected_events)
-        n_train = int(n_total * train_split / 100.0)
-        n_test = n_total - n_train
+        n_train = len(train_events)
+        n_test = len(test_events)
 
-        train_events = selected_events[:n_train]
-        test_events = selected_events[n_train:]
-
-        print(f"[create_subset_dataset] Total: {n_total}, Train: {n_train}, Test: {n_test}")
+        print(f"[create_subset_dataset] Total: {n_total}, Train: {n_train}, Test: {n_test} (STRATIFIED SPLIT)")
 
         # ===== CALCULAR DISTRIBUCIÓN DE CLASES POR SPLIT =====
         class_distribution = {}

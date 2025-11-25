@@ -1,0 +1,73 @@
+@startuml
+title Flujo de Entrenamiento de Modelo (Local / Nube)
+
+actor Usuario
+participant ": UI\nModelado" as UI
+participant ": ClassifierSchema\nFactory" as Factory
+participant ": Classifier\n(CNN/LSTM/SVM/etc)" as Model
+participant ": Dataset" as DS
+participant ": Experiment" as Exp
+participant ": Azure ML\nCompute" as Azure
+
+Usuario -> UI: Selecciona modelo\n(CNN/LSTM/SVM...)
+UI -> Factory: get_classifier_schema(tipo)
+Factory --> UI: Esquema del modelo
+
+Usuario -> UI: Configura hiperparámetros\n(epochs, lr, layers...)
+UI -> Factory: Validar configuración
+Factory --> UI: Configuración válida
+
+Usuario -> UI: Configura dataset\n(split, clases, canales)
+UI -> DS: create_subset_dataset()
+activate DS
+DS -> DS: Dividir train/test\n(estratificado)
+DS --> UI: Subsets creados
+deactivate DS
+
+alt Entrenamiento Local
+    Usuario -> UI: Click "Entrenar\nLocal"
+    UI -> Factory: Crear instancia\nde modelo
+    Factory -> Model: __init__(config)
+
+    UI -> Model: fit(X_train, y_train)
+    activate Model
+
+    Model -> Model: Validar entrada\n(shape, clases)
+    Model -> Model: Compilar modelo
+    Model -> Model: Entrenamiento\n(epochs, batch_size)
+
+    loop Por cada época
+        Model -> UI: Métricas intermedias\n(loss, accuracy)
+        UI --> Usuario: Actualizar progreso
+    end
+
+    Model -> Model: Evaluar en test
+    Model -> Exp: Registrar métricas\nfinales
+
+    Model --> UI: training_results\n(acc, loss, métricas)
+    deactivate Model
+
+else Entrenamiento en la Nube
+    Usuario -> UI: Click "Entrenar\nen la Nube"
+    UI -> Azure: Enviar config +\ndatos a Azure ML
+    activate Azure
+
+    Azure -> Azure: Aprovisionar\nrecursos (GPU)
+    Azure -> Azure: Entrenar modelo\nen compute cluster
+
+    loop Por cada época
+        Azure -> UI: Métricas intermedias\n(via webhook)
+        UI --> Usuario: Actualizar progreso
+    end
+
+    Azure -> Azure: Evaluar en test
+    Azure --> UI: training_results +\nmodelo entrenado
+    deactivate Azure
+
+    UI -> Exp: Registrar métricas\nfinales
+end
+
+UI -> Exp: Guardar modelo\nentrenado
+UI --> Usuario: Entrenamiento\ncompletado
+
+@enduml

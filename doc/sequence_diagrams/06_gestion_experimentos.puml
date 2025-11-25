@@ -1,0 +1,46 @@
+@startuml
+title Flujo de Gestión de Experimentos
+
+actor Usuario
+participant ": UI" as UI
+participant ": Experiment" as Exp
+participant ": Model\nStorage" as Storage
+participant ": FileSystem" as FS
+
+Usuario -> UI: Inicia nuevo\nexperimento
+UI -> Exp: new_experiment()
+activate Exp
+Exp -> Exp: Generar ID único\n(timestamp)
+Exp -> Exp: Crear estructura\nde directorios
+Exp -> FS: Crear carpetas\nen Experiments/
+FS --> Exp: OK
+Exp --> UI: Experimento creado\n(ID: xxx)
+deactivate Exp
+
+Usuario -> UI: Aplica transformaciones\ny entrena modelo
+UI -> Exp: add_transform_config()
+UI -> Exp: add_model_config()
+UI -> Exp: add_training_metrics()
+
+Usuario -> UI: Guarda modelo\nentrenado
+UI -> Storage: save_model(model, config)
+activate Storage
+Storage -> Storage: Crear JSON con:\n- model_metadata\n- pipeline_config\n- training_results
+Storage -> Storage: Guardar pesos\n(weights.h5 o .pkl)
+Storage -> FS: Escribir archivos\nen Models/
+FS --> Storage: OK
+Storage --> UI: Modelo guardado
+deactivate Storage
+
+Usuario -> UI: Consulta\nexperimentos
+UI -> Exp: get_experiment_history()
+activate Exp
+Exp -> FS: Leer\nExperiments/ID/
+FS --> Exp: Archivos JSON
+Exp -> Exp: Parsear metadata,\ntransformaciones,\nmétricas
+Exp --> UI: Historial completo
+deactivate Exp
+
+UI --> Usuario: Visualización de\nexperimentos previos
+
+@enduml

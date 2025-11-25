@@ -1,0 +1,322 @@
+@startuml
+title Modelos de Clasificación - Parámetros y Funcionalidad
+
+package "Modelos Deep Learning" {
+
+  class CNN {
+    ==Parámetros==
+    **Arquitectura:**
+    feature_extractor: List[Conv|Pool]
+    fc_layers: List[Dense]
+    classification: Dense (salida)
+
+    **Convolución:**
+    kernels: (height, width)
+    num_filters: int
+    stride: (h, w)
+    padding: same | valid
+    activation: relu | tanh | sigmoid
+
+    **Pooling:**
+    pool_size: (h, w)
+    type: max | avg
+
+    **Entrenamiento:**
+    epochs: int [1-1000]
+    batch_size: int [1-512]
+    learning_rate: float
+    optimizer: adam | sgd | rmsprop
+
+    **Contexto Temporal:**
+    frame_context: int (frames vecinos)
+    image_hw: (height, width)
+    --
+    ==Funcionalidad==
+    **¿Qué hace?**
+    Aprende patrones espaciales
+    mediante convoluciones 2D
+
+    **Proceso:**
+    1. Convierte frames a imágenes
+    2. Aplica filtros convolucionales
+    3. Pooling (reduce dimensión)
+    4. Capas densas (clasificación)
+
+    **¿Por qué CNN?**
+    • Aprende features automáticamente
+    • Invariante a translaciones
+    • Captura patrones locales
+    • Eficiente con imágenes (espectrogramas)
+
+    **Entrada típica:**
+    (n_samples, height, width, channels=3)
+    Espectrogramas como imágenes RGB
+  }
+
+  class LSTM {
+    ==Parámetros==
+    **Arquitectura:**
+    lstm_layers: List[LSTMLayer]
+    dense_layers: List[DenseLayer]
+    classification: Dense (salida)
+
+    **LSTM Layer:**
+    hidden_size: int (neuronas)
+    bidirectional: bool
+    num_layers: int (apiladas)
+    dropout: float [0.0-1.0]
+    return_sequences: bool
+
+    **Pooling Temporal:**
+    pooling_strategy: last | mean | max | attn
+
+    **Entrenamiento:**
+    epochs: int [1-1000]
+    batch_size: int [1-512]
+    learning_rate: float
+    optimizer: adam | sgd | rmsprop
+    --
+    ==Funcionalidad==
+    **¿Qué hace?**
+    Modela dependencias temporales
+    (memoria de largo plazo)
+
+    **Proceso:**
+    1. Procesa secuencia temporalmente
+    2. Mantiene estado oculto
+    3. Captura dependencias largas
+    4. Pooling temporal → clasificación
+
+    **¿Por qué LSTM?**
+    • Capta patrones temporales
+    • Memoria de largo plazo
+    • Evita vanishing gradient
+    • Ideal para series temporales EEG
+
+    **Entrada típica:**
+    (n_samples, timesteps, features)
+    Secuencias de frames
+
+    **Bidireccional:**
+    Procesa hacia adelante + atrás
+    → Contexto completo
+  }
+
+  class GRU {
+    ==Parámetros==
+    **Arquitectura:**
+    gru_layers: List[GRULayer]
+    dense_layers: List[DenseLayer]
+    classification: Dense (salida)
+
+    **GRU Layer:**
+    hidden_size: int
+    bidirectional: bool
+    num_layers: int
+    dropout: float [0.0-1.0]
+    return_sequences: bool
+
+    **Pooling:**
+    pooling_strategy: last | mean | max | attn
+
+    **Entrenamiento:**
+    epochs: int
+    batch_size: int
+    learning_rate: float
+    optimizer: adam | sgd
+    --
+    ==Funcionalidad==
+    **¿Qué hace?**
+    Similar a LSTM pero más simple
+    (Gated Recurrent Unit)
+
+    **Diferencia vs LSTM:**
+    • Menos parámetros (más rápido)
+    • Sin celda separada
+    • 2 gates vs 3 de LSTM
+
+    **¿Por qué GRU?**
+    • Más rápido que LSTM
+    • Menos overfitting (menos params)
+    • Similar performance
+    • Menos datos de entrenamiento
+
+    **Cuándo usar:**
+    ✅ Datasets pequeños
+    ✅ Necesitas velocidad
+    ✅ LSTM overfittea
+  }
+
+  class SVNN {
+    ==Parámetros==
+    **Arquitectura:**
+    input_layer: int (auto)
+    hidden_layers: List[int]
+    output_layer: int (n_clases)
+    activation: relu | tanh | sigmoid
+
+    **Regularización:**
+    dropout: float [0.0-1.0]
+
+    **Entrenamiento:**
+    epochs: int
+    batch_size: int
+    learning_rate: float
+    optimizer: adam | sgd
+    --
+    ==Funcionalidad==
+    **¿Qué hace?**
+    Red neuronal feedforward simple
+    (Simple Vanilla Neural Network)
+
+    **Proceso:**
+    1. Aplana entrada
+    2. Capas densas ocultas
+    3. Activación no-lineal
+    4. Capa de salida (softmax)
+
+    **¿Por qué SVNN?**
+    • Simple y rápido
+    • Baseline sólido
+    • Menos overfitting que CNN
+    • Bueno con features pre-extraídas
+
+    **Cuándo usar:**
+    ✅ Con FFT/Wavelet (features hechas)
+    ✅ Baseline rápido
+    ✅ Datasets pequeños
+  }
+
+}
+
+package "Modelos Machine Learning" {
+
+  class SVM {
+    ==Parámetros==
+    kernel: linear | rbf | poly | sigmoid
+    C: float (regularización)
+    gamma: scale | auto | float
+    degree: int (solo poly)
+    class_weight: balanced | None
+    --
+    ==Funcionalidad==
+    **¿Qué hace?**
+    Encuentra hiperplano óptimo
+    que separa clases
+
+    **Kernels:**
+    • linear: Datos linealmente separables
+    • rbf: No-lineal (Gaussiano)
+    • poly: Polinomial (grado especificado)
+    • sigmoid: Similar a red neuronal
+
+    **¿Por qué SVM?**
+    • Robusto con pocos datos
+    • Kernel trick (no-lineal)
+    • Buena generalización
+    • Rápido en inferencia
+
+    **Parámetros clave:**
+    • C: Trade-off regularización/error
+      (alto C = overfit, bajo C = underfit)
+    • gamma: Influencia de 1 muestra
+      (alto = overfit, bajo = suave)
+
+    **Cuándo usar:**
+    ✅ Datasets pequeños (<10k)
+    ✅ Features bien diseñadas (FFT)
+    ✅ Binario o pocas clases
+  }
+
+  class RandomForest {
+    ==Parámetros==
+    n_estimators: int (árboles)
+    max_depth: int (profundidad)
+    min_samples_split: int
+    min_samples_leaf: int
+    max_features: sqrt | log2 | None
+    class_weight: balanced | None
+    random_state: int (semilla)
+    --
+    ==Funcionalidad==
+    **¿Qué hace?**
+    Ensemble de árboles de decisión
+    (voto mayoritario)
+
+    **Proceso:**
+    1. Crea N árboles con bootstrap
+    2. Cada árbol vota
+    3. Clasificación por mayoría
+
+    **¿Por qué Random Forest?**
+    • Robusto, difícil de overfit
+    • Maneja no-linealidades
+    • Importancia de features gratis
+    • Rápido en entrenamiento
+
+    **Parámetros clave:**
+    • n_estimators: Más árboles = mejor
+      (pero más lento)
+    • max_depth: Controla overfitting
+    • max_features: Diversidad de árboles
+
+    **Cuándo usar:**
+    ✅ Baseline sólido
+    ✅ Features interpretables
+    ✅ No necesitas probabilidades precisas
+    ✅ Cualquier tamaño de dataset
+  }
+
+}
+
+note bottom of CNN
+  **Entrada ideal:**
+  Espectrogramas (FFT)
+  → Convertidos a imágenes RGB
+  → Aprende filtros de frecuencia
+end note
+
+note bottom of LSTM
+  **Entrada ideal:**
+  Secuencias temporales
+  → Señales crudas (Windowing)
+  → O secuencias de features (FFT frames)
+end note
+
+note bottom of SVM
+  **Entrada ideal:**
+  Features pre-extraídas
+  → FFT (espectro de potencia)
+  → Aplana (1D vector por muestra)
+end note
+
+note bottom of RandomForest
+  **Entrada ideal:**
+  Features interpretables
+  → Estadísticas por canal
+  → Potencias en bandas (Delta, Theta, Alpha...)
+end note
+
+note as N1
+  **Elección de Modelo:**
+
+  **Datos pequeños (<1k):**
+  → SVM, RandomForest
+
+  **Datos medianos (1k-10k):**
+  → SVNN, RandomForest
+
+  **Datos grandes (>10k):**
+  → CNN, LSTM, GRU
+
+  **Features pre-extraídas (FFT):**
+  → SVM, RandomForest, SVNN
+
+  **Señal cruda (Windowing):**
+  → CNN, LSTM, GRU
+
+  **Dependencias temporales:**
+  → LSTM, GRU
+end note
+
+@enduml

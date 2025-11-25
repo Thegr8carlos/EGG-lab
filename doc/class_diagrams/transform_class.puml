@@ -42,16 +42,10 @@ class WindowingTransform {
   {static} + apply() : bool
 }
 
-class HilbertTransform {
-  - frame_length : int
-  {static} + apply() : bool
-}
-
 Transform <|-- FFTTransform
 Transform <|-- DCTTransform
 Transform <|-- WaveletTransform
 Transform <|-- WindowingTransform
-Transform <|-- HilbertTransform
 
 note right of Transform
   Extracción de características

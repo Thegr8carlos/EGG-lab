@@ -229,13 +229,22 @@ def display_p300_model_info(selected_model_json):
                 ], style={"fontSize": "12px"})
             ], className="mb-1"),
 
-            # Experiment ID
+            # Dataset (desde pipeline_config)
+            html.Div([
+                html.I(className="fas fa-database me-2", style={"fontSize": "11px"}),
+                html.Small([
+                    html.Strong("Dataset: "),
+                    config['pipeline_config'].get('dataset', 'N/A')
+                ], style={"fontSize": "12px"})
+            ], className="mb-1"),
+
+            # Experiment ID (secundario)
             html.Div([
                 html.I(className="fas fa-flask me-2", style={"fontSize": "11px"}),
                 html.Small([
-                    html.Strong("Experimento: "),
+                    html.Strong("Exp: "),
                     f"#{config['model_metadata']['experiment_id']}"
-                ], style={"fontSize": "12px"})
+                ], style={"fontSize": "12px", "color": "#888"})
             ]),
 
         ], color="success", className="mb-0", style={"fontSize": "13px", "padding": "12px"})
@@ -321,13 +330,22 @@ def display_inner_model_info(selected_model_json):
                 ], style={"fontSize": "12px"})
             ], className="mb-1"),
 
-            # Experiment ID
+            # Dataset (desde pipeline_config)
+            html.Div([
+                html.I(className="fas fa-database me-2", style={"fontSize": "11px"}),
+                html.Small([
+                    html.Strong("Dataset: "),
+                    config['pipeline_config'].get('dataset', 'N/A')
+                ], style={"fontSize": "12px"})
+            ], className="mb-1"),
+
+            # Experiment ID (secundario)
             html.Div([
                 html.I(className="fas fa-flask me-2", style={"fontSize": "11px"}),
                 html.Small([
-                    html.Strong("Experimento: "),
+                    html.Strong("Exp: "),
                     f"#{config['model_metadata']['experiment_id']}"
-                ], style={"fontSize": "12px"})
+                ], style={"fontSize": "12px", "color": "#888"})
             ]),
 
         ], color="success", className="mb-0", style={"fontSize": "13px", "padding": "12px"})

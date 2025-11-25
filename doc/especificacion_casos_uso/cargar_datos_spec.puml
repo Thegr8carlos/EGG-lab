@@ -1,0 +1,56 @@
+@startuml
+title Especificación de Casos de Uso - Cargar Datos
+
+' ========== CU-1: Procesar Dataset Pendiente ==========
+salt
+{#
+  <b>Caso de uso | <b>CU-1. Procesar dataset pendiente
+  <b>Resumen de atributos |
+  <b>Actor | Usuario Investigador
+  <b>Propósito | Procesar un dataset EEG pendiente para generar metadatos y eventos
+  <b>Tipo | Primario
+  <b>Entradas | Selección de dataset de la lista de pendientes
+  <b>Salidas | Dataset procesado con metadatos (frecuencia, canales, eventos, estadísticas)
+  <b>Precondiciones | - Existen datasets pendientes en Data/\n- Dataset no ha sido procesado previamente
+  <b>Postcondiciones | - Dataset agregado a lista de procesados\n- Metadatos guardados en Aux/\n- Dataset disponible para análisis
+  <b>Errores | - Dataset corrupto o formato inválido\n- Falta de permisos de escritura\n- Espacio insuficiente en disco
+}
+@enduml
+
+@startuml
+title Especificación de Casos de Uso - Cargar Datos (2)
+
+' ========== CU-2: Seleccionar Dataset Procesado ==========
+salt
+{#
+  <b>Caso de uso | <b>CU-2. Seleccionar dataset procesado
+  <b>Resumen de atributos |
+  <b>Actor | Usuario Investigador
+  <b>Propósito | Seleccionar un dataset procesado para análisis posterior
+  <b>Tipo | Primario
+  <b>Entradas | Click en dataset de la lista de procesados
+  <b>Salidas | - Dataset registrado como seleccionado\n- Navegación a vista de análisis
+  <b>Precondiciones | - Dataset ya está procesado\n- Metadatos disponibles
+  <b>Postcondiciones | - Dataset activo en el sistema\n- Disponible para filtros, transformadas y modelos
+  <b>Errores | - Metadatos del dataset no encontrados\n- Dataset eliminado del sistema
+}
+@enduml
+
+@startuml
+title Especificación de Casos de Uso - Cargar Datos (3)
+
+' ========== CU-3: Limpiar Datos de Procesamiento ==========
+salt
+{#
+  <b>Caso de uso | <b>CU-3. Limpiar datos de procesamiento
+  <b>Resumen de atributos |
+  <b>Actor | Usuario Investigador
+  <b>Propósito | Eliminar archivos procesados para liberar espacio en disco
+  <b>Tipo | Secundario
+  <b>Entradas | Confirmación de limpieza
+  <b>Salidas | - Archivos en Aux/ eliminados\n- Catálogo actualizado
+  <b>Precondiciones | - Existen datasets procesados\n- Usuario confirma la acción
+  <b>Postcondiciones | - Cache de procesamiento limpio\n- Datasets vuelven a estado pendiente\n- Se liberó espacio en disco
+  <b>Errores | - Falta de permisos para eliminar archivos\n- Archivos en uso por otro proceso
+}
+@enduml

@@ -1,5 +1,5 @@
-import dash_bootstrap_components as dbc 
-from dash import html
+import dash_bootstrap_components as dbc
+from dash import html, dcc
 
 
 def get_navBar(page_registry):
@@ -74,6 +74,31 @@ def get_navBar(page_registry):
             ),
             # 2) nav link with all the pages
             dbc.Nav(nav_links, navbar=True, fill=True, justified="center", className="mx-auto"),
+            # 3) right side controls (experiment ID and action buttons)
+            html.Div([
+                # Experiment ID indicator
+                html.Div([
+                    html.Span("Experimento: ", style={"color": "#adb5bd", "fontSize": "0.9rem"}),
+                    html.Span(id="navbar-experiment-id", children="--", style={"color": "#0dcaf0", "fontWeight": "bold", "fontSize": "0.9rem"})
+                ], style={"display": "inline-block", "marginRight": "15px"}),
+                # New Experiment button
+                dbc.Button(
+                    [html.I(className="fas fa-plus-circle me-1"), "Nuevo"],
+                    id="btn-new-experiment",
+                    color="success",
+                    size="sm",
+                    className="me-2",
+                    title="Crear nuevo experimento"
+                ),
+                # Clear Cache button
+                dbc.Button(
+                    [html.I(className="fas fa-trash-alt me-1"), "Limpiar"],
+                    id="btn-clear-cache",
+                    color="warning",
+                    size="sm",
+                    title="Limpiar cache de experimentos antiguos"
+                ),
+            ], style={"display": "flex", "alignItems": "center"}),
         ], fluid=True),
         color="dark",
         dark=True,

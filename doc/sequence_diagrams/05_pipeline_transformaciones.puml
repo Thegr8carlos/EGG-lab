@@ -1,0 +1,46 @@
+@startuml
+title Flujo de Pipeline de Transformaciones (Encadenamiento)
+
+actor Usuario
+participant ": UI\nExtractores" as UI
+participant ": Pipeline\nManager" as Pipeline
+participant ": Transform 1\n(ej: FFT)" as T1
+participant ": Transform 2\n(ej: Wavelet)" as T2
+participant ": Experiment" as Exp
+
+Usuario -> UI: Agrega FFT\nal pipeline
+UI -> Pipeline: add_transform(FFT)
+Pipeline -> Exp: Registrar\ntransform_config
+
+Usuario -> UI: Configura\nparámetros FFT
+UI -> Pipeline: update_config(FFT)
+
+Usuario -> UI: Agrega Wavelet\nal pipeline
+UI -> Pipeline: add_transform(Wavelet)
+Pipeline -> Exp: Registrar\ntransform_config
+
+Usuario -> UI: Click "Aplicar\nPipeline"
+UI -> Pipeline: apply_all(data)
+activate Pipeline
+
+Pipeline -> T1: apply(data_in)
+activate T1
+T1 -> T1: Procesar FFT
+T1 -> Exp: Guardar resultado\nintermedio
+T1 --> Pipeline: data_fft
+deactivate T1
+
+Pipeline -> T2: apply(data_fft)
+activate T2
+T2 -> T2: Procesar Wavelet
+T2 -> Exp: Guardar resultado\nfinal
+T2 --> Pipeline: data_final
+deactivate T2
+
+Pipeline --> UI: Pipeline aplicado\ncon éxito
+deactivate Pipeline
+
+UI -> UI: Visualizar\nresultado final
+UI --> Usuario: Datos transformados\n(salida de Wavelet)
+
+@enduml

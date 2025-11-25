@@ -1,0 +1,56 @@
+@startuml
+title Especificación de Casos de Uso - Modelado P300
+
+' ========== CU-1: Configurar Modelo P300 ==========
+salt
+{#
+  <b>Caso de uso | <b>CU-1. Configurar modelo P300
+  <b>Resumen de atributos |
+  <b>Actor | Usuario Investigador
+  <b>Propósito | Configurar arquitectura y parámetros del modelo P300
+  <b>Tipo | Primario
+  <b>Entradas | - Tipo de modelo (CNN/LSTM/SVM/RandomForest)\n- Hiperparámetros (epochs, batch_size, learning_rate)\n- Configuración de dataset (split, clases)
+  <b>Salidas | - Configuración validada\n- Modelo listo para entrenamiento
+  <b>Precondiciones | - Dataset procesado y transformado\n- Transformada aplicada (FFT/Wavelet)
+  <b>Postcondiciones | - Configuración guardada en experimento\n- Botón de entrenar habilitado
+  <b>Errores | - Hiperparámetros inválidos\n- Dataset sin transformadas
+}
+@enduml
+
+@startuml
+title Especificación de Casos de Uso - Modelado P300 (2)
+
+' ========== CU-2: Entrenar Modelo P300 Local ==========
+salt
+{#
+  <b>Caso de uso | <b>CU-2. Entrenar modelo P300 (local)
+  <b>Resumen de atributos |
+  <b>Actor | Usuario Investigador
+  <b>Propósito | Entrenar modelo de detección de eventos P300
+  <b>Tipo | Primario
+  <b>Entradas | - Configuración del modelo\n- Datos transformados (train/test)
+  <b>Salidas | - Modelo entrenado (.pkl o .h5)\n- Métricas de evaluación (accuracy, F1, confusion matrix)
+  <b>Precondiciones | - Modelo configurado\n- Datos divididos en train/test
+  <b>Postcondiciones | - Modelo guardado en Models/\n- Métricas registradas en experimento\n- Modelo disponible para simulación
+  <b>Errores | - Falta de memoria RAM/GPU\n- Convergencia fallida\n- Datos desbalanceados
+}
+@enduml
+
+@startuml
+title Especificación de Casos de Uso - Modelado P300 (3)
+
+' ========== CU-3: Entrenar Modelo P300 en la Nube ==========
+salt
+{#
+  <b>Caso de uso | <b>CU-3. Entrenar modelo P300 (Azure ML)
+  <b>Resumen de atributos |
+  <b>Actor | Usuario Investigador
+  <b>Propósito | Entrenar modelo en la nube con recursos escalables
+  <b>Tipo | Secundario
+  <b>Entradas | - Configuración del modelo (JSON)\n- Dataset ya subido a Azure
+  <b>Salidas | - Pipeline ejecutado en Azure\n- Modelo descargado\n- Métricas registradas
+  <b>Precondiciones | - Dataset subido a Azure ML\n- Configuración válida\n- Credenciales Azure activas
+  <b>Postcondiciones | - Modelo entrenado en compute cluster\n- Resultados disponibles localmente
+  <b>Errores | - Fallo de conexión a Azure\n- Créditos Azure insuficientes\n- Pipeline fallido
+}
+@enduml

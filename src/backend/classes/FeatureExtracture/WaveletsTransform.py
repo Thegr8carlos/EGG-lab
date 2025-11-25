@@ -262,7 +262,14 @@ class WaveletTransform(Transform):
 
             # ===== RE-ETIQUETAR A FORMATO NUMÉRICO =====
             # Pasar all_classes para mapeo consistente en multiclase
-            frame_labels_numeric, id_to_class = instance.relabel_for_model(frame_labels, all_classes=instance.all_classes)
+            frame_labels_numeric, id_to_class, valid_mask = instance.relabel_for_model(frame_labels, all_classes=instance.all_classes)
+
+            # Si hay máscara de filtrado (Inner Speech excluye rest), aplicar a datos también
+            if valid_mask is not None:
+                print(f"[WaveletTransform.apply] Aplicando filtro: {np.sum(valid_mask)}/{len(valid_mask)} frames válidos")
+                Y_out = Y_out[valid_mask]
+                frame_labels = frame_labels[valid_mask]
+
             print(f"[WaveletTransform.apply] Etiquetas convertidas a formato numérico:")
             print(f"   Mapeo: {id_to_class}")
         else:

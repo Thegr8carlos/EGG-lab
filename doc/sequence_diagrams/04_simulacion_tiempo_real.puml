@@ -1,0 +1,58 @@
+@startuml
+title Flujo de Simulación en Tiempo Real (P300 + Inner Speech)
+
+actor Usuario
+participant ": UI\nSimulación" as UI
+participant ": P300\nModel" as P300
+participant ": Inner Speech\nModel" as Inner
+participant ": Simulation\nEngine" as Engine
+participant ": Dataset" as DS
+
+Usuario -> UI: Selecciona modelo P300
+UI -> P300: Cargar modelo\nentrenado
+P300 --> UI: Modelo cargado
+
+Usuario -> UI: Selecciona modelo\nInner Speech
+UI -> Inner: Cargar modelo\nentrenado
+Inner --> UI: Modelo cargado
+
+Usuario -> UI: Configura simulación\n(hop_size, threshold)
+Usuario -> UI: Selecciona sesión EEG
+
+Usuario -> UI: Click "Iniciar\nSimulación"
+UI -> DS: Cargar señal\ncompleta + eventos
+DS --> UI: Señal y etiquetas
+
+UI -> Engine: Inicializar simulación
+activate Engine
+
+loop Ventana deslizante (hop_size)
+    Engine -> Engine: Extraer ventana\nactual
+
+    Engine -> P300: predict(ventana)
+    activate P300
+    P300 -> P300: Aplicar pipeline\n(transformaciones)
+    P300 -> P300: Inferencia
+    P300 --> Engine: es_evento (prob)
+    deactivate P300
+
+    alt Evento detectado (prob > threshold)
+        Engine -> Inner: predict(ventana)
+        activate Inner
+        Inner -> Inner: Aplicar pipeline
+        Inner -> Inner: Inferencia
+        Inner --> Engine: clase predicha\n(arriba/abajo/der/izq)
+        deactivate Inner
+    end
+
+    Engine -> UI: Resultado en\ntiempo real
+    UI --> Usuario: Actualizar\nvisualización
+end
+
+Engine -> Engine: Calcular métricas\nglobales
+Engine --> UI: Resultados finales\n(accuracy, confusion matrix)
+deactivate Engine
+
+UI --> Usuario: Simulación\ncompletada
+
+@enduml

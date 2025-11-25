@@ -75,6 +75,10 @@ layout = get_page_container(
         children=[
             dcc.Location(id="redirector", refresh=True),
 
+            # ===== Stores para manejo de baseline selection =====
+            dcc.Store(id='detected-classes-store', data=None),
+            dcc.Store(id='dataset-pending-upload-store', data=None),
+
             # Barra de acciones
             html.Div(
                 style=TOOLBAR_STYLE,
@@ -113,6 +117,72 @@ layout = get_page_container(
 
             # Feedback de procesamiento
             html.Div(id="processing-feedback", style={"marginTop": "1rem", "textAlign": "center"}),
+
+            # ===== Diálogo de selección de baseline =====
+            html.Div(
+                id='baseline-selection-dialog',
+                style={'display': 'none', 'marginTop': '1.5rem'},
+                children=[
+                    html.Div(
+                        style={
+                            **PANEL_STYLE,
+                            "maxWidth": "700px",
+                            "background": "linear-gradient(180deg, rgba(0, 200, 160, 0.15), color-mix(in srgb, var(--color-2) 90%, transparent))",
+                            "border": "2px solid rgba(0, 200, 160, 0.4)"
+                        },
+                        children=[
+                            html.H3("⚙️ Configuración de Clases Baseline", style={
+                                "color": "#00C8A0",
+                                "marginBottom": "1rem",
+                                "textAlign": "center"
+                            }),
+                            html.Div(id='detected-classes-message', style={
+                                "marginBottom": "1rem",
+                                "fontSize": "0.95rem",
+                                "color": "var(--color-3)",
+                                "textAlign": "center",
+                                "lineHeight": "1.6"
+                            }),
+                            html.Div([
+                                html.Label("¿Qué clases representan baseline/reposo (rest)?", style={
+                                    "fontWeight": "600",
+                                    "marginBottom": "0.5rem",
+                                    "display": "block",
+                                    "color": "var(--color-3)"
+                                }),
+                                html.Div("Puedes seleccionar múltiples clases (ej: Rest, Wait, WarmUp)", style={
+                                    "fontSize": "0.85rem",
+                                    "opacity": "0.8",
+                                    "marginBottom": "0.5rem",
+                                    "color": "var(--color-3)"
+                                }),
+                                dcc.Dropdown(
+                                    id='baseline-class-dropdown',
+                                    placeholder="Selecciona una o más clases (o deja vacío para generar rest del background)",
+                                    style={'marginBottom': '1.5rem'},
+                                    clearable=True,  # Permitir limpiar selecciones
+                                    multi=True  # ← Permitir selección múltiple
+                                ),
+                            ]),
+                            html.Div([
+                                html.Button(
+                                    "✓ Continuar con la carga",
+                                    id='confirm-baseline-button',
+                                    n_clicks=0,
+                                    style={
+                                        **BUTTON_STYLE,
+                                        "backgroundColor": "#00C8A0",
+                                        "borderColor": "#00C8A0",
+                                        "width": "100%",
+                                        "justifyContent": "center",
+                                        "fontSize": "1rem"
+                                    }
+                                )
+                            ], style={"textAlign": "center"})
+                        ]
+                    )
+                ]
+            ),
 
             # Texto de ayuda
             html.Div(
@@ -368,66 +438,162 @@ def list_processed_datasets(n):
     ]), "", None
 
 # =============================================================================
-# Callback 3: Procesar dataset pendiente
+# Callback 3: Detectar clases y mostrar diálogo de selección de baseline
 # =============================================================================
 @callback(
-    [Output("datasets-list", "children", allow_duplicate=True),
-     Output("processing-feedback", "children", allow_duplicate=True),
-     Output("loading-output", "children", allow_duplicate=True)],
+    [Output("baseline-selection-dialog", "style"),
+     Output("baseline-class-dropdown", "options"),
+     Output("baseline-class-dropdown", "value"),
+     Output("detected-classes-message", "children"),
+     Output("dataset-pending-upload-store", "data"),
+     Output("processing-feedback", "children", allow_duplicate=True)],
     Input({"type": "pending-dataset-btn", "index": ALL}, "n_clicks"),
     prevent_initial_call=True
 )
-def process_pending_dataset(n_clicks_list):
-    """Procesa un dataset pendiente cuando se hace clic en él"""
+def detect_classes_and_show_dialog(n_clicks_list):
+    """Detecta clases del dataset y muestra diálogo de selección de baseline"""
     if not any(n_clicks_list):
         raise PreventUpdate
 
     triggered = ctx.triggered_id
     dataset_name = triggered.get("index")
 
-    print(f"\n[PROCESAR DATASET] Iniciando procesamiento de: {dataset_name}")
+    print(f"\n[DETECT] Detectando clases de dataset: {dataset_name}")
 
     # Construir ruta
     dataset_path = f"Data/{dataset_name}"
 
-    # Validar que existe
-    if not os.path.exists(dataset_path) or not os.path.isdir(dataset_path):
-        return "", html.Div([
-            html.Span("❌ Error: ", style={"fontWeight": "bold", "color": "#FF235A"}),
-            html.Span(f"La carpeta Data/{dataset_name} no existe o no es válida.")
-        ], style={
-            "color": "var(--text)",
-            "padding": "0.5rem",
-            "backgroundColor": "rgba(255, 35, 90, 0.1)",
-            "borderRadius": "8px",
-            "animation": "shake 0.5s ease-in-out"
-        }), None
-
-    # Validar que contenga archivos .bdf, .edf o .vhdr
-    folder_path_obj = Path(dataset_path)
-    bdf_files = list(folder_path_obj.rglob("*.bdf"))
-    edf_files = list(folder_path_obj.rglob("*.edf"))
-    vhdr_files = list(folder_path_obj.rglob("*.vhdr"))
-    total_files = len(bdf_files) + len(edf_files) + len(vhdr_files)
-
-    if total_files == 0:
-        return "", html.Div([
-            html.Span("⚠️ Advertencia: ", style={"fontWeight": "bold", "color": "#FFD400"}),
-            html.Span(f"No se encontraron archivos .bdf, .edf o .vhdr en Data/{dataset_name}."),
-        ], style={
-            "color": "var(--text)",
-            "padding": "0.5rem",
-            "backgroundColor": "rgba(255, 212, 0, 0.1)",
-            "borderRadius": "8px",
-            "animation": "fadeIn 0.5s ease-in"
-        }), None
-
-    # Procesar dataset
+    # Detectar clases
     try:
-        print(f"[PROCESAR DATASET] Encontrados {len(bdf_files)} .bdf, {len(edf_files)} .edf, {len(vhdr_files)} .vhdr")
-
         dataset = Dataset(dataset_path, dataset_name)
-        result = dataset.upload_dataset(dataset_path)
+        detection_result = dataset.detect_classes_preview(dataset_path)
+
+        if detection_result.get("status") != 200:
+            error_msg = detection_result.get("message", "Error desconocido")
+            return (
+                {'display': 'none'},  # Ocultar diálogo
+                [],  # Sin opciones
+                None,  # Sin valor seleccionado
+                "",  # Sin mensaje
+                None,  # No guardar en store
+                html.Div([
+                    html.Span("❌ Error: ", style={"fontWeight": "bold", "color": "#FF235A"}),
+                    html.Span(f"No se pudieron detectar clases: {error_msg}")
+                ], style={
+                    "color": "var(--text)",
+                    "padding": "0.5rem",
+                    "backgroundColor": "rgba(255, 35, 90, 0.1)",
+                    "borderRadius": "8px",
+                    "animation": "shake 0.5s ease-in-out"
+                })
+            )
+
+        # Extraer información
+        classes = detection_result.get("classes", [])
+        dataset_type = detection_result.get("dataset_type", "generic")
+
+        print(f"[DETECT] Detectadas {len(classes)} clases: {classes}")
+        print(f"[DETECT] Tipo de dataset: {dataset_type}")
+
+        # Preparar opciones del dropdown (sin "Ninguna", el vacío lo representa)
+        options = [{"label": cls, "value": cls} for cls in classes]
+
+        # Mensaje personalizado según tipo de dataset
+        if dataset_type == "inner_speech":
+            message = [
+                html.Div(f"📊 Dataset de Inner Speech (Nieto) detectado", style={"fontWeight": "600", "marginBottom": "0.5rem"}),
+                html.Div(f"Clases detectadas: {', '.join(classes)}"),
+                html.Div("Este dataset típicamente NO tiene clase rest marcada en los datos.",
+                         style={"fontSize": "0.9rem", "opacity": "0.85", "marginTop": "0.5rem"}),
+                html.Div("💡 Deja vacío para generar rest automáticamente del background.",
+                         style={"fontSize": "0.9rem", "opacity": "0.85", "fontStyle": "italic", "color": "#00C8A0"})
+            ]
+        else:
+            message = [
+                html.Div(f"📊 Dataset genérico detectado", style={"fontWeight": "600", "marginBottom": "0.5rem"}),
+                html.Div(f"Clases detectadas: {', '.join(classes)}"),
+                html.Div("Selecciona una o más clases que representen baseline/reposo (ej: Rest, Wait, WarmUp).",
+                         style={"fontSize": "0.9rem", "opacity": "0.85", "marginTop": "0.5rem"}),
+                html.Div("💡 Deja vacío para generar rest automáticamente del background.",
+                         style={"fontSize": "0.9rem", "opacity": "0.85", "fontStyle": "italic", "color": "#00C8A0"})
+            ]
+
+        # Guardar información del dataset en store
+        dataset_info = {
+            "name": dataset_name,
+            "path": dataset_path,
+            "type": dataset_type,
+            "classes": classes
+        }
+
+        return (
+            {'display': 'block', 'marginTop': '1.5rem'},  # Mostrar diálogo
+            options,  # Opciones del dropdown
+            [],  # Valor por defecto: lista vacía (ninguna seleccionada)
+            message,  # Mensaje explicativo
+            dataset_info,  # Guardar en store
+            ""  # Limpiar feedback
+        )
+
+    except Exception as e:
+        print(f"[DETECT] ERROR: {e}")
+        import traceback
+        traceback.print_exc()
+
+        return (
+            {'display': 'none'},
+            [],
+            None,
+            "",
+            None,
+            html.Div([
+                html.Span("❌ Error: ", style={"fontWeight": "bold", "color": "#FF235A"}),
+                html.Span(f"Excepción detectando clases: {str(e)}"),
+                html.Br(),
+                html.Span("Revisa la consola para más detalles.", style={"fontSize": "0.85rem", "opacity": "0.8"})
+            ], style={
+                "color": "var(--text)",
+                "padding": "0.5rem",
+                "backgroundColor": "rgba(255, 35, 90, 0.1)",
+                "borderRadius": "8px",
+                "animation": "shake 0.5s ease-in-out"
+            })
+        )
+
+# =============================================================================
+# Callback 4: Procesar dataset con baseline seleccionada
+# =============================================================================
+@callback(
+    [Output("datasets-list", "children", allow_duplicate=True),
+     Output("processing-feedback", "children", allow_duplicate=True),
+     Output("baseline-selection-dialog", "style", allow_duplicate=True),
+     Output("loading-output", "children", allow_duplicate=True)],
+    Input("confirm-baseline-button", "n_clicks"),
+    [State("baseline-class-dropdown", "value"),
+     State("dataset-pending-upload-store", "data")],
+    prevent_initial_call=True
+)
+def process_dataset_with_baseline(n_clicks, baseline_classes, dataset_info):
+    """Procesa el dataset con las clases baseline seleccionadas"""
+    if not n_clicks or not dataset_info:
+        raise PreventUpdate
+
+    dataset_name = dataset_info["name"]
+    dataset_path = dataset_info["path"]
+
+    # baseline_classes es una lista (puede estar vacía, tener 1 o múltiples elementos)
+    # Si está vacía o es None, convertir a None para el backend
+    if not baseline_classes or len(baseline_classes) == 0:
+        baseline_classes_param = None
+        print(f"\n[UPLOAD] Procesando dataset '{dataset_name}' sin baseline (generará rest del background)")
+    else:
+        baseline_classes_param = baseline_classes  # Lista de strings
+        print(f"\n[UPLOAD] Procesando dataset '{dataset_name}' con baseline classes: {baseline_classes_param}")
+
+    try:
+        # Procesar dataset con baseline (ahora acepta lista de clases)
+        dataset = Dataset(dataset_path, dataset_name)
+        result = dataset.upload_dataset(dataset_path, baseline_classes=baseline_classes_param)
 
         if result.get("status") == 200:
             num_files = len(result.get("files", []))
@@ -474,16 +640,34 @@ def process_pending_dataset(n_clicks_list):
                     }
                 )
 
-            return pending_list, html.Div([
+            # Mensaje de éxito personalizado
+            success_msg = [
                 html.Div([
                     html.Span("✅ ", style={"fontSize": "1.5rem", "marginRight": "0.5rem"}),
                     html.Span("Éxito", style={"fontWeight": "bold", "color": "#38FF97", "fontSize": "1.2rem"})
                 ], style={"marginBottom": "0.5rem"}),
                 html.Span(f"Dataset '{dataset_name}' procesado correctamente."),
                 html.Br(),
-                html.Span(f"Archivos procesados: {num_files} (.bdf: {len(bdf_files)}, .edf: {len(edf_files)}, .vhdr: {len(vhdr_files)})",
-                         style={"fontSize": "0.85rem", "opacity": "0.8"}),
-                html.Br(),
+                html.Span(f"Archivos procesados: {num_files}", style={"fontSize": "0.85rem", "opacity": "0.8"}),
+                html.Br()
+            ]
+
+            # Agregar info de baseline
+            if baseline_classes_param:
+                classes_list = ', '.join(baseline_classes_param)
+                success_msg.extend([
+                    html.Span(f"✓ Clases {classes_list} mapeadas a 'rest'", style={"fontSize": "0.9rem", "color": "#00C8A0"}),
+                    html.Br(),
+                    html.Span(f"✓ NO se generó 'rest' del background", style={"fontSize": "0.9rem", "color": "#00C8A0"}),
+                    html.Br()
+                ])
+            else:
+                success_msg.extend([
+                    html.Span(f"✓ Clase 'rest' generada automáticamente del background", style={"fontSize": "0.9rem", "color": "#00C8A0"}),
+                    html.Br()
+                ])
+
+            success_msg.extend([
                 html.Span(f"Archivos .npy, Labels y Events generados en Aux/{dataset_name}/",
                          style={"fontSize": "0.85rem", "opacity": "0.8"}),
                 html.Br(),
@@ -493,47 +677,64 @@ def process_pending_dataset(n_clicks_list):
                     html.Span("Ahora puedes hacer clic en 'Listar Datasets' para seleccionarlo.",
                              style={"fontStyle": "italic", "fontSize": "0.9rem"})
                 ])
-            ], style={
-                "color": "var(--text)",
-                "padding": "1rem",
-                "backgroundColor": "rgba(56, 255, 151, 0.1)",
-                "borderRadius": "var(--radius-md)",
-                "border": "1px solid rgba(56, 255, 151, 0.3)",
-                "animation": "successPulse 0.6s ease-in-out"
-            }), None
+            ])
+
+            return (
+                pending_list,
+                html.Div(success_msg, style={
+                    "color": "var(--text)",
+                    "padding": "1rem",
+                    "backgroundColor": "rgba(56, 255, 151, 0.1)",
+                    "borderRadius": "var(--radius-md)",
+                    "border": "1px solid rgba(56, 255, 151, 0.3)",
+                    "animation": "successPulse 0.6s ease-in-out"
+                }),
+                {'display': 'none'},  # Ocultar diálogo
+                None
+            )
         else:
             error_msg = result.get("message", "Error desconocido")
-            return "", html.Div([
+            return (
+                "",
+                html.Div([
+                    html.Span("❌ Error: ", style={"fontWeight": "bold", "color": "#FF235A"}),
+                    html.Span(f"No se pudo procesar el dataset. {error_msg}")
+                ], style={
+                    "color": "var(--text)",
+                    "padding": "0.5rem",
+                    "backgroundColor": "rgba(255, 35, 90, 0.1)",
+                    "borderRadius": "8px",
+                    "animation": "shake 0.5s ease-in-out"
+                }),
+                {'display': 'none'},  # Ocultar diálogo
+                None
+            )
+
+    except Exception as e:
+        print(f"[UPLOAD] ERROR: {e}")
+        import traceback
+        traceback.print_exc()
+
+        return (
+            "",
+            html.Div([
                 html.Span("❌ Error: ", style={"fontWeight": "bold", "color": "#FF235A"}),
-                html.Span(f"No se pudo procesar el dataset. {error_msg}")
+                html.Span(f"Excepción durante el procesamiento: {str(e)}"),
+                html.Br(),
+                html.Span("Revisa la consola para más detalles.", style={"fontSize": "0.85rem", "opacity": "0.8"})
             ], style={
                 "color": "var(--text)",
                 "padding": "0.5rem",
                 "backgroundColor": "rgba(255, 35, 90, 0.1)",
                 "borderRadius": "8px",
                 "animation": "shake 0.5s ease-in-out"
-            }), None
-
-    except Exception as e:
-        print(f"[PROCESAR DATASET] ERROR: {e}")
-        import traceback
-        traceback.print_exc()
-
-        return "", html.Div([
-            html.Span("❌ Error: ", style={"fontWeight": "bold", "color": "#FF235A"}),
-            html.Span(f"Excepción durante el procesamiento: {str(e)}"),
-            html.Br(),
-            html.Span("Revisa la consola para más detalles.", style={"fontSize": "0.85rem", "opacity": "0.8"})
-        ], style={
-            "color": "var(--text)",
-            "padding": "0.5rem",
-            "backgroundColor": "rgba(255, 35, 90, 0.1)",
-            "borderRadius": "8px",
-            "animation": "shake 0.5s ease-in-out"
-        }), None
+            }),
+            {'display': 'none'},  # Ocultar diálogo
+            None
+        )
 
 # =============================================================================
-# Callback 4: Guardar dataset procesado seleccionado en store global
+# Callback 5: Guardar dataset procesado seleccionado en store global
 # =============================================================================
 @callback(
     Output("selected-dataset", "data"),

@@ -816,6 +816,9 @@ class CNN(BaseModel):
                 # logits ya contiene las probabilidades de softmax
                 proba = logits
                 auc = float(roc_auc_score(y_true, proba, multi_class="ovr", average="weighted"))
+                # Handle NaN (occurs when only one class in test set)
+                if np.isnan(auc):
+                    auc = 0.0
             except Exception:
                 auc = 0.0
 

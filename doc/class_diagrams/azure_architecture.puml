@@ -1,0 +1,131 @@
+@startuml
+title Arquitectura Azure ML - Ejecución de Pipelines en la Nube
+
+actor Usuario
+
+' ============= FRONTEND =============
+rectangle "Frontend (Dash)" as Frontend {
+  [Página Cargar Datos]
+  [Página Modelado]
+}
+
+' ============= FASTAPI SERVER =============
+rectangle "FastAPI Server\n(Local con Identidad Azure)" as FastAPI {
+  component "REST Endpoints" as Endpoints {
+    [POST /upload-folder]
+    [POST /upload-dataset]
+    [POST /upload-expr]
+  }
+}
+
+' ============= AZURE ML WORKSPACE =============
+cloud "Azure ML Workspace" as AzureML {
+  database "Data Assets" as DataAssets {
+    folder "Datasets Registrados" as RegisteredDatasets {
+      [Event-Related-Potentials-P300]
+      [Inner-Speech-Dataset]
+      [...]
+    }
+  }
+
+  rectangle "Pipeline Execution" as PipelineExec {
+    component "Nodos de Procesamiento" as Nodes {
+      [Filter Node\n(BandPass/Notch)]
+      [Transform Node\n(FFT/Wavelet)]
+      [Training Node\n(CNN/LSTM/SVM)]
+    }
+
+    component "Outputs" as Outputs {
+      [preprocessed_signal]
+      [training_data_path]
+      [final_output_path]
+    }
+  }
+
+  component "Infraestructura" as Infra {
+    [Compute Cluster\n(Escalable)]
+    [Environment\n(Conda/Docker)]
+    [MLflow Tracking]
+  }
+}
+
+' ============= FLUJO DE EJECUCIÓN =============
+
+' Usuario -> Frontend
+Usuario --> [Página Cargar Datos] : 1. Selecciona dataset
+Usuario --> [Página Modelado] : 2. Configura\nexperimento
+
+' Frontend -> FastAPI
+[Página Cargar Datos] --> [POST /upload-folder] : archivos .bdf/.edf
+[Página Cargar Datos] --> [POST /upload-dataset] : foldername,\npath, desc
+[Página Modelado] --> [POST /upload-expr] : JSON config:\ndata, filters,\ntransforms, model
+
+' FastAPI -> Azure ML
+[POST /upload-dataset] --> RegisteredDatasets : Registra como\nData Asset
+[POST /upload-expr] --> Nodes : Crea pipeline\ncon nodos
+
+' Pipeline Execution Flow
+RegisteredDatasets --> [Filter Node\n(BandPass/Notch)] : raw_signal
+[Filter Node\n(BandPass/Notch)] --> [preprocessed_signal]
+[preprocessed_signal] --> [Transform Node\n(FFT/Wavelet)] : raw_signal
+[Transform Node\n(FFT/Wavelet)] --> [training_data_path]
+[training_data_path] --> [Training Node\n(CNN/LSTM/SVM)]
+[Training Node\n(CNN/LSTM/SVM)] --> [final_output_path]
+
+' Infrastructure
+Nodes --> [Compute Cluster\n(Escalable)] : ejecuta en
+[Compute Cluster\n(Escalable)] --> [Environment\n(Conda/Docker)] : usa
+Nodes --> [MLflow Tracking] : registra métricas
+
+' Resultado
+[final_output_path] ..> Usuario : Modelo entrenado\ndisponible
+
+note right of FastAPI
+  **Servidor REST API Local**
+
+  Funciona como intermediario entre
+  el frontend y Azure ML.
+
+  **Ventajas:**
+  - Tiene identidad Azure configurada
+  - Usuario NO necesita autenticarse
+  - Usuario NO ejecuta código
+  - Solo envía configuraciones JSON
+end note
+
+note bottom of PipelineExec
+  **Pipeline como DAG (Grafo Dirigido Acíclico)**
+
+  Cada nodo es un paso independiente:
+  1. Filter Node: Preprocesamiento de señal
+  2. Transform Node: Extracción de features
+  3. Training Node: Entrenamiento del modelo
+
+  Los nodos se comunican vía outputs:
+  - raw_signal → preprocessed_signal
+  - preprocessed_signal → training_data_path
+  - training_data_path → final_output_path
+
+  Cada output es un Data Asset temporal
+  que se pasa al siguiente nodo
+end note
+
+note bottom of Infra
+  **Infraestructura Escalable**
+
+  **Compute Cluster:**
+  - VMs con GPU/CPU configurables
+  - Escalado automático según carga
+  - Soporta múltiples pipelines concurrentes
+
+  **Environment:**
+  - Imagen Conda/Docker con dependencias
+  - Incluye: TensorFlow, PyTorch, MNE, etc.
+
+  **MLflow:**
+  - Tracking de experimentos
+  - Registro de métricas y artefactos
+  - Versionado de modelos
+end note
+
+@enduml

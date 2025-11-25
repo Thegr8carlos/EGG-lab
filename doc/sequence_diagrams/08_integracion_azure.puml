@@ -1,0 +1,62 @@
+@startuml
+title Flujo de Integración con Azure (Respaldo y Entrenamiento en la Nube)
+
+actor Usuario
+participant ": UI" as UI
+participant ": Dataset" as DS
+participant ": Azure\nBlob Storage" as Blob
+participant ": Azure ML\nWorkspace" as ML
+participant ": Experiment" as Exp
+
+== FASE 1: Respaldo de Datos ==
+Usuario -> UI: Carga dataset\nlocal
+UI -> DS: upload_dataset()
+DS -> DS: Procesar datos\nlocalmente
+
+DS -> Blob: Sincronizar con\nAzure Blob Storage
+activate Blob
+Blob -> Blob: Crear container\nsi no existe
+Blob -> Blob: Subir archivos:\n- .npy procesados\n- Labels\n- Metadata
+Blob --> DS: Datos respaldados\n(URL de blob)
+deactivate Blob
+
+DS --> UI: Dataset listo\n(local + nube)
+
+== FASE 2: Configuración de Entrenamiento ==
+Usuario -> UI: Configura modelo\npara entrenar en nube
+UI -> ML: Verificar workspace\ny credenciales
+activate ML
+ML --> UI: Workspace listo
+deactivate ML
+
+== FASE 3: Entrenamiento en la Nube ==
+Usuario -> UI: Click "Entrenar\nen la Nube"
+UI -> ML: Enviar job de\nentrenamiento
+activate ML
+
+ML -> Blob: Descargar datos\ndesde Blob Storage
+Blob --> ML: Datos listos
+
+ML -> ML: Aprovisionar\ncompute cluster
+ML -> ML: Ejecutar script\nde entrenamiento
+
+loop Por cada época
+    ML -> UI: Enviar métricas\n(via callbacks)
+    UI --> Usuario: Visualizar\nprogreso
+end
+
+ML -> ML: Guardar modelo\nentrenado
+ML -> Blob: Subir modelo\na Blob Storage
+ML --> UI: Job completado\n(modelo URL)
+deactivate ML
+
+== FASE 4: Descarga y Registro ==
+UI -> Blob: Descargar modelo\nentrenado
+activate Blob
+Blob --> UI: Pesos + config
+deactivate Blob
+
+UI -> Exp: Registrar modelo\nlocalmente
+UI --> Usuario: Modelo disponible\npara uso
+
+@enduml

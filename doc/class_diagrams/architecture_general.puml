@@ -73,19 +73,32 @@ rectangle "Pipeline de Procesamiento" as Pipeline {
   Evaluation --> Simulation
 }
 
-' ============= DEPENDENCIES =============
-component "Librerías Externas" as Libs {
-  [MNE-Python]
-  [TensorFlow/Keras]
-  [Scikit-learn]
-  [PyWavelets]
-  [SciPy]
-  [Plotly]
+' ============= AZURE CLOUD =============
+cloud "Azure Cloud" as AzureCloud {
+  component "FastAPI Server" as FastAPI {
+    [/upload-folder]
+    [/upload-dataset]
+    [/upload-expr]
+  }
+
+  component "Azure ML Workspace" as AzureML {
+    database "Data Assets" as DataAssets {
+      [Datasets EEG]
+    }
+
+    component "Pipeline Nodes" as PipelineNodes {
+      [Filter Node]
+      [Transform Node]
+      [Training Node]
+    }
+
+    [Compute Cluster]
+  }
 }
 
 ' ============= RELATIONSHIPS =============
 
-' Frontend -> Backend
+' Frontend -> Backend (Local)
 [Cargar Datos] --> DatasetClass
 [Filtros] --> FilterClass
 [Extractores] --> TransformClass
@@ -93,27 +106,34 @@ component "Librerías Externas" as Libs {
 [Modelado Inner Speech] --> ClassifierClass
 [Simulación] --> [simulation_engine]
 
-' Backend -> Storage
+' Frontend -> Azure Cloud
+[Cargar Datos] ..> [/upload-folder] : REST API
+[Cargar Datos] ..> [/upload-dataset] : REST API
+[Modelado P300] ..> [/upload-expr] : REST API
+[Modelado Inner Speech] ..> [/upload-expr] : REST API
+
+' FastAPI -> Azure ML
+[/upload-dataset] --> [Datasets EEG]
+[/upload-expr] --> PipelineNodes
+
+' Azure ML Internal
+[Datasets EEG] --> [Filter Node]
+[Filter Node] --> [Transform Node]
+[Transform Node] --> [Training Node]
+PipelineNodes --> [Compute Cluster] : ejecuta en
+
+' Backend -> Storage (Local)
 DatasetClass --> [Archivos EEG\nBDF/EDF/VHDR]
 DatasetClass --> [Eventos\nPreprocesados]
 ExperimentClass --> [Configs JSON]
 ClassifierClass --> [Modelos\nEntrenados]
 [model_storage] --> [Snapshots]
 
-' Backend -> Pipeline
+' Backend -> Pipeline (Local)
 DatasetClass ..> Load
 FilterClass ..> Preprocess
 TransformClass ..> Features
 ClassifierClass ..> Training
-
-' Backend -> Libs
-DatasetClass --> [MNE-Python]
-FilterClass --> [MNE-Python]
-FilterClass --> [PyWavelets]
-TransformClass --> [SciPy]
-ClassifierClass --> [TensorFlow/Keras]
-ClassifierClass --> [Scikit-learn]
-Components --> [Plotly]
 
 note right of Pipeline
   **Flujo Metodológico:**
@@ -162,6 +182,26 @@ note bottom of Backend
 
   Todo se serializa en JSON para
   reproducibilidad científica
+end note
+
+note right of AzureCloud
+  **Ejecución en la Nube:**
+
+  **FastAPI Server (REST API):**
+  - Servidor local con identidad Azure
+  - Expone endpoints para el frontend
+  - No requiere autenticación del usuario
+
+  **Azure ML Workspace:**
+  - Data Assets: Datasets como recursos
+  - Pipelines: Nodos de procesamiento
+    (Filter → Transform → Training)
+  - Compute Cluster: Ejecución escalable
+  - Soporta múltiples pipelines concurrentes
+
+  El usuario solo envía JSON con
+  configuraciones, Azure ejecuta
+  el pipeline completo
 end note
 
 @enduml

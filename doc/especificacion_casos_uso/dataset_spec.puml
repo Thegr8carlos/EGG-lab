@@ -1,0 +1,75 @@
+@startuml
+title Especificación de Casos de Uso - Vista Dataset
+
+' ========== CU-1: Visualizar Estadísticas del Dataset ==========
+salt
+{#
+  <b>Caso de uso | <b>CU-1. Visualizar estadísticas del dataset
+  <b>Resumen de atributos |
+  <b>Actor | Usuario Investigador
+  <b>Propósito | Explorar estadísticas y metadata del dataset seleccionado
+  <b>Tipo | Primario
+  <b>Entradas | - Dataset seleccionado
+  <b>Salidas | - Estadísticas por canal (media, std, min, max)\n- Distribución de clases\n- Información general (sfreq, n_channels)
+  <b>Precondiciones | - Dataset procesado con metadatos
+  <b>Postcondiciones | - Usuario comprende características del dataset
+  <b>Errores | - Metadatos no encontrados o corruptos
+}
+@enduml
+
+@startuml
+title Especificación de Casos de Uso - Vista Dataset (2)
+
+' ========== CU-2: Visualizar Topomaps Cerebrales ==========
+salt
+{#
+  <b>Caso de uso | <b>CU-2. Visualizar topomaps cerebrales
+  <b>Resumen de atributos |
+  <b>Actor | Usuario Investigador
+  <b>Propósito | Visualizar distribución espacial de actividad cerebral
+  <b>Tipo | Primario
+  <b>Entradas | - Clase seleccionada\n- Tiempo seleccionado (slider)
+  <b>Salidas | - Topomap interpolado (mapa cerebral 2D)\n- Valores de potencia por canal
+  <b>Precondiciones | - Dataset con información de posición de canales\n- Eventos de la clase disponibles
+  <b>Postcondiciones | - Usuario visualiza actividad espacial\n- Puede identificar regiones activas
+  <b>Errores | - Posiciones de canales no disponibles\n- Clase sin eventos
+}
+@enduml
+
+@startuml
+title Especificación de Casos de Uso - Vista Dataset (3)
+
+' ========== CU-3: Visualizar Heatmap Temporal ==========
+salt
+{#
+  <b>Caso de uso | <b>CU-3. Visualizar heatmap temporal
+  <b>Resumen de atributos |
+  <b>Actor | Usuario Investigador
+  <b>Propósito | Visualizar actividad temporal de todos los canales
+  <b>Tipo | Primario
+  <b>Entradas | - Clase seleccionada
+  <b>Salidas | - Heatmap (tiempo x canales)\n- Escala de colores por potencia
+  <b>Precondiciones | - Eventos de la clase disponibles
+  <b>Postcondiciones | - Usuario visualiza patrones temporales\n- Puede identificar sincronización entre canales
+  <b>Errores | - Datos muy grandes (timeout de visualización)
+}
+@enduml
+
+@startuml
+title Especificación de Casos de Uso - Vista Dataset (4)
+
+' ========== CU-4: Visualizar Señal Cruda Multicanal ==========
+salt
+{#
+  <b>Caso de uso | <b>CU-4. Visualizar señal cruda multicanal
+  <b>Resumen de atributos |
+  <b>Actor | Usuario Investigador
+  <b>Propósito | Visualizar señales EEG crudas por canal
+  <b>Tipo | Primario
+  <b>Entradas | - Clase seleccionada\n- Canales seleccionados
+  <b>Salidas | - Gráficos de señal por canal\n- Etiquetas y timestamps
+  <b>Precondiciones | - Eventos cargados\n- Canales válidos seleccionados
+  <b>Postcondiciones | - Usuario visualiza señales temporales\n- Puede identificar artefactos o ruido
+  <b>Errores | - Canales no encontrados\n- Datos corruptos
+}
+@enduml

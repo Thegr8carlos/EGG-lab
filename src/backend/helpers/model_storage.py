@@ -359,4 +359,87 @@ def save_model_with_metadata(
         training_info=training_info
     )
 
+    # ========== COPIAR ARCHIVOS ICA .fif PARA SIMULACIÓN ==========
+    _copy_ica_files_to_model_dir(
+        experiment_snapshot=experiment_snapshot,
+        experiment_id=experiment_id,
+        model_type=model_type
+    )
+
     return model_path
+
+
+def _copy_ica_files_to_model_dir(
+    experiment_snapshot: Dict[str, Any],
+    experiment_id: str,
+    model_type: str
+) -> None:
+    """
+    Copia archivos ICA .fif desde directorios de datos a backend/models/ para simulación.
+
+    Args:
+        experiment_snapshot: Snapshot del experimento con filtros
+        experiment_id: ID del experimento
+        model_type: Tipo de modelo ("p300" o "inner")
+    """
+    import shutil
+    from pathlib import Path
+
+    # Verificar si hay filtros ICA
+    filters = experiment_snapshot.get("filters", [])
+    ica_filters = [f for f in filters if "ICA" in f]
+
+    if not ica_filters:
+        return  # No hay ICA, nada que copiar
+
+    print(f"[ModelStorage] Detectados {len(ica_filters)} filtro(s) ICA, copiando archivos .fif...")
+
+    # Obtener directorio destino
+    base_dir = ModelStorage.get_base_dir()
+    dest_dir = base_dir / experiment_id / model_type
+    dest_dir.mkdir(parents=True, exist_ok=True)
+
+    # Buscar archivos .fif en directorios de datos
+    # Buscar en Aux/ y Data/ desde la raíz del proyecto
+    project_root = Path.cwd()
+    if project_root.name == "src":
+        project_root = project_root.parent
+
+    search_paths = [
+        project_root / "Aux",
+        project_root / "Data",
+        project_root / "src" / "Aux",
+        project_root / "src" / "Data",
+    ]
+
+    copied_count = 0
+    for ica_filter in ica_filters:
+        ica_config = ica_filter.get("ICA", {})
+        filter_id = ica_config.get("id", "")
+
+        if not filter_id:
+            continue
+
+        # Buscar archivos .fif con patrón *_ica_{filter_id}.fif
+        pattern = f"*_ica_{filter_id}.fif"
+
+        for search_path in search_paths:
+            if not search_path.exists():
+                continue
+
+            # Buscar recursivamente
+            for fif_file in search_path.rglob(pattern):
+                dest_file = dest_dir / fif_file.name
+
+                # Copiar si no existe o es más reciente
+                if not dest_file.exists() or fif_file.stat().st_mtime > dest_file.stat().st_mtime:
+                    shutil.copy2(fif_file, dest_file)
+                    print(f"[ModelStorage] ✓ Copiado ICA .fif: {fif_file.name} → {dest_dir}")
+                    copied_count += 1
+                else:
+                    print(f"[ModelStorage] ⏭️  ICA .fif ya existe: {fif_file.name}")
+
+    if copied_count > 0:
+        print(f"[ModelStorage] ✅ {copied_count} archivo(s) ICA .fif copiados para simulación")
+    else:
+        print(f"[ModelStorage] ⚠️  No se encontraron archivos ICA .fif para copiar (esto puede ser normal si ya existen)")

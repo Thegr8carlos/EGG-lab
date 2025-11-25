@@ -1,0 +1,88 @@
+@startuml
+title Flujo de Re-etiquetado según Tipo de Modelo
+
+start
+
+:Aplicar Filtro o Transformada;
+note right
+  Entrada:
+  - Señal cruda o filtrada
+  - Etiquetas string
+  Ej: ["Target", "rest", "abajo", "arriba"]
+end note
+
+:Ventaneo con overlap;
+note right
+  - Divide señal en frames
+  - Asigna etiqueta por voto mayoritario
+  - hop = frame_length × (1 - overlap)
+end note
+
+:Obtener etiquetas por ventana;
+
+if (model_type?) then (p300)
+  :Re-etiquetar BINARIO;
+  note right
+    **P300 - Detección de Eventos**
+
+    0 = NonTarget (rest/none)
+    1 = Target (cualquier clase activa)
+
+    Ejemplo:
+    "rest" → 0
+    "abajo" → 1
+    "arriba" → 1
+    "derecha" → 1
+  end note
+
+elseif (inner) then
+  :Filtrar clases rest/none/unlabeled;
+  note right
+    Inner Speech solo clasifica
+    pensamientos (palabras mentales)
+
+    Excluye: rest, none, unlabeled
+  end note
+
+  :Re-etiquetar MULTICLASE;
+  note right
+    **Inner Speech - Clasificación**
+
+    0, 1, 2, ... (orden alfabético)
+
+    Ejemplo:
+    abajo → 0
+    arriba → 1
+    derecha → 2
+    izquierda → 3
+    (rest se excluye)
+  end note
+
+  :Generar valid_mask\npara filtrar datos;
+  note right
+    Retorna máscara booleana
+    para eliminar frames de
+    rest/none/unlabeled
+  end note
+
+else (generic)
+  :Re-etiquetar MULTICLASE;
+  note right
+    **Genérico - Todas las clases**
+
+    0, 1, 2, ... (orden alfabético)
+
+    Incluye TODAS las clases
+    (incluso rest)
+  end note
+endif
+
+:Retornar etiquetas numéricas\n+ mapeo (id_to_class)\n+ valid_mask (opcional);
+
+:Aplicar valid_mask a datos\n(solo Inner Speech);
+
+:Guardar datos transformados\n+ labels numéricas;
+
+stop
+
+@enduml

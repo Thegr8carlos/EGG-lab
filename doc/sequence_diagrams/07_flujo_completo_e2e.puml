@@ -1,0 +1,55 @@
+@startuml
+title Flujo Completo End-to-End (Datos → Filtros → Transformaciones → Modelo → Predicción)
+
+actor Usuario
+participant ": Dataset" as DS
+participant ": Filter" as F
+participant ": Transform" as T
+participant ": Classifier" as M
+participant ": Experiment" as Exp
+
+== FASE 1: Carga de Datos ==
+Usuario -> DS: upload_dataset()
+DS -> DS: Procesar archivos EEG
+DS -> DS: Extraer eventos
+DS -> DS: Calcular metadata
+DS --> Usuario: Dataset listo
+
+== FASE 2: Aplicar Filtros ==
+Usuario -> F: Aplicar Notch/Bandpass
+F -> F: Diseñar filtro
+F -> F: Aplicar filtro\n(scipy.signal.filtfilt)
+F -> Exp: Guardar config
+F --> Usuario: Señal filtrada
+
+== FASE 3: Aplicar Transformaciones ==
+Usuario -> T: Aplicar FFT/Wavelet
+T -> T: Procesar señal\nfiltrada
+T -> T: Re-etiquetar
+T -> Exp: Guardar config
+T --> Usuario: Datos transformados
+
+== FASE 4: Entrenamiento ==
+Usuario -> DS: create_subset_dataset()
+DS --> Usuario: Train/Test splits
+
+Usuario -> M: fit(X_train, y_train)
+M -> M: Compilar y entrenar
+M -> Exp: Guardar métricas
+M --> Usuario: Modelo entrenado
+
+== FASE 5: Evaluación ==
+Usuario -> M: predict(X_test)
+M -> M: Aplicar pipeline:\n1. Filtros\n2. Transformaciones\n3. Modelo
+M -> M: Inferencia
+M --> Usuario: Predicciones
+
+Usuario -> M: evaluate(X_test, y_test)
+M --> Usuario: Métricas finales\n(accuracy, F1, etc)
+
+== FASE 6: Guardar Modelo ==
+Usuario -> Exp: save_model()
+Exp -> Exp: Serializar:\n- Pesos\n- Pipeline config\n- Metadata
+Exp --> Usuario: Modelo guardado\npara producción
+
+@enduml

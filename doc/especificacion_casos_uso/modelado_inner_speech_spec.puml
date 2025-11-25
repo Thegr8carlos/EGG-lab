@@ -1,0 +1,56 @@
+@startuml
+title Especificación de Casos de Uso - Modelado Inner Speech
+
+' ========== CU-1: Configurar Modelo Inner Speech ==========
+salt
+{#
+  <b>Caso de uso | <b>CU-1. Configurar modelo Inner Speech
+  <b>Resumen de atributos |
+  <b>Actor | Usuario Investigador
+  <b>Propósito | Configurar modelo multiclase para clasificar pensamientos
+  <b>Tipo | Primario
+  <b>Entradas | - Tipo de modelo (CNN/LSTM/GRU/SVM/RandomForest)\n- Clases a clasificar (abajo, arriba, derecha, izquierda)\n- Hiperparámetros
+  <b>Salidas | - Configuración validada\n- Modelo listo para entrenamiento
+  <b>Precondiciones | - Dataset Inner Speech procesado\n- Transformada aplicada\n- Classes filtradas (sin rest)
+  <b>Postcondiciones | - Configuración multiclase guardada\n- Mapeo de clases registrado
+  <b>Errores | - Menos de 2 clases seleccionadas\n- Datos insuficientes por clase
+}
+@enduml
+
+@startuml
+title Especificación de Casos de Uso - Modelado Inner Speech (2)
+
+' ========== CU-2: Entrenar Modelo Inner Speech ==========
+salt
+{#
+  <b>Caso de uso | <b>CU-2. Entrenar modelo Inner Speech
+  <b>Resumen de atributos |
+  <b>Actor | Usuario Investigador
+  <b>Propósito | Entrenar modelo de clasificación multiclase
+  <b>Tipo | Primario
+  <b>Entradas | - Configuración del modelo\n- Datos transformados multiclase
+  <b>Salidas | - Modelo multiclase entrenado\n- Métricas por clase (precision, recall, F1)
+  <b>Precondiciones | - Modelo configurado\n- Datos balanceados o con class_weight
+  <b>Postcondiciones | - Modelo guardado\n- Confusion matrix generada\n- Modelo disponible para simulación
+  <b>Errores | - Clases muy desbalanceadas\n- Overfitting severo\n- Falta de memoria
+}
+@enduml
+
+@startuml
+title Especificación de Casos de Uso - Modelado Inner Speech (3)
+
+' ========== CU-3: Evaluar Modelo con Métricas ==========
+salt
+{#
+  <b>Caso de uso | <b>CU-3. Evaluar modelo con métricas
+  <b>Resumen de atributos |
+  <b>Actor | Usuario Investigador
+  <b>Propósito | Visualizar métricas de evaluación del modelo entrenado
+  <b>Tipo | Secundario
+  <b>Entradas | - Modelo entrenado\n- Conjunto de test
+  <b>Salidas | - Accuracy, Precision, Recall, F1\n- Confusion Matrix\n- ROC-AUC (si aplicable)
+  <b>Precondiciones | - Modelo entrenado disponible\n- Datos de test no vistos
+  <b>Postcondiciones | - Métricas guardadas en experimento\n- Visualización de resultados
+  <b>Errores | - Modelo corrupto o no encontrado\n- Datos de test incompatibles
+}
+@enduml
