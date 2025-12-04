@@ -15,6 +15,7 @@ from backend.helpers.simulation_utils import (
     predict_with_model,
     extract_window_with_padding
 )
+from shared.fileUtils import get_dataset_metadata
 
 
 class SimulationEngine:
@@ -35,7 +36,8 @@ class SimulationEngine:
         sfreq: float,
         p300_model_config: Dict[str, Any],
         inner_model_config: Dict[str, Any],
-        hop_percent: float = 50.0
+        hop_percent: float = 50.0,
+        dataset_name: str = None
     ):
         """
         Inicializa el motor de simulación.
@@ -47,12 +49,31 @@ class SimulationEngine:
             p300_model_config: Dict retornado por load_model_for_inference()
             inner_model_config: Dict retornado por load_model_for_inference()
             hop_percent: Porcentaje de hop (25-75), default 50%
+            dataset_name: Nombre del dataset (ej: "arabic_inner_speech") para mapear labels
         """
         self.raw_signal = raw_signal
         self.labels = labels.flatten() if labels.ndim > 1 else labels
         self.sfreq = sfreq
         self.p300_config = p300_model_config
         self.inner_config = inner_model_config
+
+        # Cargar metadata del dataset para mapeo de labels
+        self.dataset_classes = []
+        self.label_to_class_map = {}
+        if dataset_name:
+            try:
+                metadata = get_dataset_metadata(dataset_name)
+                self.dataset_classes = metadata.get('classes', [])
+                # Crear mapeo: índice numérico -> nombre de clase
+                self.label_to_class_map = {i: cls for i, cls in enumerate(self.dataset_classes)}
+                # También mapear strings directamente
+                for cls in self.dataset_classes:
+                    self.label_to_class_map[cls] = cls
+                    self.label_to_class_map[str(cls).lower()] = cls
+                print(f"[SimulationEngine] Mapeo de clases cargado: {self.dataset_classes}")
+            except Exception as e:
+                print(f"[SimulationEngine] ⚠️ No se pudo cargar metadata del dataset: {e}")
+                print(f"[SimulationEngine] Las labels se usarán tal cual")
 
         # Calcular parámetros de ventaneo
         self.window_size_p300 = p300_model_config['window_size_samples']
@@ -279,18 +300,27 @@ class SimulationEngine:
         # Detecciones P300
         p300_detected = sum(1 for r in self.results if r['p300_prediction'] == 1)
 
-        # Métricas por clase
+        # ===== FIX: Métricas por clase (separar clases del modelo de clases desconocidas) =====
         unique_labels = set(r['label_real'] for r in self.results)
         by_class = {}
+
+        # Obtener clases que el modelo Inner conoce
+        inner_classes = self.inner_config['model_metadata'].get('classes', [])
+        inner_classes_lower = [str(c).lower() for c in inner_classes]
 
         for label in unique_labels:
             class_results = [r for r in self.results if r['label_real'] == label]
             class_correct = sum(1 for r in class_results if r['is_correct'])
 
+            # Verificar si esta clase está en el modelo Inner Speech
+            label_lower = str(label).lower()
+            is_inner_class = label_lower in inner_classes_lower
+
             by_class[label] = {
                 "total": len(class_results),
                 "correct": class_correct,
-                "accuracy": class_correct / len(class_results) if class_results else 0.0
+                "accuracy": class_correct / len(class_results) if class_results else 0.0,
+                "is_inner_class": is_inner_class  # Marca si el modelo Inner puede predecir esta clase
             }
 
         return {
@@ -299,7 +329,8 @@ class SimulationEngine:
             "accuracy": correct / total if total > 0 else 0.0,
             "p300_detected": p300_detected,
             "p300_detection_rate": p300_detected / total if total > 0 else 0.0,
-            "by_class": by_class
+            "by_class": by_class,
+            "inner_classes": inner_classes  # Lista de clases que Inner Speech conoce
         }
 
     # ========================================================================
@@ -308,14 +339,14 @@ class SimulationEngine:
 
     def _get_majority_label(self, start: int, end: int) -> str:
         """
-        Obtiene la label más común en el rango de samples.
+        Obtiene la label más común en el rango de samples y la mapea al nombre de clase correcto.
 
         Args:
             start: Sample inicial
             end: Sample final
 
         Returns:
-            Label más frecuente (str)
+            Label más frecuente mapeada a nombre de clase (str)
         """
         window_labels = self.labels[start:end]
 
@@ -324,7 +355,27 @@ class SimulationEngine:
 
         # Retornar el más frecuente
         majority_idx = np.argmax(counts)
-        return str(unique[majority_idx])
+        raw_label = unique[majority_idx]
+
+        # Mapear label al nombre de clase correcto
+        if self.label_to_class_map:
+            # Intentar mapear como número
+            if isinstance(raw_label, (int, np.integer)):
+                mapped_label = self.label_to_class_map.get(int(raw_label))
+                if mapped_label:
+                    return str(mapped_label)
+
+            # Intentar mapear como string
+            mapped_label = self.label_to_class_map.get(str(raw_label))
+            if mapped_label:
+                return str(mapped_label)
+
+            # Si dice "unlabeled" o valores desconocidos, mapear a "rest"
+            if str(raw_label).lower() in ['unlabeled', 'unknown', 'none', '']:
+                return "rest"
+
+        # Si no hay mapeo disponible, retornar tal cual
+        return str(raw_label)
 
     def _evaluate_prediction(
         self,
@@ -354,6 +405,24 @@ class SimulationEngine:
 
         # Caso 2: Clase activa (arriba, abajo, etc.)
         else:
+            # ===== FIX: Inner Speech NO entrena con "rest" =====
+            # Si label_real no está en las clases del modelo, NO es evaluable
+            classes = self.inner_config['model_metadata'].get('classes', [])
+
+            # Normalizar a lowercase para comparación
+            classes_lower = [str(c).lower() for c in classes]
+            label_real_lower = str(label_real).lower()
+
+            # Si el label real no está en las clases del modelo (ej: "rest", "none", "unlabeled")
+            if label_real_lower not in classes_lower:
+                # Esta ventana NO es evaluable para Inner Speech
+                # Porque el modelo nunca fue entrenado con esta clase
+                # Solo verificar que P300 detectó correctamente (debería predecir 0 para "rest")
+                # Si P300 predijo 0, es correcto (no intentó clasificar con Inner)
+                # Si P300 predijo 1, es incorrecto (falsa alarma de P300)
+                return p300_pred == 0
+
+            # Clase activa que SÍ está en el modelo
             # Debe detectar P300 Y clasificar correctamente
             if p300_pred != 1:
                 return False  # No detectó P300 cuando debería
@@ -362,14 +431,9 @@ class SimulationEngine:
                 return False  # P300 detectado pero Inner no predijo
 
             # Mapear índice de clase a nombre
-            # Nota: Esto depende del orden de clases en el modelo Inner
-            classes = self.inner_config['model_metadata'].get('classes', [])
-
-            # NO filtrar 'rest' porque el modelo fue entrenado con ella
-            # y los índices de predicción corresponden a la lista completa
             if inner_pred < len(classes):
                 predicted_class = classes[inner_pred]
-                return predicted_class == label_real
+                return str(predicted_class).lower() == label_real_lower
             else:
                 # Índice fuera de rango
                 print(f"[_evaluate_prediction] WARNING: inner_pred={inner_pred} >= len(classes)={len(classes)}")

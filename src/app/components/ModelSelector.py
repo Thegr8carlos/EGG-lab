@@ -123,7 +123,7 @@ def load_p300_models(dataset_name):
         # Crear opciones para dropdown
         options = [
             {
-                "label": f"{m['model_name']} - Exp#{m['experiment_id']} - Acc: {m['metrics'].get('accuracy', 0):.1%} ({m['timestamp']})",
+                "label": f"{m['model_name']} - Exp#{m['experiment_id']} - {m.get('dataset', 'Unknown')} - Acc: {m['metrics'].get('accuracy', 0):.1%} ({m['timestamp']})",
                 "value": json.dumps({
                     "snapshot_path": m['snapshot_path'],
                     "pkl_path": m['pkl_path'],
@@ -160,7 +160,7 @@ def load_inner_models(dataset_name):
         # Crear opciones para dropdown
         options = [
             {
-                "label": f"{m['model_name']} - Exp#{m['experiment_id']} - Acc: {m['metrics'].get('accuracy', 0):.1%} ({m['timestamp']})",
+                "label": f"{m['model_name']} - Exp#{m['experiment_id']} - {m.get('dataset', 'Unknown')} - Acc: {m['metrics'].get('accuracy', 0):.1%} ({m['timestamp']})",
                 "value": json.dumps({
                     "snapshot_path": m['snapshot_path'],
                     "pkl_path": m['pkl_path'],

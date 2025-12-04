@@ -4,6 +4,7 @@ import dash_bootstrap_components as dbc
 from app.components.PageContainer import get_page_container
 from shared.fileUtils import get_data_folders
 from backend.classes.dataset import Dataset
+from shared.datasetUploader import upload_dataset_to_server
 import os
 from pathlib import Path
 
@@ -162,6 +163,66 @@ layout = get_page_container(
                                     style={'marginBottom': '1.5rem'},
                                     clearable=True,  # Permitir limpiar selecciones
                                     multi=True  # ← Permitir selección múltiple
+                                ),
+                            ]),
+                            html.Div([
+                                html.Label("Duración de ventana por evento (milisegundos):", style={
+                                    "fontWeight": "600",
+                                    "marginBottom": "0.5rem",
+                                    "display": "block",
+                                    "color": "var(--color-3)"
+                                }),
+                                html.Div("Recomendado: 800ms para P300/ERP, 3200ms para Inner Speech", style={
+                                    "fontSize": "0.85rem",
+                                    "opacity": "0.8",
+                                    "marginBottom": "0.5rem",
+                                    "color": "var(--color-3)"
+                                }),
+                                dcc.Input(
+                                    id='duration-ms-input',
+                                    type='number',
+                                    value=3200,  # Default: mantiene comportamiento actual (3.2s)
+                                    min=100,
+                                    max=10000,
+                                    step=100,
+                                    placeholder="Duración en ms (ej: 800)",
+                                    style={
+                                        'width': '100%',
+                                        'padding': '0.5rem',
+                                        'marginBottom': '1.5rem',
+                                        'borderRadius': '4px',
+                                        'border': '1px solid rgba(255,255,255,0.2)'
+                                    }
+                                ),
+                            ]),
+                            html.Div([
+                                html.Label("Porcentaje del dataset a subir a Azure (%):", style={
+                                    "fontWeight": "600",
+                                    "marginBottom": "0.5rem",
+                                    "display": "block",
+                                    "color": "var(--color-3)"
+                                }),
+                                html.Div("Solo aplica si Azure está habilitado. 0% = no subir, 100% = subir todos los archivos", style={
+                                    "fontSize": "0.85rem",
+                                    "opacity": "0.8",
+                                    "marginBottom": "0.5rem",
+                                    "color": "var(--color-3)"
+                                }),
+                                dcc.Input(
+                                    id='azure-percentage-input',
+                                    type='number',
+                                    value=100,  # Default: subir todo
+                                    min=0,  # 0 = no subir nada
+                                    max=100,
+                                    step=1,
+                                    placeholder="Porcentaje (0-100)",
+                                    style={
+                                        'width': '100%',
+                                        'padding': '0.5rem',
+                                        'marginBottom': '1.5rem',
+                                        'borderRadius': '4px',
+                                        'border': '1px solid rgba(255,255,255,0.2)'
+                                    }
                                 ),
                             ]),
                             html.Div([
@@ -570,10 +631,12 @@ def detect_classes_and_show_dialog(n_clicks_list):
      Output("loading-output", "children", allow_duplicate=True)],
     Input("confirm-baseline-button", "n_clicks"),
     [State("baseline-class-dropdown", "value"),
+     State("duration-ms-input", "value"),
+     State("azure-percentage-input", "value"),
      State("dataset-pending-upload-store", "data")],
     prevent_initial_call=True
 )
-def process_dataset_with_baseline(n_clicks, baseline_classes, dataset_info):
+def process_dataset_with_baseline(n_clicks, baseline_classes, duration_ms, azure_percentage, dataset_info):
     """Procesa el dataset con las clases baseline seleccionadas"""
     if not n_clicks or not dataset_info:
         raise PreventUpdate
@@ -590,12 +653,66 @@ def process_dataset_with_baseline(n_clicks, baseline_classes, dataset_info):
         baseline_classes_param = baseline_classes  # Lista de strings
         print(f"\n[UPLOAD] Procesando dataset '{dataset_name}' con baseline classes: {baseline_classes_param}")
 
+    # Validar duration_ms (si está vacío, usar default de 3200ms)
+    if not duration_ms or duration_ms < 100:
+        duration_ms = 3200  # Default: mantiene comportamiento actual
+        print(f"\n[UPLOAD] Usando duración por defecto: {duration_ms}ms (3.2s)")
+    else:
+        print(f"\n[UPLOAD] Duración de ventana configurada: {duration_ms}ms")
+
+    # Validar azure_percentage (0 = no subir nada, 1-100 = porcentaje a subir)
+    if azure_percentage is None or azure_percentage < 0 or azure_percentage > 100:
+        azure_percentage = 100  # Default: subir todo
+        print(f"\n[UPLOAD] Usando porcentaje por defecto para Azure: 100%")
+    elif azure_percentage == 0:
+        print(f"\n[UPLOAD] ⚠️ Porcentaje 0%: NO se subirá nada a Azure")
+    else:
+        print(f"\n[UPLOAD] Porcentaje para Azure configurado: {azure_percentage}%")
+
     try:
-        # Procesar dataset con baseline (ahora acepta lista de clases)
+        # Procesar dataset con baseline y duración de ventana configurada
         dataset = Dataset(dataset_path, dataset_name)
-        result = dataset.upload_dataset(dataset_path, baseline_classes=baseline_classes_param)
+        result = dataset.upload_dataset(
+            dataset_path,
+            baseline_classes=baseline_classes_param,
+            duration_ms=duration_ms
+        )
 
         if result.get("status") == 200:
+            # ===== SUBIR ARCHIVOS AL SERVIDOR EXTERNO =====
+            # Leer configuración de variables de entorno
+            SERVER_URL = os.getenv("EXTERNAL_SERVER_URL", "https://xx8mx485.usw3.devtunnels.ms:8000/")
+            ENABLE_UPLOAD = os.getenv("ENABLE_EXTERNAL_UPLOAD", "true").lower() == "true"
+
+            if ENABLE_UPLOAD:
+                print(f"\n[UPLOAD-SERVER] Iniciando subida de archivos al servidor externo...")
+                print(f"[UPLOAD-SERVER] Servidor: {SERVER_URL}")
+                print(f"[UPLOAD-SERVER] Porcentaje a subir: {azure_percentage}%")
+                try:
+                    upload_result = upload_dataset_to_server(
+                        dataset_name=dataset_name,
+                        server_url=SERVER_URL,
+                        aux_folder="Aux",
+                        description=f"Dataset procesado: {dataset_name}",
+                        percentage=azure_percentage  # ← Pasar porcentaje
+                    )
+
+                    if upload_result["success"]:
+                        print(f"[UPLOAD-SERVER] ✅ {upload_result['message']}")
+                    else:
+                        print(f"[UPLOAD-SERVER] ⚠️ {upload_result['message']}")
+                        # No fallar el procesamiento si falla la subida al servidor
+                        # Solo log el error
+
+                except Exception as upload_error:
+                    print(f"[UPLOAD-SERVER] ❌ Error subiendo al servidor: {upload_error}")
+                    import traceback
+                    traceback.print_exc()
+                    # Continuar con el procesamiento normal aunque falle la subida
+            else:
+                print(f"[UPLOAD-SERVER] ⏭️ Subida al servidor externo deshabilitada (ENABLE_EXTERNAL_UPLOAD=false)")
+            # ===== FIN SUBIDA AL SERVIDOR =====
+
             num_files = len(result.get("files", []))
 
             # Actualizar lista de pendientes

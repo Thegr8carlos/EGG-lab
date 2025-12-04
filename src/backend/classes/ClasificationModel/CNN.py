@@ -755,6 +755,15 @@ class CNN(BaseModel):
             n_classes = int(max(int(ytr.max()), int(yte.max()))) + 1
             H_in, W_in = instance.image_hw
 
+            # ===== FIX: Sobrescribir classification.units con n_classes REAL =====
+            # Esto previene el bug donde la configuración tiene más clases que los datos reales
+            # (ej: dataset tiene 5 clases pero subset de Inner Speech tiene 4 sin "rest")
+            if instance.classification.units != n_classes:
+                print(f"⚠️  [CNN] ADVERTENCIA: Configuración tiene {instance.classification.units} unidades, "
+                      f"pero datos tienen {n_classes} clases.")
+                print(f"🔧 [CNN] Sobrescribiendo classification.units: {instance.classification.units} → {n_classes}")
+                instance.classification.units = n_classes
+
             # Limpiar modelo previo (cada fit() reconstruye desde cero)
             instance._tf_model = None
 

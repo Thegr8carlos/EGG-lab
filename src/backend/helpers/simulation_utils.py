@@ -97,6 +97,10 @@ def list_available_models(model_type: str) -> List[Dict[str, Any]]:
             # Resumen del pipeline
             pipeline_summary = _get_pipeline_summary(snapshot)
 
+            # Extraer nombre del dataset
+            dataset_info = snapshot.get("dataset", {})
+            dataset_name = dataset_info.get("name", "Unknown") if isinstance(dataset_info, dict) else str(dataset_info)
+
             available_models.append({
                 "experiment_id": exp_dir.name,
                 "model_name": model_name,
@@ -106,7 +110,8 @@ def list_available_models(model_type: str) -> List[Dict[str, Any]]:
                 "pkl_path": str(pkl_path),
                 "metrics": metrics,
                 "window_size_samples": window_size,
-                "pipeline_summary": pipeline_summary
+                "pipeline_summary": pipeline_summary,
+                "dataset": dataset_name  # Agregar dataset
             })
 
         except Exception as e:
@@ -910,9 +915,9 @@ def _apply_ica_filter(
         print("[_apply_ica_filter] ERROR: experiment_id requerido para cargar ICA")
         return raw_data
 
-    # Construir ruta al archivo .fif del ICA
-    # Estructura: backend/models/{experiment_id}/{model_type}/Aux/.../file_ica_{filter_id}.fif
-    # Necesitamos encontrar el archivo .fif correspondiente
+    # ===== FIX: Buscar archivo ICA de TRAINING (no UI) =====
+    # Nombre estándar: training_ica_{filter_id}.fif
+    # Ubicación: backend/models/{experiment_id}/{model_type}/
 
     # Obtener directorio base de modelos
     models_dir = Path(__file__).parent.parent / "models"
@@ -922,18 +927,18 @@ def _apply_ica_filter(
         print(f"[_apply_ica_filter] ERROR: Directorio del experimento no encontrado: {exp_dir}")
         return raw_data
 
-    # Buscar archivo .fif del ICA
-    # Patrón: *_ica_{filter_id}.fif
+    # Buscar archivo .fif del ICA de TRAINING
     filter_id = ica_config.get("id", "")
-    ica_files = list(exp_dir.rglob(f"*_ica_{filter_id}.fif"))
+    training_fif_name = f"training_ica_{filter_id}.fif"
+    ica_path = exp_dir / training_fif_name
 
-    if not ica_files:
-        print(f"[_apply_ica_filter] ERROR: No se encontró archivo ICA .fif para filter_id={filter_id} en {exp_dir}")
-        print(f"[_apply_ica_filter] Buscando patrón: *_ica_{filter_id}.fif")
+    if not ica_path.exists():
+        print(f"[_apply_ica_filter] ERROR: No se encontró archivo ICA de training: {ica_path}")
+        print(f"[_apply_ica_filter] Archivo esperado: {training_fif_name}")
+        print(f"[_apply_ica_filter] Esto indica que el modelo no fue entrenado con ICA o falta copiar el archivo .fif")
         return raw_data
 
-    ica_path = ica_files[0]
-    print(f"[_apply_ica_filter] Cargando ICA desde: {ica_path}")
+    print(f"[_apply_ica_filter] Cargando ICA de TRAINING desde: {ica_path}")
 
     try:
         # Cargar ICA fitted object

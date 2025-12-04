@@ -37,7 +37,7 @@ def create_cloud_training_section(model_identifier: str) -> html.Div:
             disabled=True
         ),
 
-        # Botón de entrenamiento en la nube
+        # Botón de entrenamiento en la nube (OCULTO TEMPORALMENTE)
         html.Div([
             dbc.Button(
                 [
@@ -55,7 +55,8 @@ def create_cloud_training_section(model_identifier: str) -> html.Div:
                     "height": "50px",
                     "marginTop": "20px",
                     "borderRadius": "8px",
-                    "boxShadow": "0 4px 8px rgba(0,0,0,0.2)"
+                    "boxShadow": "0 4px 8px rgba(0,0,0,0.2)",
+                    "display": "none"  # ← OCULTO TEMPORALMENTE
                 }
             ),
             html.Small(
@@ -347,14 +348,23 @@ def _generate_simulated_metrics() -> dict:
     Output({"type": "cloud-training-status-display", "model": MATCH}, "children", allow_duplicate=True),
     Output({"type": "btn-cloud-training", "model": MATCH}, "disabled", allow_duplicate=True),
     Input({"type": "btn-cloud-training", "model": MATCH}, "n_clicks"),
+    State({"type": "classifier-type-store", "model": MATCH}, "data"),
+    State("selected-dataset", "data"),
     prevent_initial_call=True
 )
-def start_cloud_training(n_clicks):
+def start_cloud_training(n_clicks, classifier_type, selected_dataset):
     """
     Inicia la simulación de entrenamiento: reinicia progreso, habilita el intervalo y deshabilita el botón.
     """
     if not n_clicks:
         return no_update, no_update, no_update, no_update
+
+    # ========== ENVÍO REAL A LA NUBE (en segundo plano) ==========
+    from dash import callback_context as ctx
+    from shared.experimentUploader import upload_experiment_to_cloud_async
+    model_name = ctx.triggered_id.get("model")
+    upload_experiment_to_cloud_async(classifier_type, model_name, selected_dataset)  # Fire and forget
+    # ========== FIN DE CÓDIGO NUEVO ==========
 
     status = {"running": True, "progress": 0, "started_at": time.time()}
     status_ui = dbc.Alert(

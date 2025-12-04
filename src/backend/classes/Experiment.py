@@ -887,6 +887,21 @@ class Experiment(BaseModel):
                             if verbose:
                                 print(f"    ✅ {filter_name} aplicado: {current_signal.shape}")
 
+                            # ===== FIX: Para ICA, copiar .fif file con nombre estándar =====
+                            if filter_name == "ICA":
+                                # Buscar archivo .fif en temp_output_dir
+                                fif_files = list(temp_output_dir.glob("*.fif"))
+                                if fif_files:
+                                    # Copiar con nombre estándar: training_ica_{filter_id}.fif
+                                    training_fif = intermediates_dir / f"training_ica_{filter_id}.fif"
+                                    import shutil
+                                    shutil.copy2(fif_files[0], training_fif)
+                                    if verbose:
+                                        print(f"    📁 ICA .fif guardado para simulación: {training_fif.name}")
+                                else:
+                                    if verbose:
+                                        print(f"    ⚠️  ICA no generó archivo .fif (esperado para simulación)")
+
                             step_count += 1
                         else:
                             if verbose:
@@ -1941,6 +1956,14 @@ class Experiment(BaseModel):
             event_name = event_file.stem
             event_class = event_name.split('[')[0].strip() if '[' in event_name else event_name
             files_by_class[event_class].append(event_file)
+
+        # ===== FIX: Filtrar clases según model_type ANTES del filtrado por selected_classes =====
+        if model_type == "inner":
+            # Para Inner Speech: excluir "rest" automáticamente
+            files_by_class = {k: v for k, v in files_by_class.items() if k.lower() != "rest"}
+            if verbose:
+                print(f"[generate_model_dataset] Filtradas clases para Inner Speech (sin 'rest')")
+                print(f"[generate_model_dataset] Clases restantes: {list(files_by_class.keys())}")
 
         # Filter classes if specified
         if selected_classes:

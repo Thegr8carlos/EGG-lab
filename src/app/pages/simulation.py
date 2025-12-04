@@ -10,6 +10,7 @@ from dash import html, dcc, register_page, callback, clientside_callback, Output
 import dash_bootstrap_components as dbc
 from app.components.SideBar import get_sideBar
 from app.components.ModelSelector import create_model_selector_section
+from app.components.CloudModelDownloader import create_cloud_downloader_card
 # (SimulationRealtime ya no se usa - implementación simple integrada)
 import numpy as np
 from typing import List, Dict
@@ -58,6 +59,11 @@ layout = html.Div([
 
         # Paso 1: Selección de Modelos
         create_model_selector_section(),
+
+        html.Hr(style={"borderColor": "rgba(255,255,255,0.2)", "margin": "2rem 0"}),
+
+        # Descargador de modelos desde la nube
+        create_cloud_downloader_card(),
 
         html.Hr(style={"borderColor": "rgba(255,255,255,0.2)", "margin": "2rem 0"}),
 
@@ -372,8 +378,15 @@ def create_full_session_plots(
 
     for i, label in enumerate(labels_flat):
         if label != prev_label:
+            # Convertir label a string y limpiar
+            label_str = str(label).strip()
+
+            # Mapear "unlabeled" o valores vacíos a "rest"
+            if label_str.lower() in ['unlabeled', 'unknown', 'none', '']:
+                label_str = 'rest'
+
             event_changes.append(i / sfreq)
-            event_labels_list.append(str(label))
+            event_labels_list.append(label_str)
             prev_label = label
 
     fig_raw = go.Figure()
@@ -388,16 +401,18 @@ def create_full_session_plots(
         hovertemplate='<b>Tiempo:</b> %{x:.2f}s<br><b>Amplitud:</b> %{y:.2f}<extra></extra>'
     ))
 
-    # Marcadores de eventos reales
+    # Marcadores de eventos reales (filtrar "rest")
     for event_time, event_label in zip(event_changes, event_labels_list):
-        color = 'rgba(255, 100, 100, 0.3)' if event_label == 'rest' else 'rgba(100, 255, 100, 0.3)'
-        fig_raw.add_vline(
-            x=event_time,
-            line_dash="dash",
-            line_color=color,
-            annotation_text=event_label,
-            annotation_position="top"
-        )
+        # Solo mostrar clases que NO sean "rest"
+        if event_label.lower() != 'rest':
+            color = 'rgba(100, 255, 100, 0.3)'  # Verde para clases activas
+            fig_raw.add_vline(
+                x=event_time,
+                line_dash="dash",
+                line_color=color,
+                annotation_text=event_label,
+                annotation_position="top"
+            )
 
     fig_raw.update_layout(
         title="📊 Señal Raw EEG + Eventos Reales",
@@ -450,16 +465,8 @@ def create_full_session_plots(
         'atras': 'rgba(100, 255, 255, 0.8)'      # Cyan
     }
 
-    # Obtener clases únicas del modelo Inner (si hay resultados con inner_prediction)
-    inner_class_names = []
-    if results and 'inner_prediction' in results[0]:
-        # Intentar obtener nombres de clases del metadata
-        # Por ahora usaremos los índices y las extraeremos de los resultados
-        for r in results:
-            if r['inner_prediction'] is not None and r['p300_prediction'] == 1:
-                # Necesitamos mapear inner_prediction (índice) a nombre de clase
-                # Por ahora lo dejamos como índice
-                pass
+    # ===== FIX: Obtener nombres de clases del modelo Inner Speech =====
+    inner_classes = metrics.get('inner_classes', [])
 
     # Agrupar por clase de Inner Speech
     from collections import defaultdict
@@ -468,8 +475,13 @@ def create_full_session_plots(
     for r in results:
         if r['p300_prediction'] == 1 and r['inner_prediction'] is not None:
             inner_idx = r['inner_prediction']
-            # Mapear índice a nombre si es posible
-            class_name = f"Clase {inner_idx}"  # Placeholder
+
+            # ===== FIX: Mapear índice a nombre de clase real =====
+            if 0 <= inner_idx < len(inner_classes):
+                class_name = inner_classes[inner_idx]
+            else:
+                class_name = f"Clase {inner_idx}"  # Fallback si índice fuera de rango
+
             inner_by_class[class_name]['times'].append(r['time_sec'])
             inner_by_class[class_name]['y'].append(0.75)  # Posición entre P300 (1) y clasificación (0.5)
 
@@ -912,22 +924,69 @@ def create_metrics_card(metrics: Dict, results: List[Dict]) -> dbc.Card:
     p300_detected = metrics['p300_detected']
     p300_rate = metrics['p300_detection_rate']
 
-    # Métricas por clase
+    # ===== FIX: Métricas por clase (separar clases del modelo de clases no entrenadas) =====
     by_class = metrics.get('by_class', {})
+    inner_classes = metrics.get('inner_classes', [])
 
     # Crear tabla de métricas por clase
+    # Primero mostrar clases que el modelo Inner conoce, luego las otras
     class_rows = []
-    for class_name, class_metrics in sorted(by_class.items()):
+
+    # Categorizar clases
+    model_classes = {}  # Clases que Inner Speech puede predecir
+    other_classes = {}  # Clases que Inner Speech NO puede predecir (ej: rest)
+
+    for class_name, class_metrics in by_class.items():
+        if class_metrics.get('is_inner_class', False):
+            model_classes[class_name] = class_metrics
+        else:
+            other_classes[class_name] = class_metrics
+
+    # Agregar clases del modelo
+    for class_name, class_metrics in sorted(model_classes.items()):
         class_rows.append(
             html.Tr([
-                html.Td(class_name, style={"fontWeight": "500"}),
-                html.Td(f"{class_metrics['total']}", className="text-center"),
-                html.Td(f"{class_metrics['correct']}", className="text-center"),
+                html.Td(class_name, style={"fontWeight": "600", "fontSize": "16px"}),
+                html.Td(f"{class_metrics['total']}", className="text-center", style={"fontSize": "16px"}),
+                html.Td(f"{class_metrics['correct']}", className="text-center", style={"fontSize": "16px"}),
                 html.Td(f"{class_metrics['accuracy']:.1%}", className="text-center", style={
-                    "color": "green" if class_metrics['accuracy'] > 0.7 else "orange"
+                    "color": "#00ff88" if class_metrics['accuracy'] > 0.7 else "#ffaa00",  # Verde/naranja brillante
+                    "fontWeight": "600",
+                    "fontSize": "16px"
                 })
             ])
         )
+
+    # Agregar separador si hay clases "desconocidas"
+    if other_classes:
+        class_rows.append(
+            html.Tr([
+                html.Td(html.Em("(Clases no entrenadas)"), colSpan=4, style={
+                    "fontSize": "14px",
+                    "color": "rgba(255,255,255,0.7)",
+                    "borderTop": "2px solid rgba(255,255,255,0.3)",
+                    "paddingTop": "10px",
+                    "fontWeight": "500"
+                })
+            ])
+        )
+
+        # Agregar clases desconocidas (como "rest")
+        for class_name, class_metrics in sorted(other_classes.items()):
+            class_rows.append(
+                html.Tr([
+                    html.Td([
+                        class_name,
+                        html.Sup(" *", style={"color": "var(--accent-1)", "fontSize": "12px"})
+                    ], style={"fontWeight": "500", "fontStyle": "italic", "fontSize": "15px"}),
+                    html.Td(f"{class_metrics['total']}", className="text-center", style={"fontSize": "15px"}),
+                    html.Td(f"{class_metrics['correct']}", className="text-center", style={"fontSize": "15px"}),
+                    html.Td(f"{class_metrics['accuracy']:.1%}", className="text-center", style={
+                        "color": "rgba(255,255,255,0.6)",
+                        "fontSize": "15px"
+                    })
+                ], style={"opacity": "0.8"})
+            )
 
     return dbc.Card([
         dbc.CardHeader(html.H5([
@@ -940,40 +999,51 @@ def create_metrics_card(metrics: Dict, results: List[Dict]) -> dbc.Card:
                 # Métricas globales
                 dbc.Col([
                     html.Div([
-                        html.H3(f"{accuracy:.1%}", style={"color": "var(--accent-3)", "marginBottom": "0"}),
-                        html.Small("Accuracy Global", className="text-muted")
+                        html.H2(f"{accuracy:.1%}", style={"color": "var(--accent-3)", "marginBottom": "0", "fontSize": "42px", "fontWeight": "700"}),
+                        html.Div("Accuracy Global", style={"fontSize": "16px", "color": "rgba(255,255,255,0.7)", "fontWeight": "500"})
                     ], className="text-center mb-3"),
 
                     html.Div([
-                        html.H5(f"{correct} / {total}", style={"color": "white"}),
-                        html.Small("Ventanas Correctas", className="text-muted")
+                        html.H4(f"{correct} / {total}", style={"color": "white", "fontSize": "28px", "fontWeight": "600"}),
+                        html.Div("Ventanas Correctas", style={"fontSize": "14px", "color": "rgba(255,255,255,0.7)", "fontWeight": "500"})
                     ], className="text-center")
                 ], width=3),
 
                 dbc.Col([
                     html.Div([
-                        html.H3(f"{p300_rate:.1%}", style={"color": "var(--accent-2)", "marginBottom": "0"}),
-                        html.Small("Tasa Detección P300", className="text-muted")
+                        html.H2(f"{p300_rate:.1%}", style={"color": "var(--accent-2)", "marginBottom": "0", "fontSize": "42px", "fontWeight": "700"}),
+                        html.Div("Tasa Detección P300", style={"fontSize": "16px", "color": "rgba(255,255,255,0.7)", "fontWeight": "500"})
                     ], className="text-center mb-3"),
 
                     html.Div([
-                        html.H5(f"{p300_detected} / {total}", style={"color": "white"}),
-                        html.Small("P300 Detectados", className="text-muted")
+                        html.H4(f"{p300_detected} / {total}", style={"color": "white", "fontSize": "28px", "fontWeight": "600"}),
+                        html.Div("P300 Detectados", style={"fontSize": "14px", "color": "rgba(255,255,255,0.7)", "fontWeight": "500"})
                     ], className="text-center")
                 ], width=3),
 
                 # Tabla de métricas por clase
                 dbc.Col([
-                    html.H6("Métricas por Clase", className="mb-2", style={"color": "white"}),
+                    html.H6("Métricas por Clase", className="mb-3", style={"color": "white", "fontSize": "20px", "fontWeight": "600"}),
                     dbc.Table([
                         html.Thead(html.Tr([
-                            html.Th("Clase"),
-                            html.Th("Total", className="text-center"),
-                            html.Th("Correctas", className="text-center"),
-                            html.Th("Accuracy", className="text-center")
-                        ])),
+                            html.Th("Clase", style={"fontSize": "17px", "fontWeight": "700", "color": "#ffffff"}),
+                            html.Th("Total", className="text-center", style={"fontSize": "17px", "fontWeight": "700", "color": "#ffffff"}),
+                            html.Th("Correctas", className="text-center", style={"fontSize": "17px", "fontWeight": "700", "color": "#ffffff"}),
+                            html.Th("Accuracy", className="text-center", style={"fontSize": "17px", "fontWeight": "700", "color": "#ffffff"})
+                        ], style={"backgroundColor": "rgba(255,255,255,0.1)"})
+                        ),
                         html.Tbody(class_rows)
-                    ], bordered=True, hover=True, size="sm", style={"fontSize": "12px", "backgroundColor": "rgba(0,0,0,0.4)", "color": "white"})
+                    ], bordered=True, hover=True, style={
+                        "fontSize": "16px",
+                        "backgroundColor": "rgba(0,0,0,0.6)",
+                        "color": "white",
+                        "borderColor": "rgba(255,255,255,0.3)"
+                    }),
+                    # Nota explicativa si hay clases no entrenadas
+                    html.Small([
+                        html.Sup("*", style={"color": "var(--accent-1)", "fontSize": "13px"}),
+                        " Clases no entrenadas por Inner Speech (solo evaluadas por P300)"
+                    ], className="text-muted mt-2 d-block", style={"fontSize": "13px", "fontWeight": "500"}) if other_classes else None
                 ], width=6)
             ])
         ])
@@ -1154,6 +1224,14 @@ def process_full_session(n_clicks, raw_data, labels_data, p300_config, inner_con
             inner_config['pkl_path']
         )
 
+        # Extraer nombre del dataset de la ruta del archivo
+        dataset_name = None
+        if file_p:
+            # Extraer dataset de la ruta (ej: "Data/arabic_inner_speech/..." -> "arabic_inner_speech")
+            parts = Path(file_p).parts
+            if len(parts) > 1:
+                dataset_name = parts[1] if parts[0] in ["Data", "Aux"] else parts[0]
+
         # Crear motor de simulación
         engine = SimulationEngine(
             raw_signal=raw_signal,
@@ -1161,7 +1239,8 @@ def process_full_session(n_clicks, raw_data, labels_data, p300_config, inner_con
             sfreq=1024.0,  # InnerSpeech dataset
             p300_model_config=p300_full,
             inner_model_config=inner_full,
-            hop_percent=hop_percent
+            hop_percent=hop_percent,
+            dataset_name=dataset_name  # Para mapear labels correctamente
         )
 
         # Procesar toda la sesión
@@ -1337,6 +1416,14 @@ def start_simulation(n_clicks, viz_mode, p300_config, inner_config, hop_percent,
             inner_config['pkl_path']
         )
 
+        # Extraer nombre del dataset de la ruta del archivo
+        dataset_name = None
+        if file_p:
+            # Extraer dataset de la ruta (ej: "Data/arabic_inner_speech/..." -> "arabic_inner_speech")
+            parts = file_p.parts
+            if len(parts) > 1:
+                dataset_name = parts[1] if parts[0] in ["Data", "Aux"] else parts[0]
+
         # Crear motor de simulación
         engine = SimulationEngine(
             raw_signal=raw_signal,
@@ -1344,7 +1431,8 @@ def start_simulation(n_clicks, viz_mode, p300_config, inner_config, hop_percent,
             sfreq=1024.0,
             p300_model_config=p300_full,
             inner_model_config=inner_full,
-            hop_percent=hop_percent
+            hop_percent=hop_percent,
+            dataset_name=dataset_name  # Para mapear labels correctamente
         )
 
         # Guardar engine data (necesitamos guardarlo de forma serializable)
@@ -1407,26 +1495,59 @@ def start_simulation(n_clicks, viz_mode, p300_config, inner_config, hop_percent,
             print(f"[start_simulation] ✅ Vista clientside creada. Habilitando procesamiento...")
 
             # Preparar señal completa para visualización (formato como dataset.py)
-            # Crear mapa de colores para labels
-            unique_labels = np.unique(labels)
-            label_colors = {}
+            # Crear mapa de colores usando las clases del dataset (no labels RAW)
             color_palette = [
                 "#FF6B6B", "#4ECDC4", "#45B7D1", "#FFA07A",
                 "#98D8C8", "#F7DC6F", "#BB8FCE", "#85C1E2"
             ]
-            for i, label in enumerate(unique_labels):
-                # Labels pueden ser strings o números, convertir todo a string
-                label_colors[str(label)] = color_palette[i % len(color_palette)]
+
+            # Obtener clases del dataset (ya mapeadas por SimulationEngine)
+            dataset_classes = engine.dataset_classes if engine.dataset_classes else []
+
+            if dataset_classes:
+                # Usar clases del dataset (Down, Left, Right, etc.)
+                label_colors = {}
+                for i, class_name in enumerate(dataset_classes):
+                    label_colors[str(class_name)] = color_palette[i % len(color_palette)]
+            else:
+                # Fallback: usar labels únicas (retrocompatibilidad)
+                unique_labels = np.unique(labels)
+                label_colors = {}
+                for i, label in enumerate(unique_labels):
+                    label_colors[str(label)] = color_palette[i % len(color_palette)]
+
+            # Mapear las labels a nombres de clases antes de pasar al frontend
+            mapped_labels = []
+            for label in labels.flatten():
+                if engine.label_to_class_map:
+                    # Intentar mapear usando el diccionario del engine
+                    if isinstance(label, (int, np.integer)):
+                        mapped = engine.label_to_class_map.get(int(label))
+                    else:
+                        mapped = engine.label_to_class_map.get(str(label))
+
+                    # Si se mapeó correctamente, usar el valor mapeado
+                    if mapped:
+                        mapped_labels.append(str(mapped))
+                    # Si es unlabeled/unknown, mapear a "rest"
+                    elif str(label).lower() in ['unlabeled', 'unknown', 'none', '']:
+                        mapped_labels.append("rest")
+                    else:
+                        # Usar valor original si no se puede mapear
+                        mapped_labels.append(str(label))
+                else:
+                    # No hay mapeo disponible, usar tal cual
+                    mapped_labels.append(str(label))
 
             # Preparar datos de señal completa
             rt_signal_data = {
                 "data": raw_signal.tolist(),  # Convertir a lista para JSON
-                "labels": [str(l) for l in labels.flatten()],  # Convertir labels a strings
+                "labels": mapped_labels,  # Labels mapeadas a nombres de clases
                 "num_channels": raw_signal.shape[0],
                 "num_timepoints": raw_signal.shape[1],
-                "label_color_map": label_colors,
+                "label_color_map": label_colors,  # Colores con keys correctas
                 "sfreq": 1024.0,
-                "unique_labels": [str(l) for l in unique_labels]
+                "unique_labels": list(label_colors.keys())  # Clases reales
             }
 
             # Inicializar Store con datos del engine

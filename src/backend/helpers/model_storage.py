@@ -399,18 +399,22 @@ def _copy_ica_files_to_model_dir(
     dest_dir = base_dir / experiment_id / model_type
     dest_dir.mkdir(parents=True, exist_ok=True)
 
-    # Buscar archivos .fif en directorios de datos
-    # Buscar en Aux/ y Data/ desde la raíz del proyecto
+    # ===== FIX: Buscar SOLO archivos .fif de TRAINING (no UI) =====
+    # Los archivos de training se guardan como training_ica_{filter_id}.fif en intermediates
+    dataset_name = experiment_snapshot.get("dataset")
+
     project_root = Path.cwd()
     if project_root.name == "src":
         project_root = project_root.parent
 
-    search_paths = [
-        project_root / "Aux",
-        project_root / "Data",
-        project_root / "src" / "Aux",
-        project_root / "src" / "Data",
-    ]
+    # Construir ruta a intermediates del dataset
+    # Patrón: Aux/{dataset}/{model_type}/intermediates/
+    intermediates_paths = []
+    if dataset_name:
+        for aux_root in [project_root / "Aux", project_root / "src" / "Aux"]:
+            if aux_root.exists():
+                # Buscar intermediates en la estructura del dataset
+                intermediates_paths.extend(aux_root.rglob(f"*/{model_type}/intermediates"))
 
     copied_count = 0
     for ica_filter in ica_filters:
@@ -420,24 +424,33 @@ def _copy_ica_files_to_model_dir(
         if not filter_id:
             continue
 
-        # Buscar archivos .fif con patrón *_ica_{filter_id}.fif
-        pattern = f"*_ica_{filter_id}.fif"
+        # ===== FIX: Buscar SOLO training_ica_{filter_id}.fif (no *_ica_{filter_id}.fif) =====
+        training_fif_name = f"training_ica_{filter_id}.fif"
+        found = False
 
-        for search_path in search_paths:
-            if not search_path.exists():
+        # Buscar en directorios intermediates
+        for intermediates_dir in intermediates_paths:
+            if not intermediates_dir.exists():
                 continue
 
-            # Buscar recursivamente
-            for fif_file in search_path.rglob(pattern):
-                dest_file = dest_dir / fif_file.name
+            training_fif = intermediates_dir / training_fif_name
+            if training_fif.exists():
+                dest_file = dest_dir / training_fif_name
 
                 # Copiar si no existe o es más reciente
-                if not dest_file.exists() or fif_file.stat().st_mtime > dest_file.stat().st_mtime:
-                    shutil.copy2(fif_file, dest_file)
-                    print(f"[ModelStorage] ✓ Copiado ICA .fif: {fif_file.name} → {dest_dir}")
+                if not dest_file.exists() or training_fif.stat().st_mtime > dest_file.stat().st_mtime:
+                    shutil.copy2(training_fif, dest_file)
+                    print(f"[ModelStorage] ✓ Copiado ICA .fif de TRAINING: {training_fif_name} → {dest_dir}")
                     copied_count += 1
+                    found = True
+                    break
                 else:
-                    print(f"[ModelStorage] ⏭️  ICA .fif ya existe: {fif_file.name}")
+                    print(f"[ModelStorage] ⏭️  ICA .fif de training ya existe: {training_fif_name}")
+                    found = True
+                    break
+
+        if not found:
+            print(f"[ModelStorage] ⚠️  No se encontró {training_fif_name} en intermediates (puede ser que el training no haya generado ICA .fif)")
 
     if copied_count > 0:
         print(f"[ModelStorage] ✅ {copied_count} archivo(s) ICA .fif copiados para simulación")

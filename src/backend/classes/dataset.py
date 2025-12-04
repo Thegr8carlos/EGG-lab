@@ -735,7 +735,7 @@ class Dataset:
             }
 
 
-    def upload_dataset(self, path_to_folder, baseline_classes=None):
+    def upload_dataset(self, path_to_folder, baseline_classes=None, duration_ms=3200):
         print("Entering upload dataset ")
         print("getting all the files with .bdf, .edf extensions, just by now ....")
 
@@ -745,6 +745,9 @@ class Dataset:
         else:
             print(f"[BASELINE] No se seleccionaron clases baseline - se generará 'rest' del background")
             baseline_classes = None  # Normalizar lista vacía a None
+
+        # Configuración de duración de ventana
+        print(f"[WINDOW] Duración de ventana configurada: {duration_ms}ms")
 
         if not is_folder_not_empty(path_to_folder):
             return {"status": 400, "message": "Se ha seleccionado una carpeta Vacia "}
@@ -966,8 +969,10 @@ class Dataset:
                 # ===== Etiquetas por muestra =====
                 label_array = np.zeros((1, data.shape[1]), dtype=object)
 
-                label_duration_sec = 3.2  # mantenemos tu valor actual
+                # Calcular duración de ventana basada en milisegundos configurados
+                label_duration_sec = duration_ms / 1000.0  # Convertir ms a segundos
                 label_duration_samples = int(label_duration_sec * sfreq)
+                print(f"[WINDOW] Ventana de eventos: {duration_ms}ms = {label_duration_samples} samples @ {sfreq}Hz")
 
                 # Etiquetar eventos
                 for sample_idx, eid in inner_cues:
@@ -1027,16 +1032,30 @@ class Dataset:
                     cleaned_events_dirs.add(events_dir)
                     print(f"[REGEN] Limpiando Events/ por mapeo baseline: {events_dir}")
 
-                prefer_action_tags = True  # usa 44-45 si existen; si no, cae a 3.2s desde el cue
+                # Detectar si hay markers 44-45 en los eventos
+                has_action_markers = np.any((events[:, 2] == 44) | (events[:, 2] == 45))
+
+                # Solo usar markers 44-45 si NO se configuró un duration_ms personalizado
+                # (duration_ms != 3200 significa que el usuario lo configuró manualmente)
+                prefer_action_tags = has_action_markers and (duration_ms == 3200)
+
+                if has_action_markers and duration_ms != 3200:
+                    print(f"[WINDOW] ⚠️ Se detectaron markers 44-45 pero se priorizará duration_ms={duration_ms}ms configurado")
+                    print(f"[WINDOW] Todas las ventanas tendrán {label_duration_samples} samples para consistencia")
+                elif has_action_markers and duration_ms == 3200:
+                    print(f"[WINDOW] ✓ Usando markers 44-45 para delimitar ventanas (duración variable)")
+                else:
+                    print(f"[WINDOW] No hay markers 44-45 - usando ventana fija de {duration_ms}ms")
 
                 for (cue_sample, eid) in inner_cues:
                     class_name = labels_dict[eid]
 
-                    # Delimitación del evento
+                    # Delimitación del evento (por defecto: desde cue)
                     start_sample = cue_sample
                     end_sample = min(cue_sample + label_duration_samples, data.shape[1])
 
                     if prefer_action_tags:
+                        # Solo usar markers 44-45 si NO hay duration_ms personalizado
                         # primer 44 >= cue, y primer 45 >= ese 44
                         next44 = events[(events[:, 0] >= cue_sample) & (events[:, 2] == 44)]
                         if next44.size > 0:
@@ -1074,7 +1093,7 @@ class Dataset:
                         f"samples={start_sample}-{end_sample} | shape={X_event.shape}"
                     )
 
-                # ===== EXTRAER VENTANAS DE BACKGROUND =====
+                # ===== EXTRAER VENTANAS DE BACKGROUND (BALANCEADAS) =====
                 if generate_background_rest:
                     print(f"[BDF] Extrayendo ventanas de background (etiquetadas como '{background_label}')...")
 
@@ -1084,10 +1103,36 @@ class Dataset:
                     if len(background_indices) > 0:
                         # Segmentar en ventanas del mismo tamaño que eventos
                         window_size = label_duration_samples
-                        n_windows = len(background_indices) // window_size
+                        max_possible_windows = len(background_indices) // window_size
+
+                        # ===== BALANCEO: Limitar rest a ~ mismo número que eventos de clases =====
+                        # Calcular cuántos eventos de clases hay
+                        num_class_events = len(inner_cues)
+
+                        # Limitar rest a ser aproximadamente igual al número de eventos de clases
+                        # Esto balancea el dataset automáticamente
+                        n_windows = min(max_possible_windows, num_class_events)
+
+                        print(f"[BALANCE] Eventos de clases: {num_class_events}")
+                        print(f"[BALANCE] Ventanas rest posibles: {max_possible_windows}")
+                        print(f"[BALANCE] Ventanas rest a extraer: {n_windows} (para balanceo)")
+
+                        # Si hay más ventanas posibles que las que queremos, muestrear aleatoriamente
+                        # para obtener ventanas representativas de todo el background
+                        if max_possible_windows > n_windows:
+                            # Muestreo aleatorio de índices de ventanas
+                            selected_window_indices = np.random.choice(
+                                max_possible_windows,
+                                size=n_windows,
+                                replace=False
+                            )
+                            selected_window_indices = sorted(selected_window_indices)
+                        else:
+                            # Si hay pocas ventanas, usar todas
+                            selected_window_indices = range(n_windows)
 
                         background_count = 0
-                        for i in range(n_windows):
+                        for i in selected_window_indices:
                             start_idx = background_indices[i * window_size]
                             end_idx = start_idx + window_size
 
@@ -1115,6 +1160,7 @@ class Dataset:
                                     background_count += 1
 
                         print(f"[BDF] Extraídas {background_count} ventanas de background | shape={X_background.shape if background_count > 0 else 'N/A'}")
+                        print(f"[BALANCE] ✅ Dataset balanceado: {num_class_events} eventos de clases, {background_count} eventos rest")
 
                         # Actualizar conteos (acumular correctamente)
                         if background_label not in counts:
@@ -1364,8 +1410,11 @@ class Dataset:
 
                 # ===== Etiquetas por muestra =====
                 label_array = np.zeros((1, data.shape[1]), dtype=object)
-                label_duration_sec = 3.2
+
+                # Calcular duración de ventana basada en milisegundos configurados
+                label_duration_sec = duration_ms / 1000.0  # Convertir ms a segundos
                 label_duration_samples = int(label_duration_sec * sfreq)
+                print(f"[WINDOW] Ventana de eventos: {duration_ms}ms = {label_duration_samples} samples @ {sfreq}Hz")
 
                 # Etiquetar eventos
                 for sample_idx, eid in cues:

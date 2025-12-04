@@ -344,7 +344,8 @@ def build_model_config_from_layers(
     num_classes: int,
     epochs: Optional[int] = None,
     batch_size: Optional[int] = None,
-    learning_rate: Optional[float] = None
+    learning_rate: Optional[float] = None,
+    classifier_type: Optional[str] = None
 ) -> Dict[str, Any]:
     """
     Construye el diccionario de configuración completo del modelo desde las capas.
@@ -357,6 +358,7 @@ def build_model_config_from_layers(
         epochs: Número de épocas (opcional, del usuario)
         batch_size: Tamaño de batch (opcional, del usuario)
         learning_rate: Tasa de aprendizaje (opcional, del usuario)
+        classifier_type: Tipo de clasificador - "P300" o "InnerSpeech" (opcional)
 
     Returns:
         Diccionario con la configuración completa del modelo en formato Pydantic
@@ -2125,9 +2127,10 @@ def register_interactive_callbacks():
         [Input("architecture-layers", "data"),
          Input("current-step", "data"),
          Input("selected-dataset", "data"),
-         Input("model-type", "data")]
+         Input("model-type", "data"),
+         State("classifier-type-store", "data")]
     )
-    def update_visualization(layers, current_step, selected_dataset, model_type):
+    def update_visualization(layers, current_step, selected_dataset, model_type, classifier_type):
         # Obtener num_channels y num_classes del dataset
         num_channels = None
         num_classes = None
@@ -2138,8 +2141,21 @@ def register_interactive_callbacks():
                 metadata = get_dataset_metadata(selected_dataset)
                 channel_names = metadata.get("channel_names") or []
                 classes = metadata.get("classes") or []
+
+                # ===== FIX: Calcular num_classes según el tipo de clasificador =====
+                if classifier_type == "InnerSpeech":
+                    # Inner Speech: Multiclase sin rest/none/unlabeled
+                    excluded_classes = ["rest", "none", "unlabeled"]
+                    classes = [cls for cls in classes if cls.lower() not in excluded_classes]
+                    num_classes = len(classes)
+                elif classifier_type == "P300":
+                    # P300: Clasificación binaria (0=NonTarget/rest, 1=Target)
+                    num_classes = 2
+                else:
+                    # Fallback: usar todas las clases del dataset
+                    num_classes = len(classes)
+
                 num_channels = len(channel_names)
-                num_classes = len(classes)
             except Exception:
                 pass  # Si falla, usar valores por defecto
 
@@ -2598,8 +2614,25 @@ def register_interactive_callbacks():
                 channel_names = metadata.get("channel_names") or metadata.get("channel_name_union") or []
                 classes = metadata.get("classes") or []
 
+                # ===== FIX: Calcular num_classes según el tipo de clasificador =====
+                if classifier_type == "InnerSpeech":
+                    # Inner Speech: Multiclase sin rest/none/unlabeled
+                    excluded_classes = ["rest", "none", "unlabeled"]
+                    original_classes = classes.copy()
+                    classes = [cls for cls in classes if cls.lower() not in excluded_classes]
+                    if len(classes) < len(original_classes):
+                        print(f"🗑️  [Inner Speech] Clases excluidas: {set(original_classes) - set(classes)}")
+                        print(f"✅ [Inner Speech] Clases para entrenamiento: {classes}")
+                    num_classes = len(classes)
+                elif classifier_type == "P300":
+                    # P300: Clasificación binaria (0=NonTarget/rest, 1=Target)
+                    num_classes = 2
+                    print(f"✅ [P300] Clasificación binaria: 2 clases (NonTarget/Target)")
+                else:
+                    # Fallback: usar todas las clases del dataset
+                    num_classes = len(classes)
+
                 num_channels = len(channel_names)
-                num_classes = len(classes)
 
                 if num_channels <= 0:
                     return (dbc.Alert([
@@ -2613,7 +2646,7 @@ def register_interactive_callbacks():
                         f"Error: El dataset no tiene clases válidas. Metadata: {metadata}"
                     ], color="danger", dismissable=True), True, "Dataset sin clases válidas", False)
 
-                print(f"📊 Dataset metadata: {num_channels} canales, {num_classes} clases")
+                print(f"📊 Dataset metadata: {num_channels} canales, {num_classes} clases ({classifier_type})")
 
             except Exception as meta_err:
                 return (dbc.Alert([
@@ -2767,7 +2800,8 @@ def register_interactive_callbacks():
                     layers, model_type, num_channels, num_classes,
                     epochs=epochs,
                     batch_size=batch_size,
-                    learning_rate=learning_rate
+                    learning_rate=learning_rate,
+                    classifier_type=classifier_type
                 )
                 _arch_log("Hparams del usuario:", f"epochs={epochs}, batch_size={batch_size}, lr={learning_rate}")
             except ValueError as ve:
@@ -2962,6 +2996,62 @@ def register_interactive_callbacks():
                     Experiment.add_P300_classifier(validated_instance)
                     _arch_log(f"{model_type} agregado al experimento como P300Classifier")
 
+                # ===== PASO 4: ENVIAR EXPERIMENTO A LA NUBE (SYNC) =====
+                from shared.experimentUploader import upload_experiment_to_cloud_sync, download_trained_model
+                import threading
+
+                print(f"\n{'='*70}")
+                print(f"[TestConfig] 📤 Enviando experimento a la nube después de probar configuración...")
+                print(f"{'='*70}")
+
+                cloud_upload_msg = None
+                try:
+                    cloud_result = upload_experiment_to_cloud_sync(
+                        classifier_type=classifier_type,
+                        model_name=model_type,
+                        dataset_name=selected_dataset
+                    )
+
+                    if cloud_result["success"]:
+                        job_id = cloud_result["jobid"]
+                        print(f"[TestConfig] ✅ Experimento enviado a la nube exitosamente")
+                        print(f"[TestConfig] 🆔 Job ID: {job_id}")
+                        cloud_upload_msg = f"Enviado a la nube - Job ID: {job_id}"
+
+                        # ===== PASO 4.5: DESCARGAR MODELO EN BACKGROUND =====
+                        # Iniciar descarga en un thread separado para no bloquear la UI
+                        def download_in_background():
+                            import time
+                            # Esperar 5 segundos antes de intentar descargar (dar tiempo al servidor)
+                            print(f"[TestConfig] ⏳ Esperando 5s antes de descargar modelo...")
+                            time.sleep(5)
+
+                            download_result = download_trained_model(
+                                job_id=job_id,
+                                classifier_type=classifier_type
+                            )
+
+                            if download_result["success"]:
+                                print(f"[TestConfig] 🎉 Modelo descargado y guardado en: {download_result['model_path']}")
+                            else:
+                                print(f"[TestConfig] ⚠️ No se pudo descargar el modelo: {download_result.get('error')}")
+
+                        # Iniciar thread
+                        download_thread = threading.Thread(target=download_in_background, daemon=True)
+                        download_thread.start()
+                        # ===== FIN PASO 4.5 =====
+
+                    else:
+                        print(f"[TestConfig] ⚠️ No se pudo enviar a la nube")
+                        print(f"[TestConfig] Error: {cloud_result.get('error', 'Desconocido')}")
+                        cloud_upload_msg = "No se pudo enviar a la nube (revisa la conexión)"
+                except Exception as e:
+                    print(f"[TestConfig] ⚠️ Error al enviar a la nube: {e}")
+                    cloud_upload_msg = "Error al enviar a la nube"
+
+                print(f"{'='*70}\n")
+                # ===== FIN PASO 4 =====
+
                 # Éxito total con detalles de compilación
                 success_content = [
                     html.I(className="fas fa-check-circle me-2"),
@@ -2976,6 +3066,10 @@ def register_interactive_callbacks():
                             html.I(className="fas fa-database me-1", style={"fontSize": "12px"}),
                             html.Small(f"{num_channels} canales • {num_classes} clases • Experimento: {experiment_type_msg}")
                         ], className="mt-1", style={"opacity": "0.8"}),
+                        html.Div([
+                            html.I(className="fas fa-cloud-upload-alt me-1", style={"fontSize": "12px"}),
+                            html.Small(cloud_upload_msg, style={"opacity": "0.9"})
+                        ], className="mt-1"),
                         html.Div([
                             html.I(className="fas fa-check me-1", style={"fontSize": "12px", "color": "#28a745"}),
                             html.Small("Listo para entrenamiento completo", style={"color": "#28a745", "fontWeight": "500"})

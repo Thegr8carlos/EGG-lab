@@ -489,7 +489,17 @@ class SVNN(Classifier):
             n_classes = int(np.unique(np.concatenate([ytr.reshape(-1), yte.reshape(-1)])).size)
         except Exception:
             n_classes = int(max(int(ytr.max()), int(yte.max()))) + 1
-        out_dim = max(n_classes, int(instance.classification_units))
+
+        # ===== FIX: Sobrescribir classification_units con n_classes REAL =====
+        # Esto previene el bug donde la configuración tiene más clases que los datos reales
+        # (ej: dataset tiene 5 clases pero subset de Inner Speech tiene 4 sin "rest")
+        if instance.classification_units != n_classes:
+            print(f"⚠️  [SVNN] ADVERTENCIA: Configuración tiene {instance.classification_units} unidades, "
+                  f"pero datos tienen {n_classes} clases.")
+            print(f"🔧 [SVNN] Sobrescribiendo classification_units: {instance.classification_units} → {n_classes}")
+            instance.classification_units = n_classes
+
+        out_dim = n_classes
 
         # 2) Construcción del modelo con TensorFlow/Keras
         model_layers = []

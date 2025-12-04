@@ -102,7 +102,18 @@ class BandPass(Filter):
             l_freq, h_freq = low, high
 
         # --- Filtrado ---
-        if instance.method == "fir":
+        # ===== FIX: Detectar señales cortas y cambiar a IIR automáticamente =====
+        signal_length = data.shape[1]  # Número de samples en la señal
+        method_to_use = instance.method
+
+        # Para FIR, MNE necesita filter_length ~= 3 * sfreq / min_freq
+        # Si la señal es más corta que eso, FIR causará distorsión severa
+        if instance.method == "fir" and signal_length < 1000:
+            print(f"⚠️ [BandPass] Señal corta ({signal_length} samples), cambiando de FIR a IIR para evitar distorsión")
+            print(f"[BandPass] FIR requeriría filter_length >> {signal_length}, causando artefactos")
+            method_to_use = "iir"
+
+        if method_to_use == "fir":
             # Para FIR, filter_length debe ser impar y suficientemente grande
             if instance.order is not None:
                 filter_length = instance.order
@@ -145,6 +156,7 @@ class BandPass(Filter):
                 else:
                     raise
         else:
+            # Método IIR (original o fallback desde señal corta)
             iir_order = instance.order if instance.order is not None else 4
             iir_params = dict(order=iir_order, ftype="butter")
             out = mne.filter.filter_data(

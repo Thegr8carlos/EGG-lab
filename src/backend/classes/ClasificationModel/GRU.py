@@ -431,6 +431,15 @@ class GRU(BaseModel):
             raise ValueError("Dimensionalidades inválidas en encoder.")
         n_classes = int(max(int(y_tr.max()), int(y_te.max()))) + 1
 
+        # ===== FIX: Sobrescribir classification.units con n_classes REAL =====
+        # Esto previene el bug donde la configuración tiene más clases que los datos reales
+        # (ej: dataset tiene 5 clases pero subset de Inner Speech tiene 4 sin "rest")
+        if instance.classification.units != n_classes:
+            print(f"⚠️  [GRU] ADVERTENCIA: Configuración tiene {instance.classification.units} unidades, "
+                  f"pero datos tienen {n_classes} clases.")
+            print(f"🔧 [GRU] Sobrescribiendo classification.units: {instance.classification.units} → {n_classes}")
+            instance.classification.units = n_classes
+
         try:
             import tensorflow as tf
             from tensorflow import keras

@@ -188,12 +188,6 @@ class DCTTransform(Transform):
             # Pasar all_classes para mapeo consistente en multiclase
             frame_labels_numeric, id_to_class, valid_mask = instance.relabel_for_model(frame_labels, all_classes=instance.all_classes)
 
-            # Si hay máscara de filtrado (Inner Speech excluye rest), aplicar a datos también
-            if valid_mask is not None:
-                print(f"[DCTTransform.apply] Aplicando filtro: {np.sum(valid_mask)}/{len(valid_mask)} frames válidos")
-                Y_out = Y_out[valid_mask]
-                frame_labels = frame_labels[valid_mask]
-
             print(f"[DCTTransform.apply] Etiquetas convertidas a formato numérico:")
             print(f"   Mapeo: {id_to_class}")
         else:
@@ -237,6 +231,16 @@ class DCTTransform(Transform):
             coeffs_cube = coeffs_fixed
 
         output_shape = (int(coeffs_cube.shape[0]), int(coeffs_cube.shape[1]), int(coeffs_cube.shape[2]))  # (n_frames, n_coeffs, n_channels)
+
+        # ===== FILTRAR FRAMES SI HAY MÁSCARA (Inner Speech excluye rest) =====
+        # Ahora SÍ podemos filtrar porque coeffs_cube ya existe
+        if frame_labels is not None and valid_mask is not None:
+            print(f"[DCTTransform.apply] Aplicando filtro: {np.sum(valid_mask)}/{len(valid_mask)} frames válidos")
+            coeffs_cube = coeffs_cube[valid_mask]
+            frame_labels = frame_labels[valid_mask]
+            frame_labels_numeric = frame_labels_numeric[valid_mask] if frame_labels_numeric is not None else None
+            # Actualizar output_shape después del filtrado
+            output_shape = (int(coeffs_cube.shape[0]), int(coeffs_cube.shape[1]), int(coeffs_cube.shape[2]))
 
         # ---------- guardar artefactos ----------
         dir_out = Path(str(directory_path_out)).expanduser()

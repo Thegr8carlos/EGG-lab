@@ -189,7 +189,7 @@ def create_local_training_section(model_identifier: str) -> html.Div:
             dbc.Button(
                 [
                     html.I(className="fas fa-play-circle me-2"),
-                    "Entrenar Localmente"
+                    "Entrenar"
                 ],
                 id={"type": "btn-local-training", "model": model_identifier},
                 color="success",
@@ -776,13 +776,15 @@ def create_new_subset(n_clicks, percentage, train_split, seed, selected_dataset,
     State({"type": "local-subset-selector", "model": MATCH}, "value"),
     State({"type": "local-subsets-list", "model": MATCH}, "data"),
     State({"type": "classifier-type-store", "model": MATCH}, "data"),  # ✅ Acceder al classifier_type
+    State("selected-dataset", "data"),  # ✅ Agregar dataset_name para upload
     prevent_initial_call=True
 )
-def run_local_training(n_clicks, selected_path, subsets_list, classifier_type):
+def run_local_training(n_clicks, selected_path, subsets_list, classifier_type, selected_dataset):
     """
     Ejecuta el entrenamiento local con el subset seleccionado.
-    
+
     Workflow:
+    0. Enviar experimento a la nube (solo POST, sin WebSocket)
     1. Cargar paths desde train_manifest.json y test_manifest.json
     2. Obtener configuración del modelo desde el experimento
     3. Instanciar el modelo
@@ -791,7 +793,7 @@ def run_local_training(n_clicks, selected_path, subsets_list, classifier_type):
     """
     if not n_clicks or not selected_path:
         return no_update, no_update
-    
+
     # Buscar metadata del subset
     selected_subset = None
     for subset in subsets_list:
